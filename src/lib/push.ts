@@ -3,7 +3,7 @@ import webpush from "web-push";
 import { formatEventDate } from "@/lib/datetime";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-type Kind = "new_event" | "promoted" | "day_before";
+type Kind = "new_event" | "promoted" | "day_before" | "mention" | "hour_before" | "comment";
 
 type OutboxRow = {
   id: number;
@@ -16,10 +16,14 @@ type OutboxRow = {
     place_name: string | null;
     groups: { name: string };
   } | null;
+  event_comments: { body: string; profiles: { nickname: string } | null } | null;
   profiles: {
     notify_new_event: boolean;
     notify_promoted: boolean;
     notify_day_before: boolean;
+    notify_mention: boolean;
+    notify_hour_before: boolean;
+    notify_comment: boolean;
   } | null;
 };
 
@@ -46,6 +50,9 @@ function wants(row: OutboxRow) {
   if (!prefs) return false;
   if (row.kind === "new_event") return prefs.notify_new_event;
   if (row.kind === "promoted") return prefs.notify_promoted;
+  if (row.kind === "mention") return prefs.notify_mention;
+  if (row.kind === "hour_before") return prefs.notify_hour_before;
+  if (row.kind === "comment") return prefs.notify_comment;
   return prefs.notify_day_before;
 }
 
@@ -61,6 +68,19 @@ function payloadFor(row: OutboxRow): PushPayload | null {
   }
   if (row.kind === "promoted") {
     return { title: "대기에서 참여로 바뀌었어요", body: `${event.title} · ${when}`, url };
+  }
+  if (row.kind === "mention") {
+    const author = row.event_comments?.profiles?.nickname ?? "누군가";
+    const body = row.event_comments?.body ?? "";
+    return { title: `${author}님이 회원님을 언급했어요`, body: `${event.title} · ${body.slice(0, 80)}`, url };
+  }
+  if (row.kind === "comment") {
+    const author = row.event_comments?.profiles?.nickname ?? "누군가";
+    const body = row.event_comments?.body ?? "";
+    return { title: `${event.title}에 새 댓글`, body: `${author}: ${body.slice(0, 80)}`, url };
+  }
+  if (row.kind === "hour_before") {
+    return { title: "1시간 뒤 약속이 있어요", body: `${event.title} · ${when}${where}`, url };
   }
   return { title: "내일 약속이 있어요", body: `${event.title} · ${when}${where}`, url };
 }
@@ -111,7 +131,7 @@ export async function flushNotifications() {
       pending.map((row) => row.id),
     )
     .select(
-      "id, user_id, kind, events(id, title, starts_at, place_name, groups(name)), profiles(notify_new_event, notify_promoted, notify_day_before)",
+      "id, user_id, kind, events(id, title, starts_at, place_name, groups(name)), event_comments(body, profiles(nickname)), profiles(notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment)",
     )
     .overrideTypes<OutboxRow[], { merge: false }>();
   if (!claimed || claimed.length === 0) return;

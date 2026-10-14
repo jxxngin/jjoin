@@ -20,7 +20,7 @@ export async function getUserId() {
   return userId;
 }
 
-export type NotificationPrefs = { newEvent: boolean; promoted: boolean; dayBefore: boolean };
+export type NotificationPrefs = { newEvent: boolean; promoted: boolean; dayBefore: boolean; mention: boolean; hourBefore: boolean; comment: boolean };
 
 // 종류별 알림 받기 설정 (마이페이지)
 export async function getNotificationPrefs(): Promise<NotificationPrefs> {
@@ -28,7 +28,7 @@ export async function getNotificationPrefs(): Promise<NotificationPrefs> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("notify_new_event, notify_promoted, notify_day_before")
+    .select("notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment")
     .eq("id", userId)
     .single();
 
@@ -36,6 +36,9 @@ export async function getNotificationPrefs(): Promise<NotificationPrefs> {
     newEvent: data?.notify_new_event ?? true,
     promoted: data?.notify_promoted ?? true,
     dayBefore: data?.notify_day_before ?? true,
+    mention: data?.notify_mention ?? true,
+    hourBefore: data?.notify_hour_before ?? true,
+    comment: data?.notify_comment ?? true,
   };
 }
 
