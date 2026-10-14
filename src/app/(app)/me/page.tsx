@@ -5,10 +5,11 @@ import { getCurrentProfile, getNotificationPrefs } from "@/lib/auth";
 import { NotificationSettings } from "./notification-settings";
 import { ProfileForm } from "./profile-form";
 import { ThemePicker } from "./theme-picker";
+import { Page, Reveal } from "@/components/slide-view";
 
 export default function MyPage() {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
+    <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/" label="홈" />
       <h1 className="text-2xl font-bold tracking-tight">마이페이지</h1>
 
@@ -27,16 +28,24 @@ export default function MyPage() {
           로그아웃
         </button>
       </form>
-    </main>
+    </Page>
   );
 }
 
 async function ProfileSection() {
   const profile = await getCurrentProfile();
-  return <ProfileForm profile={profile} />;
+  return (
+    <Reveal>
+      <ProfileForm profile={profile} />
+    </Reveal>
+  );
 }
 
 async function NotificationSection() {
   const prefs = await getNotificationPrefs();
-  return <NotificationSettings prefs={prefs} />;
+  return (
+    <Reveal>
+      <NotificationSettings prefs={prefs} />
+    </Reveal>
+  );
 }

@@ -28,6 +28,8 @@ export type EventSummary = {
   // 며칠 남았는지 (오늘 0). 지난 약속이면 null
   daysLeft: number | null;
   creator: Person | null;
+  // 다른 사람이 쓴 댓글 시각. 화면에서 "안 읽은 댓글" 배지를 계산한다. (내가 이 약속을 마지막으로 본 시각과 비교)
+  otherCommentTimes: string[];
 };
 
 export type Person = {
@@ -71,6 +73,7 @@ type EventRow = {
   end_reason: EndReason | null;
   end_note: string | null;
   creator: { nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
+  event_comments: { user_id: string; created_at: string }[];
   event_participants: { status: ParticipantStatus }[];
 };
 
@@ -92,11 +95,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // event_participants 때문에 events→profiles 경로가 둘이라 만든 사람은 created_by로 지정한다.
 const BASE_COLUMNS =
-  "id, title, starts_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url, avatar_color)";
+  "id, title, starts_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url, avatar_color), event_comments(user_id, created_at)";
 
 function toSummary(
   row: Omit<EventRow, "event_participants">,
   statuses: ParticipantStatus[],
+  userId: string,
 ): EventSummary {
   const goingCount = statuses.filter((status) => status === "going").length;
   const summary = {
@@ -124,6 +128,7 @@ function toSummary(
           avatarColor: row.creator.avatar_color,
         }
       : null,
+    otherCommentTimes: row.event_comments.filter((c) => c.user_id !== userId).map((c) => c.created_at),
   };
 }
 
@@ -132,6 +137,7 @@ async function getGroupEvents(
   groupId: string,
   { from, to, latestFirst = false, limit }: { from?: Date; to?: Date; latestFirst?: boolean; limit?: number },
 ): Promise<EventSummary[]> {
+  const userId = await getUserId();
   const supabase = await createClient();
   let query = supabase
     .from("events")
@@ -148,6 +154,7 @@ async function getGroupEvents(
     toSummary(
       row,
       row.event_participants.map((p) => p.status),
+      userId,
     ),
   );
 }
@@ -199,6 +206,7 @@ export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
     ...toSummary(
       row,
       row.event_participants.map((p) => p.status),
+      userId,
     ),
     group: row.groups,
     myStatus: row.mine[0].status,
@@ -234,6 +242,7 @@ export async function getMyEventsBetween(from: Date, to: Date): Promise<GroupedE
     ...toSummary(
       row,
       row.event_participants.map((p) => p.status),
+      userId,
     ),
     group: row.groups,
   }));
@@ -285,6 +294,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
     ...toSummary(
       row,
       row.event_participants.map((p) => p.status),
+      userId,
     ),
     place:
       row.place_lat !== null && row.place_lng !== null && row.place_url

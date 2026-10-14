@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { signInWithKakao } from "@/app/auth/actions";
 import { Wordmark } from "@/components/wordmark";
+import { Page } from "@/components/slide-view";
 
 const errorMessages: Record<string, string> = {
   oauth: "카카오 로그인을 시작하지 못했어요. 다시 시도해 주세요.",
@@ -10,7 +11,7 @@ const errorMessages: Record<string, string> = {
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-8 px-4 py-16 text-center">
+    <Page className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-8 px-4 py-16 text-center">
       <div className="flex flex-col items-center gap-2">
         <Image src="/logo-512.png" alt="" width={96} height={96} preload className="mb-2 rounded-3xl" />
         <h1>
@@ -23,7 +24,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       <Suspense fallback={<KakaoButton next="/" />}>
         <LoginForm searchParams={searchParams} />
       </Suspense>
-    </main>
+    </Page>
   );
 }
 

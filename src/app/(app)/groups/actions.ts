@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getUserId } from "@/lib/auth";
 import {
@@ -98,5 +99,46 @@ export async function leaveGroup(formData: FormData) {
     .eq("user_id", userId);
   if (error) throw new Error("그룹에서 나가지 못했어요.");
 
+  redirect("/");
+}
+
+// ── 그룹 관리 (방장만). 권한은 DB의 RLS·RPC가 다시 확인한다. ──
+
+export async function kickMember(groupId: string, userId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("group_members")
+    .delete()
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .select("user_id");
+  if (error || data.length === 0) return { error: "멤버를 내보내지 못했어요." };
+  refresh();
+  return {};
+}
+
+export async function transferOwnership(groupId: string, userId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("transfer_group_ownership", {
+    p_group_id: groupId,
+    p_new_owner: userId,
+  });
+  if (error) return { error: "방장을 넘기지 못했어요." };
+  // 이제 방장이 아니라 설정 화면을 볼 수 없다.
+  redirect(`/groups/${groupId}`);
+}
+
+export async function regenerateInviteCode(groupId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("regenerate_invite_code", { p_group_id: groupId });
+  if (error) return { error: "초대 링크를 새로 만들지 못했어요." };
+  refresh();
+  return {};
+}
+
+export async function deleteGroup(groupId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("groups").delete().eq("id", groupId).select("id");
+  if (error || data.length === 0) return { error: "그룹을 삭제하지 못했어요." };
   redirect("/");
 }

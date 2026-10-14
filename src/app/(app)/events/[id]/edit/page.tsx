@@ -1,20 +1,21 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { updateEvent } from "@/app/events/actions";
-import { EventForm } from "@/app/events/event-form";
+import { updateEvent } from "@/app/(app)/events/actions";
+import { EventForm } from "@/app/(app)/events/event-form";
 import { BackLink } from "@/components/back-link";
 import { toKstInput } from "@/lib/datetime";
 import { getEvent } from "@/lib/events";
+import { Page, Reveal } from "@/components/slide-view";
 
 export default function EditEventPage({ params }: PageProps<"/events/[id]/edit">) {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
+    <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         {params.then(({ id }) => (
           <EditEventContent id={id} />
         ))}
       </Suspense>
-    </main>
+    </Page>
   );
 }
 
@@ -23,7 +24,7 @@ async function EditEventContent({ id }: { id: string }) {
   if (!event || !event.canEdit) notFound();
 
   return (
-    <>
+    <Reveal className="flex flex-col gap-6">
       <BackLink href={`/events/${event.id}`} label={event.title} />
       <h1 className="text-2xl font-bold tracking-tight">약속 수정</h1>
       <EventForm
@@ -41,6 +42,6 @@ async function EditEventContent({ id }: { id: string }) {
         }}
         submitLabel="저장"
       />
-    </>
+    </Reveal>
   );
 }

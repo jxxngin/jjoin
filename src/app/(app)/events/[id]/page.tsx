@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
@@ -7,23 +8,28 @@ import { PersonName } from "@/components/person-name";
 import { BackLink } from "@/components/back-link";
 import { formatEventDate } from "@/lib/datetime";
 import { StatusBadge } from "@/components/status-badge";
+import { MarkEventSeen } from "@/components/unread-comments";
 import { END_REASON_LABELS, formatGoing } from "@/lib/event-status";
+import { googleCalendarUrl } from "@/lib/calendar-export";
 import { getEvent, type Participant } from "@/lib/events";
 import { reopenEvent } from "../actions";
+import { CalendarMenu } from "./calendar-menu";
+import { Comments } from "./comments";
 import { DeleteEventButton } from "./delete-button";
 import { EndEventForm } from "./end-event-form";
 import { ParticipationButtons } from "./participation-buttons";
 import { PlaceMap } from "./place-map";
+import { Page, Reveal } from "@/components/slide-view";
 
 export default function EventPage({ params }: PageProps<"/events/[id]">) {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
+    <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         {params.then(({ id }) => (
           <EventContent id={id} />
         ))}
       </Suspense>
-    </main>
+    </Page>
   );
 }
 
@@ -33,9 +39,12 @@ async function EventContent({ id }: { id: string }) {
 
   const { status } = event;
   const { going, waitlisted, maybe, not_going } = event.participants;
+  const host = (await headers()).get("host");
+  const eventUrl = `https://${host}/events/${event.id}`;
 
   return (
-    <>
+    <Reveal className="flex flex-1 flex-col gap-6">
+      <MarkEventSeen eventId={event.id} />
       <BackLink href={`/groups/${event.group.id}`} label={event.group.name} />
 
       <div className="flex flex-col gap-2">
@@ -46,7 +55,25 @@ async function EventContent({ id }: { id: string }) {
             {formatGoing(event.goingCount, event.maxPeople)} 참여
           </span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
+        <div className="flex items-start gap-2">
+          <h1 className="min-w-0 flex-1 text-2xl font-bold tracking-tight">{event.title}</h1>
+          {status !== "ended" && (
+            <CalendarMenu
+              googleUrl={googleCalendarUrl(
+                {
+                  id: event.id,
+                  title: event.title,
+                  startsAt: event.startsAt,
+                  placeName: event.placeName,
+                  address: event.place?.address ?? null,
+                  memo: event.memo,
+                },
+                eventUrl,
+              )}
+              icsUrl={`/events/${event.id}/ics`}
+            />
+          )}
+        </div>
         {event.creator && (
           <p className="flex items-center gap-2 text-sm text-stone-500">
             <Avatar src={event.creator.avatarUrl} color={event.creator.avatarColor} size="sm" />
@@ -144,6 +171,10 @@ async function EventContent({ id }: { id: string }) {
         </section>
       )}
 
+      <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+        <Comments eventId={event.id} groupId={event.group.id} />
+      </Suspense>
+
       {event.canEdit && (
         <div className="mt-auto flex flex-col gap-2">
           {status !== "ended" && (
@@ -154,6 +185,7 @@ async function EventContent({ id }: { id: string }) {
           <div className="flex gap-2">
             <Link
               href={`/events/${event.id}/edit`}
+              transitionTypes={["nav-forward"]}
               className="flex h-12 flex-1 items-center justify-center rounded-xl bg-stone-100 font-medium dark:bg-stone-900"
             >
               수정
@@ -162,7 +194,7 @@ async function EventContent({ id }: { id: string }) {
           </div>
         </div>
       )}
-    </>
+    </Reveal>
   );
 }
 

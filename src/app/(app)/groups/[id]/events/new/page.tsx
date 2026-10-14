@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { createEvent } from "@/app/events/actions";
-import { EventForm } from "@/app/events/event-form";
+import { createEvent } from "@/app/(app)/events/actions";
+import { createPoll } from "@/app/(app)/polls/actions";
 import { BackLink } from "@/components/back-link";
 import { getGroup } from "@/lib/groups";
+import { Page, Reveal } from "@/components/slide-view";
+import { NewEventTabs } from "./new-event-tabs";
 
 const emptyValues = {
   title: "",
@@ -19,13 +21,13 @@ const emptyValues = {
 
 export default function NewEventPage({ params }: PageProps<"/groups/[id]/events/new">) {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
+    <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         {params.then(({ id }) => (
           <NewEventContent groupId={id} />
         ))}
       </Suspense>
-    </main>
+    </Page>
   );
 }
 
@@ -35,14 +37,14 @@ async function NewEventContent({ groupId }: { groupId: string }) {
   if (!group) notFound();
 
   return (
-    <>
+    <Reveal className="flex flex-col gap-6">
       <BackLink href={`/groups/${group.id}`} label={group.name} />
       <h1 className="text-2xl font-bold tracking-tight">약속 만들기</h1>
-      <EventForm
-        action={createEvent.bind(null, group.id)}
-        initialValues={emptyValues}
-        submitLabel="만들기"
+      <NewEventTabs
+        eventAction={createEvent.bind(null, group.id)}
+        pollAction={createPoll.bind(null, group.id)}
+        emptyValues={emptyValues}
       />
-    </>
+    </Reveal>
   );
 }
