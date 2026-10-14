@@ -1,10 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { supabaseKey, supabaseUrl } from "./env";
 
 // 서버 컴포넌트, 서버 함수, 라우트 핸들러에서 사용하는 Supabase 클라이언트.
 // 요청마다 새로 만들어야 한다.
 export async function createClient() {
+  // Supabase가 토큰 만료 확인에 Date.now()를 쓰므로 요청 시점에만 실행한다.
+  await connection();
   const cookieStore = await cookies();
 
   return createServerClient(supabaseUrl!, supabaseKey!, {

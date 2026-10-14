@@ -1,6 +1,5 @@
 import "server-only";
 import { redirect } from "next/navigation";
-import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export type Profile = {
@@ -9,15 +8,19 @@ export type Profile = {
   avatarUrl: string | null;
 };
 
-// 현재 로그인한 사용자의 프로필. 로그인하지 않았으면 로그인 화면으로 보낸다.
-export async function getCurrentProfile(): Promise<Profile> {
-  // Supabase가 토큰 만료 확인에 Date.now()를 쓰므로 요청 시점에만 실행한다.
-  await connection();
-
+// 현재 로그인한 사용자 id. 로그인하지 않았으면 로그인 화면으로 보낸다.
+export async function getUserId() {
   const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  const userId = claims?.claims.sub;
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims.sub;
   if (!userId) redirect("/login");
+  return userId;
+}
+
+// 현재 로그인한 사용자의 프로필.
+export async function getCurrentProfile(): Promise<Profile> {
+  const userId = await getUserId();
+  const supabase = await createClient();
 
   const { data: profile, error } = await supabase
     .from("profiles")
