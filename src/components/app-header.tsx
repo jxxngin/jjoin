@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
+import { HomeLogoLink } from "@/components/pull-to-refresh";
 import { Wordmark } from "@/components/wordmark";
 import { getCurrentProfile } from "@/lib/auth";
 import { hasUnreadNotifications } from "@/lib/notifications";
@@ -16,10 +17,10 @@ export function AppHeader() {
       style={{ viewTransitionName: "app-header" }}
     >
       <div className="mx-auto flex w-full max-w-md items-center justify-between px-4">
-        <Link href="/" transitionTypes={["nav-back"]} aria-label="홈" className="flex items-center gap-2">
+        <HomeLogoLink>
           <Image src="/logo-512.png" alt="" width={32} height={32} className="rounded-lg" />
           <Wordmark height={26} priority />
-        </Link>
+        </HomeLogoLink>
         <Suspense fallback={<div className="h-8 w-[76px]" />}>
           <ProfileMenu />
         </Suspense>
