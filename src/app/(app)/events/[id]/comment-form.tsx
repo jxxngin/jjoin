@@ -134,7 +134,7 @@ export function CommentForm({ eventId, members }: { eventId: string; members: Me
           rows={1}
           maxLength={500}
           placeholder="댓글 남기기 · @로 친구 부르기"
-          className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-stone-300 bg-transparent px-3 py-2.5 text-sm outline-none [field-sizing:content] focus:border-brand dark:border-stone-700"
+          className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-stone-300 bg-transparent px-3 py-2.5 text-base outline-none [field-sizing:content] focus:border-brand dark:border-stone-700"
         />
         <button
           type="submit"

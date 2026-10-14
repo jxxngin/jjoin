@@ -52,7 +52,7 @@ export function EndEventForm({ eventId }: { eventId: string }) {
         maxLength={100}
         required={reason === "other"}
         placeholder={reason === "other" ? "사유를 적어 주세요" : "한마디 남기기 (선택)"}
-        className="h-11 rounded-xl border border-stone-300 bg-transparent px-3 text-sm outline-none focus:border-brand dark:border-stone-700"
+        className="h-11 rounded-xl border border-stone-300 bg-transparent px-3 text-base outline-none focus:border-brand dark:border-stone-700"
       />
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex gap-2">
