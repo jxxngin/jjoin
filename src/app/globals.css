@@ -28,6 +28,11 @@
   --color-brand-ink: var(--brand-ink);
 }
 
+/* 브라우저 기본 "당겨서 새로고침"은 끄고 직접 만든 것만 쓴다. (pull-to-refresh.tsx) */
+html {
+  overscroll-behavior-y: contain;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
