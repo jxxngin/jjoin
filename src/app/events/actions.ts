@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { fromKstInput } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
@@ -113,6 +114,28 @@ export async function updateEvent(
   }
 
   redirect(`/events/${eventId}`);
+}
+
+export async function setParticipation(
+  eventId: string,
+  status: "going" | "maybe" | "not_going",
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_participation", {
+    eid: eventId,
+    new_status: status,
+  });
+
+  if (error) {
+    return {
+      error: error.message.includes("already started")
+        ? "이미 시작한 약속이에요."
+        : "참여 상태를 바꾸지 못했어요.",
+    };
+  }
+
+  refresh();
+  return {};
 }
 
 export async function deleteEvent(formData: FormData) {

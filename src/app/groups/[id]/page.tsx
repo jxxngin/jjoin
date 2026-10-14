@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { formatPeople } from "@/app/events/format";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
+import { StatusBadge } from "@/components/status-badge";
 import { getUserId } from "@/lib/auth";
 import { formatEventDate } from "@/lib/datetime";
+import { formatGoing } from "@/lib/event-status";
 import { getUpcomingEvents } from "@/lib/events";
 import { getGroup } from "@/lib/groups";
 import { leaveGroup } from "../actions";
@@ -95,24 +96,26 @@ async function UpcomingEvents({ groupId }: { groupId: string }) {
 
   return (
     <ul className="flex flex-col gap-2">
-      {events.map((event) => {
-        const people = formatPeople(event.minPeople, event.maxPeople);
-        return (
-          <li key={event.id}>
-            <Link
-              href={`/events/${event.id}`}
-              className="flex flex-col gap-1 rounded-2xl bg-zinc-100 px-4 py-3 transition active:scale-[0.99] dark:bg-zinc-900"
-            >
-              <span className="font-medium">{event.title}</span>
-              <span className="text-sm text-zinc-500">
-                {formatEventDate(event.startsAt)}
-                {event.placeName && ` · ${event.placeName}`}
-                {people && ` · ${people}`}
+      {events.map((event) => (
+        <li key={event.id}>
+          <Link
+            href={`/events/${event.id}`}
+            className="flex flex-col gap-1 rounded-2xl bg-zinc-100 px-4 py-3 transition active:scale-[0.99] dark:bg-zinc-900"
+          >
+            <div className="flex items-center gap-2">
+              <StatusBadge status={event.status} />
+              <span className="truncate font-medium">{event.title}</span>
+              <span className="ml-auto shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                {formatGoing(event.goingCount, event.maxPeople)}
               </span>
-            </Link>
-          </li>
-        );
-      })}
+            </div>
+            <span className="text-sm text-zinc-500">
+              {formatEventDate(event.startsAt)}
+              {event.placeName && ` · ${event.placeName}`}
+            </span>
+          </Link>
+        </li>
+      ))}
     </ul>
   );
 }
