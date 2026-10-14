@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { EventCard } from "@/components/event-card";
 import { statusStyles } from "@/components/status-badge";
-import { kstDateKey, shiftMonth } from "@/lib/datetime";
+import { addDays, kstDateKey, shiftMonth, weekStart } from "@/lib/datetime";
 import type { EventSummary } from "@/lib/events";
 import { GROUP_COLORS, type GroupColor } from "@/lib/group-style";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+export type CalendarRange = "week" | "month";
 
 export type CalendarItem = {
   event: EventSummary;
@@ -16,22 +18,39 @@ export type CalendarItem = {
   group?: { name: string; emoji: string; color: GroupColor };
 };
 
-// 한 달 달력. 날짜를 누르면 그날 약속을 아래에 보여 준다.
+// 보여 줄 날짜들. 월 보기는 1일 앞을 빈칸으로 채운다.
+function calendarDays(range: CalendarRange, anchor: string) {
+  if (range === "week") {
+    const start = weekStart(anchor);
+    return { blanks: 0, days: Array.from({ length: 7 }, (_, i) => addDays(start, i)) };
+  }
+  const first = `${anchor.slice(0, 7)}-01`;
+  const next = `${shiftMonth(anchor.slice(0, 7), 1)}-01`;
+  const days: string[] = [];
+  for (let day = first; day < next; day = addDays(day, 1)) days.push(day);
+  return { blanks: new Date(`${first}T00:00:00Z`).getUTCDay(), days };
+}
+
+const md = (key: string) => `${Number(key.slice(5, 7))}월 ${Number(key.slice(8))}일`;
+
+// 주·월 달력. 날짜를 누르면 그날 약속을 아래에 보여 준다.
 export function Calendar({
-  monthHrefBase,
-  month,
+  hrefBase,
+  range,
+  anchor,
   today,
   items,
 }: {
-  // 달을 넘기는 링크. 뒤에 &month=2026-11 이 붙는다. 예: "/?view=calendar"
-  monthHrefBase: string;
-  month: string; // "2026-10"
-  today: string; // "2026-10-18"
+  // 달력 링크의 앞부분. 뒤에 &range=week&date=2026-10-18 이 붙는다. 예: "/?view=calendar"
+  hrefBase: string;
+  range: CalendarRange;
+  anchor: string; // 보여 줄 주·달에 속한 날짜 "2026-10-18"
+  today: string;
   items: CalendarItem[];
 }) {
-  const [year, monthIndex] = month.split("-").map(Number);
-  const firstWeekday = new Date(Date.UTC(year, monthIndex - 1, 1)).getUTCDay();
-  const daysInMonth = new Date(Date.UTC(year, monthIndex, 0)).getUTCDate();
+  const { blanks, days } = calendarDays(range, anchor);
+  const first = days[0];
+  const last = days[days.length - 1];
 
   const itemsByDay = new Map<string, CalendarItem[]>();
   for (const item of items) {
@@ -39,32 +58,86 @@ export function Calendar({
     itemsByDay.set(key, [...(itemsByDay.get(key) ?? []), item]);
   }
 
-  const dayKey = (day: number) => `${month}-${String(day).padStart(2, "0")}`;
-  const firstEventDay = items[0] ? kstDateKey(items[0].event.startsAt) : dayKey(1);
-  const [selected, setSelected] = useState(today.startsWith(month) ? today : firstEventDay);
+  const initial =
+    today >= first && today <= last
+      ? today
+      : (days.find((day) => itemsByDay.has(day)) ?? first);
+  const [selected, setSelected] = useState(initial);
   const selectedItems = itemsByDay.get(selected) ?? [];
 
-  const monthHref = (delta: number) => `${monthHrefBase}&month=${shiftMonth(month, delta)}`;
+  const href = (nextRange: CalendarRange, date: string) =>
+    `${hrefBase}&range=${nextRange}&date=${date}`;
+  const prev =
+    range === "week" ? addDays(first, -7) : `${shiftMonth(first.slice(0, 7), -1)}-01`;
+  const next =
+    range === "week" ? addDays(first, 7) : `${shiftMonth(first.slice(0, 7), 1)}-01`;
+
+  const title =
+    range === "month"
+      ? `${first.slice(0, 4)}년 ${Number(first.slice(5, 7))}월`
+      : first.slice(0, 7) === last.slice(0, 7)
+        ? `${md(first)} – ${Number(last.slice(8))}일`
+        : `${md(first)} – ${md(last)}`;
+
   const chipClass = (item: CalendarItem) =>
     item.group ? GROUP_COLORS[item.group.color].tile : statusStyles[item.event.status].className;
+  // 칸이 좁아서 월 보기는 두 개, 주 보기는 네 개까지 제목을 보여 주고 나머지는 개수만 표시한다.
+  const maxChips = range === "week" ? 4 : 2;
 
   // 그룹 색으로 칠했으면 범례도 그룹별로, 아니면 상태별로 보여 준다.
   const groups = new Map(
     items.flatMap((item) => (item.group ? [[item.group.name, item.group] as const] : [])),
   );
 
+  const rangeTab = (target: CalendarRange) =>
+    `rounded-full px-2.5 py-0.5 text-xs font-medium ${
+      range === target ? "bg-white shadow-sm dark:bg-stone-700" : "text-stone-500"
+    }`;
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <Link href={monthHref(-1)} className="px-3 py-1 text-stone-500" aria-label="이전 달">
+      <div className="flex items-center gap-1">
+        <Link
+          href={href(range, prev)}
+          replace
+          scroll={false}
+          transitionTypes={["view-back"]}
+          className="px-2 py-1 text-stone-500"
+          aria-label={range === "week" ? "이전 주" : "이전 달"}
+        >
           ‹
         </Link>
-        <span className="font-semibold">
-          {year}년 {monthIndex}월
-        </span>
-        <Link href={monthHref(1)} className="px-3 py-1 text-stone-500" aria-label="다음 달">
+        <span className="min-w-0 flex-1 text-center font-semibold">{title}</span>
+        <Link
+          href={href(range, next)}
+          replace
+          scroll={false}
+          transitionTypes={["view-forward"]}
+          className="px-2 py-1 text-stone-500"
+          aria-label={range === "week" ? "다음 주" : "다음 달"}
+        >
           ›
         </Link>
+        <div className="ml-1 flex rounded-full bg-stone-100 p-0.5 dark:bg-stone-900">
+          <Link
+            href={href("week", selected)}
+            replace
+            scroll={false}
+            transitionTypes={["view-zoom"]}
+            className={rangeTab("week")}
+          >
+            주
+          </Link>
+          <Link
+            href={href("month", selected)}
+            replace
+            scroll={false}
+            transitionTypes={["view-zoom"]}
+            className={rangeTab("month")}
+          >
+            월
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 text-center text-xs text-stone-500">
@@ -79,26 +152,24 @@ export function Calendar({
       </div>
 
       <div className="grid grid-cols-7 border-t border-l border-stone-200 dark:border-stone-800">
-        {Array.from({ length: firstWeekday }, (_, i) => (
+        {Array.from({ length: blanks }, (_, i) => (
           <span key={`blank-${i}`} className="border-r border-b border-stone-200 dark:border-stone-800" />
         ))}
-        {Array.from({ length: daysInMonth }, (_, i) => {
-          const day = i + 1;
-          const key = dayKey(day);
+        {days.map((key) => {
           const dayItems = itemsByDay.get(key) ?? [];
           const isSelected = key === selected;
           const isToday = key === today;
-          const weekday = (firstWeekday + i) % 7;
+          const weekday = new Date(`${key}T00:00:00Z`).getUTCDay();
 
           return (
             <button
               key={key}
               type="button"
               onClick={() => setSelected(key)}
-              aria-label={`${monthIndex}월 ${day}일, 약속 ${dayItems.length}개`}
-              className={`flex min-h-20 min-w-0 flex-col gap-0.5 border-r border-b border-stone-200 p-0.5 text-left dark:border-stone-800 ${
-                isSelected ? "bg-brand/10" : ""
-              }`}
+              aria-label={`${md(key)}, 약속 ${dayItems.length}개`}
+              className={`flex min-w-0 flex-col gap-0.5 border-r border-b border-stone-200 p-0.5 text-left dark:border-stone-800 ${
+                range === "week" ? "min-h-32" : "min-h-20"
+              } ${isSelected ? "bg-brand/10" : ""}`}
             >
               <span
                 className={`flex size-6 items-center justify-center self-center rounded-full text-xs ${
@@ -111,10 +182,9 @@ export function Calendar({
                         : ""
                 }`}
               >
-                {day}
+                {Number(key.slice(8))}
               </span>
-              {/* 칸이 좁아서 두 개까지 제목을 보여 주고 나머지는 개수만 표시한다. */}
-              {dayItems.slice(0, 2).map((item) => (
+              {dayItems.slice(0, maxChips).map((item) => (
                 <span
                   key={item.event.id}
                   className={`truncate rounded px-1 text-[10px] leading-4 font-medium ${chipClass(item)} ${
@@ -124,9 +194,9 @@ export function Calendar({
                   {item.event.title}
                 </span>
               ))}
-              {dayItems.length > 2 && (
+              {dayItems.length > maxChips && (
                 <span className="px-1 text-[10px] leading-4 text-stone-500">
-                  +{dayItems.length - 2}
+                  +{dayItems.length - maxChips}
                 </span>
               )}
             </button>
@@ -152,8 +222,7 @@ export function Calendar({
 
       <div className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">
-          {Number(selected.slice(5, 7))}월 {Number(selected.slice(8))}일 (
-          {WEEKDAYS[new Date(`${selected}T00:00:00Z`).getUTCDay()]})
+          {md(selected)} ({WEEKDAYS[new Date(`${selected}T00:00:00Z`).getUTCDay()]})
         </h3>
         {selectedItems.length === 0 ? (
           <p className="py-4 text-center text-sm text-stone-500">이날은 약속이 없어요.</p>

@@ -54,23 +54,46 @@ export function formatDaysLeft(days: number) {
   return `${days}일 후`;
 }
 
+// "방금", "5분 전", "3시간 전", 하루가 넘으면 "10월 18일"
+export function formatRelative(iso: string, now: number) {
+  const minutes = Math.floor((now - new Date(iso).getTime()) / 60_000);
+  if (minutes < 1) return "방금";
+  if (minutes < 60) return `${minutes}분 전`;
+  if (minutes < 60 * 24) return `${Math.floor(minutes / 60)}시간 전`;
+  const key = kstDateKey(iso);
+  return `${Number(key.slice(5, 7))}월 ${Number(key.slice(8))}일`;
+}
+
 // 오늘 한국 날짜 "2026-10-18"
 export function kstToday() {
   return kstDateKey(new Date().toISOString());
 }
 
-// "2026-10" 형식이 아니면 이번 달로 바꾼다.
-export function normalizeMonth(value: string | undefined) {
-  return value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value) ? value : kstToday().slice(0, 7);
+// "2026-10-18" 날짜 키 계산. 시간대와 상관없이 날짜만 다루려고 UTC 자정으로 계산한다.
+const keyToUtc = (key: string) => Date.parse(`${key}T00:00:00Z`);
+const utcToKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+export function addDays(key: string, days: number) {
+  return utcToKey(keyToUtc(key) + days * 86_400_000);
 }
 
-// 한 달 범위 [from, to). month는 "2026-10"
-export function kstMonthRange(month: string) {
-  const [y, m] = month.split("-").map(Number);
-  const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+// 그 날짜가 속한 주의 일요일
+export function weekStart(key: string) {
+  return addDays(key, -new Date(keyToUtc(key)).getUTCDay());
+}
+
+// "2026-10-18" 형식이 아니면 오늘로 바꾼다.
+export function normalizeDateKey(value: string | undefined) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(keyToUtc(value))
+    ? value
+    : kstToday();
+}
+
+// 한국 날짜 [from, to) 범위를 실제 시각으로 바꾼다.
+export function kstDayRange(fromKey: string, toKey: string) {
   return {
-    from: new Date(`${month}-01T00:00:00+09:00`),
-    to: new Date(`${next}-01T00:00:00+09:00`),
+    from: new Date(`${fromKey}T00:00:00+09:00`),
+    to: new Date(`${toKey}T00:00:00+09:00`),
   };
 }
 
@@ -79,4 +102,14 @@ export function shiftMonth(month: string, delta: number) {
   const [y, m] = month.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1 + delta, 1));
   return date.toISOString().slice(0, 7);
+}
+
+// 캘린더가 보여 줄 기간 [from, to)의 날짜 키. 주는 일요일부터 7일, 월은 그달 1일부터.
+export function calendarRangeKeys(range: "week" | "month", anchor: string) {
+  if (range === "week") {
+    const start = weekStart(anchor);
+    return { fromKey: start, toKey: addDays(start, 7) };
+  }
+  const month = anchor.slice(0, 7);
+  return { fromKey: `${month}-01`, toKey: `${shiftMonth(month, 1)}-01` };
 }
