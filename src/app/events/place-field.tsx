@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { loadKakaoMaps, searchPlaces, type KakaoPlace } from "@/lib/kakao-maps";
 
 export type PlaceValue = {
@@ -23,24 +23,45 @@ export function PlaceField({ defaultValue }: { defaultValue: PlaceValue }) {
   const [results, setResults] = useState<KakaoPlace[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string>();
+  const debounce = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // 늦게 도착한 이전 검색 결과가 최신 결과를 덮어쓰지 않게 한다.
+  const latestSearch = useRef(0);
 
-  async function search() {
-    const keyword = query.trim();
-    if (!keyword) return;
+  async function search(keyword: string) {
+    clearTimeout(debounce.current);
+    keyword = keyword.trim();
+    if (!keyword) {
+      setResults(null);
+      return;
+    }
 
+    const id = ++latestSearch.current;
     setSearching(true);
     setError(undefined);
     try {
       const maps = await loadKakaoMaps();
-      setResults(await searchPlaces(maps, keyword));
+      const places = await searchPlaces(maps, keyword);
+      if (id === latestSearch.current) setResults(places);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "장소를 검색하지 못했어요.");
+      if (id === latestSearch.current) {
+        setError(e instanceof Error ? e.message : "장소를 검색하지 못했어요.");
+      }
     } finally {
-      setSearching(false);
+      if (id === latestSearch.current) setSearching(false);
     }
   }
 
+  // 휴대폰 키보드는 검색 키 동작이 제각각이라, 입력을 멈추면 자동으로 검색한다.
+  function handleChange(value: string) {
+    setQuery(value);
+    clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => search(value), 400);
+  }
+
   function choose(place: KakaoPlace) {
+    clearTimeout(debounce.current);
+    latestSearch.current++;
+    setSearching(false);
     setSelected({
       name: place.place_name,
       address: place.road_address_name || place.address_name,
@@ -78,14 +99,14 @@ export function PlaceField({ defaultValue }: { defaultValue: PlaceValue }) {
         <>
           <div className="flex gap-2">
             <input
+              // 약속 폼에 속하지 않게 해서, 키보드의 엔터·검색 키가 약속을 저장하지 않게 한다.
+              // 값은 위의 숨은 input으로 보낸다.
+              form="place-search"
+              enterKeyHint="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => handleChange(e.target.value)}
               onKeyDown={(e) => {
-                // 엔터로 폼이 제출되지 않고 검색되게 한다.
-                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  search();
-                }
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) search(query);
               }}
               maxLength={100}
               placeholder="예: 강남역 삼겹살"
@@ -94,7 +115,7 @@ export function PlaceField({ defaultValue }: { defaultValue: PlaceValue }) {
             />
             <button
               type="button"
-              onClick={search}
+              onClick={() => search(query)}
               disabled={searching || !query.trim()}
               className="h-12 shrink-0 rounded-xl bg-zinc-100 px-4 font-medium disabled:opacity-50 dark:bg-zinc-900"
             >

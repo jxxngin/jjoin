@@ -37,7 +37,8 @@ export function EventForm({
         <DateTimeField name="startsAt" defaultValue={values.startsAt} />
       </Field>
 
-      <Field label="장소" hint="선택">
+      {/* 검색 결과 버튼을 탭할 때 label이 입력칸으로 초점을 옮기지 않게 div로 감싼다. */}
+      <Field label="장소" hint="선택" as="div">
         <PlaceField
           defaultValue={{
             name: values.placeName,
@@ -103,19 +104,21 @@ export function EventForm({
 function Field({
   label,
   hint,
+  as: Wrapper = "label",
   children,
 }: {
   label: string;
   hint?: string;
+  as?: "label" | "div";
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-2">
+    <Wrapper className="flex flex-col gap-2">
       <span className="text-sm font-medium">
         {label}
         {hint && <span className="ml-1 font-normal text-zinc-500">· {hint}</span>}
       </span>
       {children}
-    </label>
+    </Wrapper>
   );
 }
