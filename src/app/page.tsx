@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/wordmark";
 import { Calendar } from "@/components/calendar";
 import { EventCard } from "@/components/event-card";
 import { GroupAvatar } from "@/components/group-avatar";
+import { InstallBanner } from "@/components/install-banner";
 import { ViewToggle, type ViewMode } from "@/components/view-toggle";
 import { getCurrentProfile } from "@/lib/auth";
 import { kstMonthRange, kstToday, normalizeMonth } from "@/lib/datetime";
@@ -27,6 +28,8 @@ export default function Home({ searchParams }: PageProps<"/">) {
           <ProfileMenu />
         </Suspense>
       </header>
+
+      <InstallBanner />
 
       <Suspense
         fallback={

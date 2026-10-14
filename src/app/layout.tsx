@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -12,6 +13,8 @@ const notoSansKr = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: "jjoin",
   description: "친구들과의 약속을 한곳에서 만들고 확인해요",
+  // 아이폰에서 홈 화면에 추가했을 때 앱 이름과 전체 화면 실행
+  appleWebApp: { capable: true, title: "jjoin", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -33,7 +36,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             HTML을 읽는 즉시 실행되도록 그냥 인라인 스크립트로 넣는다. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   );
 }
