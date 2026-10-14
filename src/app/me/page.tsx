@@ -3,6 +3,7 @@ import { signOut } from "@/app/auth/actions";
 import { BackLink } from "@/components/back-link";
 import { getCurrentProfile } from "@/lib/auth";
 import { ProfileForm } from "./profile-form";
+import { ThemePicker } from "./theme-picker";
 
 export default function MyPage() {
   return (
@@ -13,6 +14,8 @@ export default function MyPage() {
       <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         <ProfileSection />
       </Suspense>
+
+      <ThemePicker />
 
       <form action={signOut} className="mt-auto">
         <button type="submit" className="text-sm text-stone-500 underline underline-offset-4">

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Suspense } from "react";
 import { signInWithKakao } from "@/app/auth/actions";
+import { Wordmark } from "@/components/wordmark";
 
 const errorMessages: Record<string, string> = {
   oauth: "카카오 로그인을 시작하지 못했어요. 다시 시도해 주세요.",
@@ -11,8 +12,10 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-8 px-4 py-16 text-center">
       <div className="flex flex-col items-center gap-2">
-        <Image src="/logo-512.png" alt="" width={96} height={96} priority className="mb-2 rounded-3xl" />
-        <h1 className="text-4xl font-bold tracking-tight">jjoin</h1>
+        <Image src="/logo-512.png" alt="" width={96} height={96} preload className="mb-2 rounded-3xl" />
+        <h1>
+          <Wordmark height={56} priority />
+        </h1>
         <p className="text-stone-600 dark:text-stone-400">
           친구들과의 약속을 한곳에서 만들고 확인해요.
         </p>

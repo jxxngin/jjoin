@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
+import { Wordmark } from "@/components/wordmark";
 import { Calendar } from "@/components/calendar";
 import { EventCard } from "@/components/event-card";
 import { GroupAvatar } from "@/components/group-avatar";
@@ -18,7 +19,9 @@ export default function Home({ searchParams }: PageProps<"/">) {
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Image src="/logo-512.png" alt="" width={32} height={32} className="rounded-lg" />
-          <h1 className="text-xl font-bold tracking-tight">jjoin</h1>
+          <h1>
+            <Wordmark height={26} priority />
+          </h1>
         </div>
         <Suspense fallback={<div className="size-8" />}>
           <ProfileMenu />

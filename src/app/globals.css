@@ -1,10 +1,21 @@
 @import "tailwindcss";
 
+/* dark: 변형은 시스템 설정 대신 <html data-theme="dark">를 따른다. (src/lib/theme.ts) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* 로고 색에서 가져온 팔레트: 주황 #fd6004, 크림 #fcf5e9, 진갈색 #441f10 */
 :root {
-  --background: #fdf8f1;
+  --background: #fafaf9;
   --foreground: #2b1810;
   --brand-ink: #c2410c;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #0c0a09;
+  --foreground: #f5f5f4;
+  --brand-ink: #fb923c;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -15,14 +26,6 @@
   --color-brand: #fd6004;
   /* 작은 글씨용 주황. 크림 배경에서도 읽히게 더 진하다. */
   --color-brand-ink: var(--brand-ink);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #14100e;
-    --foreground: #f5ede4;
-    --brand-ink: #fb923c;
-  }
 }
 
 body {
