@@ -7,7 +7,7 @@
 <p align="center">
   친구 그룹의 약속을 한곳에 모으고, 누가 오는지 한눈에 보는 모바일 웹앱
   <br />
-  <a href="https://kkillae.vercel.app">kkillae.vercel.app</a>
+  <a href="https://jjoin.vercel.app">jjoin.vercel.app</a>
 </p>
 
 친구가 많아질수록 약속이 있어도 서로 모르거나 알리기 어려워요.
@@ -122,7 +122,7 @@ select cron.schedule(
   'jjoin-hour-before',
   '*/10 * * * *',
   $$ select net.http_get(
-       url := 'https://kkillae.vercel.app/api/cron/hour-before',
+       url := 'https://jjoin.vercel.app/api/cron/hour-before',
        headers := jsonb_build_object('Authorization', 'Bearer <CRON_SECRET>')
      ); $$
 );

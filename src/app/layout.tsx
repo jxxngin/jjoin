@@ -12,7 +12,7 @@ const notoSansKr = Noto_Sans_KR({
 
 export const metadata: Metadata = {
   // 링크 미리보기 이미지(opengraph-image.png)를 전체 주소로 만들 때 쓴다.
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://kkillae.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://jjoin.vercel.app"),
   title: "jjoin",
   description: "친구들과의 약속을 한곳에서 만들고 확인해요",
   openGraph: {
