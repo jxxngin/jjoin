@@ -1,9 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { LINK_PREVIEW_BOTS } from "@/lib/bots";
 import { isSupabaseConfigured, supabaseKey, supabaseUrl } from "./env";
 
 // 요청마다 로그인 세션을 확인하고, 만료된 토큰을 갱신해 쿠키에 다시 쓴다.
 export async function updateSession(request: NextRequest) {
+  // 링크 미리보기 크롤러는 로그인할 수 없으니 초대·약속 주소를 공유용 페이지로 바꿔 보여 준다.
+  const preview = previewPath(request);
+  if (preview) return NextResponse.rewrite(new URL(preview, request.url));
+
   let response = NextResponse.next({ request });
 
   if (!isSupabaseConfigured) return response;
@@ -46,6 +51,19 @@ export async function updateSession(request: NextRequest) {
 }
 
 // /api/cron/은 로그인 대신 CRON_SECRET으로 직접 인증한다.
+function previewPath(request: NextRequest) {
+  if (!LINK_PREVIEW_BOTS.test(request.headers.get("user-agent") ?? "")) return null;
+  const match = /^\/(invite|events)\/([^/]+)$/.exec(request.nextUrl.pathname);
+  return match ? `/share/${match[1]}/${match[2]}` : null;
+}
+
 function isPublicPath(pathname: string) {
-  return pathname === "/login" || pathname.startsWith("/auth/") || pathname.startsWith("/api/cron/");
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/share/") ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/api/cron/") ||
+    // 가짜 데이터로 만든 시안·README 스크린샷용 페이지. 로컬 개발에서만 로그인 없이 연다.
+    (process.env.NODE_ENV === "development" && pathname.startsWith("/preview/"))
+  );
 }

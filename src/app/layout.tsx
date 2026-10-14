@@ -11,8 +11,17 @@ const notoSansKr = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
+  // 링크 미리보기 이미지(opengraph-image.png)를 전체 주소로 만들 때 쓴다.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://kkillae.vercel.app"),
   title: "jjoin",
   description: "친구들과의 약속을 한곳에서 만들고 확인해요",
+  openGraph: {
+    title: "jjoin",
+    description: "친구들과의 약속을 한곳에서 만들고 확인해요",
+    siteName: "jjoin",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "jjoin" }],
+  },
   // 아이폰에서 홈 화면에 추가했을 때 앱 이름과 전체 화면 실행
   appleWebApp: { capable: true, title: "jjoin", statusBarStyle: "default" },
 };
