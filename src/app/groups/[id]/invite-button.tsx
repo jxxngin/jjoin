@@ -28,7 +28,7 @@ export function InviteButton({ code, groupName }: { code: string; groupName: str
     <button
       type="button"
       onClick={handleClick}
-      className="h-12 rounded-xl bg-brand font-medium text-white transition active:scale-[0.98]"
+      className="h-12 rounded-xl bg-brand/10 font-medium text-brand transition active:scale-[0.98]"
     >
       {copied ? "링크가 복사됐어요" : "친구 초대하기"}
     </button>

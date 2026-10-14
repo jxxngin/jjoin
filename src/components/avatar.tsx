@@ -10,7 +10,10 @@ export function Avatar({
 
   if (!src) {
     return (
-      <div className={`${sizeClass} shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-700`} />
+      // 문단 안에도 넣을 수 있도록 span을 쓴다.
+      <span
+        className={`${sizeClass} inline-block shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-700`}
+      />
     );
   }
 

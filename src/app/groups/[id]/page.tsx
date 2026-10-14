@@ -1,8 +1,12 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { formatPeople } from "@/app/events/format";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { getUserId } from "@/lib/auth";
+import { formatEventDate } from "@/lib/datetime";
+import { getUpcomingEvents } from "@/lib/events";
 import { getGroup } from "@/lib/groups";
 import { leaveGroup } from "../actions";
 import { InviteButton } from "./invite-button";
@@ -28,15 +32,26 @@ async function GroupContent({ id }: { id: string }) {
 
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
-        <p className="text-sm text-zinc-500">멤버 {group.members.length}명</p>
-      </div>
-
-      <InviteButton code={group.inviteCode} groupName={group.name} />
+      <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-semibold">멤버</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">다가오는 약속</h2>
+          <Link
+            href={`/groups/${group.id}/events/new`}
+            className="rounded-full bg-brand px-3 py-1.5 text-sm font-medium text-white"
+          >
+            + 약속 만들기
+          </Link>
+        </div>
+        <Suspense fallback={<div className="h-20 animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-900" />}>
+          <UpcomingEvents groupId={group.id} />
+        </Suspense>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-semibold">멤버 {group.members.length}명</h2>
+        <InviteButton code={group.inviteCode} groupName={group.name} />
         <ul className="flex flex-col gap-1">
           {group.members.map((member) => (
             <li key={member.id} className="flex items-center gap-3 py-2">
@@ -64,6 +79,41 @@ async function GroupContent({ id }: { id: string }) {
         </form>
       )}
     </>
+  );
+}
+
+async function UpcomingEvents({ groupId }: { groupId: string }) {
+  const events = await getUpcomingEvents(groupId);
+
+  if (events.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
+        아직 약속이 없어요. 첫 약속을 만들어 보세요!
+      </div>
+    );
+  }
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {events.map((event) => {
+        const people = formatPeople(event.minPeople, event.maxPeople);
+        return (
+          <li key={event.id}>
+            <Link
+              href={`/events/${event.id}`}
+              className="flex flex-col gap-1 rounded-2xl bg-zinc-100 px-4 py-3 transition active:scale-[0.99] dark:bg-zinc-900"
+            >
+              <span className="font-medium">{event.title}</span>
+              <span className="text-sm text-zinc-500">
+                {formatEventDate(event.startsAt)}
+                {event.placeName && ` · ${event.placeName}`}
+                {people && ` · ${people}`}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
