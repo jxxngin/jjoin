@@ -7,20 +7,23 @@ import { getCurrentProfile } from "@/lib/auth";
 import { hasUnreadNotifications } from "@/lib/notifications";
 
 // 로그인한 뒤 모든 화면 위에 붙는 머리글: 로고(홈), 알림, 내 프로필.
-// 화면이 옆으로 넘어가도 움직이지 않게 view-transition-name을 따로 준다. (globals.css)
+// 스크롤해도 화면 맨 위에 붙어 있고, 화면이 옆으로 넘어가도 움직이지 않게
+// view-transition-name을 따로 준다. (globals.css)
 export function AppHeader() {
   return (
     <header
-      className="mx-auto flex w-full max-w-md items-center justify-between px-4 pt-5"
+      className="sticky top-0 z-40 bg-background pt-[max(1.25rem,env(safe-area-inset-top))] pb-2"
       style={{ viewTransitionName: "app-header" }}
     >
-      <Link href="/" transitionTypes={["nav-back"]} aria-label="홈" className="flex items-center gap-2">
-        <Image src="/logo-512.png" alt="" width={32} height={32} className="rounded-lg" />
-        <Wordmark height={26} priority />
-      </Link>
-      <Suspense fallback={<div className="h-8 w-[76px]" />}>
-        <ProfileMenu />
-      </Suspense>
+      <div className="mx-auto flex w-full max-w-md items-center justify-between px-4">
+        <Link href="/" transitionTypes={["nav-back"]} aria-label="홈" className="flex items-center gap-2">
+          <Image src="/logo-512.png" alt="" width={32} height={32} className="rounded-lg" />
+          <Wordmark height={26} priority />
+        </Link>
+        <Suspense fallback={<div className="h-8 w-[76px]" />}>
+          <ProfileMenu />
+        </Suspense>
+      </div>
     </header>
   );
 }
