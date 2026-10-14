@@ -20,10 +20,23 @@ export function ViewToggle({
 
   return (
     <div className="flex rounded-full bg-stone-100 p-1 dark:bg-stone-900">
-      <Link href={href("list")} className={tab(mode === "list")} replace scroll={false}>
+      {/* 목록은 왼쪽, 캘린더는 오른쪽 페이지처럼 넘어간다. (SlideView) */}
+      <Link
+        href={href("list")}
+        className={tab(mode === "list")}
+        replace
+        scroll={false}
+        transitionTypes={["view-back"]}
+      >
         목록
       </Link>
-      <Link href={href("calendar")} className={tab(mode === "calendar")} replace scroll={false}>
+      <Link
+        href={href("calendar")}
+        className={tab(mode === "calendar")}
+        replace
+        scroll={false}
+        transitionTypes={["view-forward"]}
+      >
         캘린더
       </Link>
     </div>
