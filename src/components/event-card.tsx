@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { StatusBadge } from "@/components/status-badge";
+import { UnreadCommentsBadge } from "@/components/unread-comments";
 import { formatDaysLeft, formatEventDate } from "@/lib/datetime";
 import { formatGoing } from "@/lib/event-status";
 import type { EventSummary } from "@/lib/events";
@@ -48,6 +49,7 @@ export function EventCard({
   return (
     <Link
       href={`/events/${event.id}`}
+      transitionTypes={["nav-forward"]}
       className="relative flex flex-col gap-1 overflow-hidden rounded-2xl bg-stone-100 py-3 pr-4 pl-5 transition active:scale-[0.99] dark:bg-stone-900"
     >
       <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${colors.bar}`} />
@@ -68,10 +70,13 @@ export function EventCard({
           )}
         </span>
       </div>
-      <span className="truncate text-sm text-stone-500">
-        {days !== null && <b className={`mr-1 ${colors.text}`}>{formatDaysLeft(days)}</b>}
-        {details}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-sm text-stone-500">
+          {days !== null && <b className={`mr-1 ${colors.text}`}>{formatDaysLeft(days)}</b>}
+          {details}
+        </span>
+        <UnreadCommentsBadge eventId={event.id} commentTimes={event.otherCommentTimes} />
+      </div>
     </Link>
   );
 }
