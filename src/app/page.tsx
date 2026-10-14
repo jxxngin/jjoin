@@ -4,12 +4,12 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
 import { Calendar } from "@/components/calendar";
-import { FilteredEventList } from "@/components/filtered-event-list";
+import { EventCard } from "@/components/event-card";
 import { GroupAvatar } from "@/components/group-avatar";
 import { ViewToggle, type ViewMode } from "@/components/view-toggle";
 import { getCurrentProfile } from "@/lib/auth";
 import { kstMonthRange, kstToday, normalizeMonth } from "@/lib/datetime";
-import { getMyGroupsEventsBetween, getMyUpcomingEvents } from "@/lib/events";
+import { getMyEventsBetween, getMyUpcomingEvents } from "@/lib/events";
 import { getMyGroups } from "@/lib/groups";
 
 export default function Home({ searchParams }: PageProps<"/">) {
@@ -83,13 +83,13 @@ function MyEventsSection({ mode, month }: { mode: ViewMode; month: string | unde
   );
 }
 
-// 내 모든 그룹의 약속을 그룹 색으로 구분해 보여 준다.
+// 내가 참여·대기한 약속을 그룹 색으로 구분해 보여 준다.
 async function MyCalendar({ month: rawMonth }: { month: string | undefined }) {
   // "이번 달"은 현재 시각이 필요하므로 요청 시점에만 계산한다.
   await connection();
   const month = normalizeMonth(rawMonth);
   const { from, to } = kstMonthRange(month);
-  const events = await getMyGroupsEventsBetween(from, to);
+  const events = await getMyEventsBetween(from, to);
 
   return (
     <Calendar
@@ -105,15 +105,27 @@ async function MyCalendar({ month: rawMonth }: { month: string | undefined }) {
 async function MyEvents() {
   const events = await getMyUpcomingEvents();
 
+  if (events.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-stone-300 px-4 py-8 text-center text-sm text-stone-500 dark:border-stone-700">
+        참여하기로 한 약속이 없어요.
+      </div>
+    );
+  }
+
+  // 이미 내가 참여한 약속만 모았으므로 상태 필터 없이 가까운 순으로 보여 준다.
   return (
-    <FilteredEventList
-      emptyText="참여하기로 한 약속이 없어요."
-      items={events.map((event) => ({
-        event,
-        groupName: event.groupName,
-        countLabel: event.myStatus === "waitlisted" ? "대기 중" : undefined,
-      }))}
-    />
+    <ul className="flex flex-col gap-2">
+      {events.map((event) => (
+        <li key={event.id}>
+          <EventCard
+            event={event}
+            groupName={event.groupName}
+            countLabel={event.myStatus === "waitlisted" ? "대기 중" : undefined}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }
 

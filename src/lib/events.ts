@@ -209,12 +209,18 @@ export type GroupedEvent = EventSummary & {
   group: { name: string; emoji: string; color: GroupColor };
 };
 
-// 내 모든 그룹의 한 달 치 약속 (홈 캘린더). RLS가 내 그룹 약속만 돌려준다.
-export async function getMyGroupsEventsBetween(from: Date, to: Date): Promise<GroupedEvent[]> {
+// 한 달 동안 내가 참여·대기한 약속 (홈 캘린더). 모든 그룹을 모아 그룹 색으로 구분한다.
+export async function getMyEventsBetween(from: Date, to: Date): Promise<GroupedEvent[]> {
+  const userId = await getUserId();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
-    .select(`${BASE_COLUMNS}, groups(name, emoji, color), event_participants(status)`)
+    .select(
+      `${BASE_COLUMNS}, groups(name, emoji, color), event_participants(status),
+       mine:event_participants!inner(user_id, status)`,
+    )
+    .eq("mine.user_id", userId)
+    .in("mine.status", ["going", "waitlisted"])
     .gte("starts_at", from.toISOString())
     .lt("starts_at", to.toISOString())
     .order("starts_at")
