@@ -7,7 +7,7 @@ export default function NewGroupPage() {
       <BackLink href="/" label="홈" />
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight">그룹 만들기</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-stone-500">
           만든 사람이 방장이 되고, 초대 링크로 친구를 부를 수 있어요.
         </p>
       </div>

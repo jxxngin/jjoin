@@ -7,7 +7,7 @@ const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const boxClass =
-  "h-12 rounded-xl border border-zinc-300 bg-transparent px-4 outline-none focus:border-brand dark:border-zinc-700";
+  "h-12 rounded-xl border border-stone-300 bg-transparent px-4 outline-none focus:border-brand dark:border-stone-700";
 
 // "2026-10-18" → "2026/10/18 (일)"
 function formatDate(value: string) {
@@ -34,7 +34,7 @@ export function DateTimeField({ name, defaultValue }: { name: string; defaultVal
       <input type="hidden" name={name} value={date ? `${date}T${hour}:${minute}` : ""} />
 
       <div className={`${boxClass} relative flex items-center`}>
-        <span className={date ? "" : "text-zinc-400"}>
+        <span className={date ? "" : "text-stone-400"}>
           {date ? formatDate(date) : "날짜 선택"}
         </span>
         <input
@@ -61,7 +61,7 @@ export function DateTimeField({ name, defaultValue }: { name: string; defaultVal
             </option>
           ))}
         </select>
-        <span className="text-zinc-400">:</span>
+        <span className="text-stone-400">:</span>
         <select
           value={minute}
           onChange={(e) => setMinute(e.target.value)}

@@ -1,7 +1,16 @@
 import "server-only";
+import type { AvatarColor } from "@/lib/avatar-style";
+import type { GroupColor } from "@/lib/group-style";
 import { createClient } from "@/lib/supabase/server";
 
-export type GroupSummary = {
+// 그룹 꾸미기 (0009_group_profile.sql)
+export type GroupProfile = {
+  emoji: string;
+  color: GroupColor;
+  description: string | null;
+};
+
+export type GroupSummary = GroupProfile & {
   id: string;
   name: string;
   memberCount: number;
@@ -12,10 +21,11 @@ export type GroupMember = {
   nickname: string;
   kakaoName: string | null;
   avatarUrl: string | null;
+  avatarColor: AvatarColor;
   role: "owner" | "member";
 };
 
-export type GroupDetail = {
+export type GroupDetail = GroupProfile & {
   id: string;
   name: string;
   inviteCode: string;
@@ -23,7 +33,7 @@ export type GroupDetail = {
   members: GroupMember[];
 };
 
-export type Invite = {
+export type Invite = GroupProfile & {
   groupId: string;
   groupName: string;
   memberCount: number;
@@ -35,17 +45,23 @@ type GroupRow = {
   id: string;
   name: string;
   invite_code: string;
+  emoji: string;
+  color: GroupColor;
+  description: string | null;
   owner_id: string;
   group_members: {
     role: string;
     joined_at: string;
-    profiles: { id: string; nickname: string; kakao_name: string | null; avatar_url: string | null } | null;
+    profiles: { id: string; nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
   }[];
 };
 
 type InviteRow = {
   group_id: string;
   group_name: string;
+  group_emoji: string;
+  group_color: GroupColor;
+  group_description: string | null;
   member_count: number;
   is_member: boolean;
 };
@@ -57,7 +73,7 @@ export async function getMyGroups(): Promise<GroupSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("groups")
-    .select("id, name, group_members(count)")
+    .select("id, name, emoji, color, description, group_members(count)")
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`그룹을 불러오지 못했어요. (${error.message})`);
@@ -65,6 +81,9 @@ export async function getMyGroups(): Promise<GroupSummary[]> {
   return data.map((group) => ({
     id: group.id,
     name: group.name,
+    emoji: group.emoji,
+    color: group.color,
+    description: group.description,
     memberCount: group.group_members[0]?.count ?? 0,
   }));
 }
@@ -77,7 +96,7 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
   const { data: group } = await supabase
     .from("groups")
     .select(
-      "id, name, invite_code, owner_id, group_members(role, joined_at, profiles(id, nickname, kakao_name, avatar_url))",
+      "id, name, invite_code, owner_id, emoji, color, description, group_members(role, joined_at, profiles(id, nickname, kakao_name, avatar_url, avatar_color))",
     )
     .eq("id", id)
     .order("joined_at", { referencedTable: "group_members" })
@@ -89,6 +108,9 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
   return {
     id: group.id,
     name: group.name,
+    emoji: group.emoji,
+    color: group.color,
+    description: group.description,
     inviteCode: group.invite_code,
     ownerId: group.owner_id,
     members: group.group_members.flatMap(({ role, profiles: profile }) =>
@@ -99,6 +121,7 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
               nickname: profile.nickname,
               kakaoName: profile.kakao_name,
               avatarUrl: profile.avatar_url,
+              avatarColor: profile.avatar_color,
               role: role as GroupMember["role"],
             },
           ]
@@ -119,6 +142,9 @@ export async function getInvite(code: string): Promise<Invite | null> {
   return {
     groupId: data.group_id,
     groupName: data.group_name,
+    emoji: data.group_emoji,
+    color: data.group_color,
+    description: data.group_description,
     memberCount: Number(data.member_count),
     isMember: data.is_member,
   };

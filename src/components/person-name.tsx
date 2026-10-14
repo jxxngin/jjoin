@@ -12,7 +12,7 @@ export function PersonName({
     <span className={className}>
       {nickname}
       {kakaoName && kakaoName !== nickname && (
-        <span className="ml-1 text-xs font-normal text-zinc-500">({kakaoName})</span>
+        <span className="ml-1 text-xs font-normal text-stone-500">({kakaoName})</span>
       )}
     </span>
   );

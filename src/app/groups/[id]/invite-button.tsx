@@ -11,7 +11,7 @@ export function InviteButton({ code, groupName }: { code: string; groupName: str
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: `${groupName} 초대`, text: `낄래? "${groupName}"에 초대했어요`, url });
+        await navigator.share({ title: `${groupName} 초대`, text: `jjoin에서 "${groupName}"에 초대했어요`, url });
         return;
       } catch (error) {
         // 사용자가 공유를 취소한 경우
@@ -28,7 +28,7 @@ export function InviteButton({ code, groupName }: { code: string; groupName: str
     <button
       type="button"
       onClick={handleClick}
-      className="h-12 rounded-xl bg-brand/10 font-medium text-brand transition active:scale-[0.98]"
+      className="h-12 rounded-xl bg-brand/10 font-medium text-brand-ink transition active:scale-[0.98]"
     >
       {copied ? "링크가 복사됐어요" : "친구 초대하기"}
     </button>

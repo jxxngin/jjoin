@@ -5,13 +5,15 @@ import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { FilteredEventList } from "@/components/filtered-event-list";
+import { GroupAvatar } from "@/components/group-avatar";
+import { ViewToggle } from "@/components/view-toggle";
 import { PersonName } from "@/components/person-name";
 import { getUserId } from "@/lib/auth";
 import { kstMonthRange, kstToday, normalizeMonth } from "@/lib/datetime";
 import { getEventsBetween, getPastEvents, getUpcomingEvents } from "@/lib/events";
 import { getGroup } from "@/lib/groups";
 import { leaveGroup } from "../actions";
-import { Calendar } from "./calendar";
+import { Calendar } from "@/components/calendar";
 import { InviteButton } from "./invite-button";
 
 // month는 주소에 들어온 값 그대로다. 비었거나 잘못되면 캘린더에서 이번 달로 바꾼다.
@@ -48,11 +50,27 @@ async function GroupContent({ id, view }: { id: string; view: View }) {
 
   return (
     <>
-      <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
+      <header className="flex items-center gap-4">
+        <GroupAvatar emoji={group.emoji} color={group.color} size="lg" />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h1 className="truncate text-2xl font-bold tracking-tight">{group.name}</h1>
+          {group.description && (
+            <p className="text-sm text-stone-500">{group.description}</p>
+          )}
+        </div>
+        {isOwner && (
+          <Link
+            href={`/groups/${group.id}/edit`}
+            className="shrink-0 rounded-full bg-stone-100 px-3 py-1.5 text-sm font-medium dark:bg-stone-900"
+          >
+            꾸미기
+          </Link>
+        )}
+      </header>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <ViewToggle groupId={group.id} mode={view.mode} />
+          <ViewToggle basePath={`/groups/${group.id}`} mode={view.mode} />
           <Link
             href={`/groups/${group.id}/events/new`}
             className="rounded-full bg-brand px-3 py-1.5 text-sm font-medium text-white"
@@ -60,7 +78,7 @@ async function GroupContent({ id, view }: { id: string; view: View }) {
             + 약속 만들기
           </Link>
         </div>
-        <Suspense fallback={<div className="h-20 animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-900" />}>
+        <Suspense fallback={<div className="h-20 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
           {view.mode === "calendar" ? (
             <MonthCalendar groupId={group.id} month={view.month} />
           ) : (
@@ -75,13 +93,13 @@ async function GroupContent({ id, view }: { id: string; view: View }) {
         <ul className="flex flex-col gap-1">
           {group.members.map((member) => (
             <li key={member.id} className="flex items-center gap-3 py-2">
-              <Avatar src={member.avatarUrl} />
+              <Avatar src={member.avatarUrl} color={member.avatarColor} />
               <PersonName nickname={member.nickname} kakaoName={member.kakaoName} className="font-medium" />
               {member.id === userId && (
-                <span className="text-sm text-zinc-500">(나)</span>
+                <span className="text-sm text-stone-500">(나)</span>
               )}
               {member.role === "owner" && (
-                <span className="ml-auto rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+                <span className="ml-auto rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand-ink">
                   방장
                 </span>
               )}
@@ -93,7 +111,7 @@ async function GroupContent({ id, view }: { id: string; view: View }) {
       {!isOwner && (
         <form action={leaveGroup} className="mt-auto">
           <input type="hidden" name="groupId" value={group.id} />
-          <button type="submit" className="text-sm text-zinc-500 underline underline-offset-4">
+          <button type="submit" className="text-sm text-stone-500 underline underline-offset-4">
             그룹 나가기
           </button>
         </form>
@@ -102,23 +120,6 @@ async function GroupContent({ id, view }: { id: string; view: View }) {
   );
 }
 
-function ViewToggle({ groupId, mode }: { groupId: string; mode: View["mode"] }) {
-  const tab = (active: boolean) =>
-    `rounded-full px-3 py-1 text-sm font-medium ${
-      active ? "bg-white shadow-sm dark:bg-zinc-700" : "text-zinc-500"
-    }`;
-
-  return (
-    <div className="flex rounded-full bg-zinc-100 p-1 dark:bg-zinc-900">
-      <Link href={`/groups/${groupId}`} className={tab(mode === "list")} replace>
-        목록
-      </Link>
-      <Link href={`/groups/${groupId}?view=calendar`} className={tab(mode === "calendar")} replace>
-        캘린더
-      </Link>
-    </div>
-  );
-}
 
 async function EventList({ groupId }: { groupId: string }) {
   const [upcoming, past] = await Promise.all([
@@ -142,15 +143,23 @@ async function MonthCalendar({ groupId, month: rawMonth }: { groupId: string; mo
   const { from, to } = kstMonthRange(month);
   const events = await getEventsBetween(groupId, from, to);
 
-  return <Calendar key={month} groupId={groupId} month={month} today={kstToday()} events={events} />;
+  return (
+    <Calendar
+      key={month}
+      monthHrefBase={`/groups/${groupId}?view=calendar`}
+      month={month}
+      today={kstToday()}
+      items={events.map((event) => ({ event }))}
+    />
+  );
 }
 
 function GroupSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="h-8 w-40 animate-pulse rounded-lg bg-zinc-100 dark:bg-zinc-900" />
-      <div className="h-12 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900" />
-      <div className="h-32 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900" />
+      <div className="h-8 w-40 animate-pulse rounded-lg bg-stone-100 dark:bg-stone-900" />
+      <div className="h-12 animate-pulse rounded-xl bg-stone-100 dark:bg-stone-900" />
+      <div className="h-32 animate-pulse rounded-xl bg-stone-100 dark:bg-stone-900" />
     </div>
   );
 }

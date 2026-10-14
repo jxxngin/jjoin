@@ -12,7 +12,7 @@ export type PlaceValue = {
 };
 
 const boxClass =
-  "h-12 rounded-xl border border-zinc-300 bg-transparent px-4 outline-none focus:border-brand dark:border-zinc-700";
+  "h-12 rounded-xl border border-stone-300 bg-transparent px-4 outline-none focus:border-brand dark:border-stone-700";
 
 // 카카오맵에서 장소를 검색해 고른다. 검색하지 않고 입력한 이름만 저장할 수도 있다.
 export function PlaceField({ defaultValue }: { defaultValue: PlaceValue }) {
@@ -89,9 +89,9 @@ export function PlaceField({ defaultValue }: { defaultValue: PlaceValue }) {
         <div className="flex items-center gap-3 rounded-xl border border-brand bg-brand/5 px-4 py-3">
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate font-medium">{selected.name}</span>
-            <span className="truncate text-sm text-zinc-500">{selected.address}</span>
+            <span className="truncate text-sm text-stone-500">{selected.address}</span>
           </div>
-          <button type="button" onClick={clear} className="shrink-0 text-sm text-zinc-500">
+          <button type="button" onClick={clear} className="shrink-0 text-sm text-stone-500">
             변경
           </button>
         </div>
@@ -117,7 +117,7 @@ export function PlaceField({ defaultValue }: { defaultValue: PlaceValue }) {
               type="button"
               onClick={() => search(query)}
               disabled={searching || !query.trim()}
-              className="h-12 shrink-0 rounded-xl bg-zinc-100 px-4 font-medium disabled:opacity-50 dark:bg-zinc-900"
+              className="h-12 shrink-0 rounded-xl bg-stone-100 px-4 font-medium disabled:opacity-50 dark:bg-stone-900"
             >
               {searching ? "검색 중" : "검색"}
             </button>
@@ -126,21 +126,21 @@ export function PlaceField({ defaultValue }: { defaultValue: PlaceValue }) {
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           {results && (
-            <ul className="flex max-h-72 flex-col overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+            <ul className="flex max-h-72 flex-col overflow-y-auto rounded-xl border border-stone-200 dark:border-stone-800">
               {results.length === 0 && (
-                <li className="px-4 py-3 text-sm text-zinc-500">
+                <li className="px-4 py-3 text-sm text-stone-500">
                   검색 결과가 없어요. 입력한 이름 그대로 저장할 수도 있어요.
                 </li>
               )}
               {results.map((place) => (
-                <li key={place.id} className="border-b border-zinc-200 last:border-0 dark:border-zinc-800">
+                <li key={place.id} className="border-b border-stone-200 last:border-0 dark:border-stone-800">
                   <button
                     type="button"
                     onClick={() => choose(place)}
-                    className="flex w-full flex-col px-4 py-3 text-left active:bg-zinc-100 dark:active:bg-zinc-900"
+                    className="flex w-full flex-col px-4 py-3 text-left active:bg-stone-100 dark:active:bg-stone-900"
                   >
                     <span className="font-medium">{place.place_name}</span>
-                    <span className="text-sm text-zinc-500">
+                    <span className="text-sm text-stone-500">
                       {place.road_address_name || place.address_name}
                     </span>
                   </button>

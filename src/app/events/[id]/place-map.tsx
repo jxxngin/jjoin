@@ -26,7 +26,7 @@ export function PlaceMap({ lat, lng }: { lat: number; lng: number }) {
 
   if (error) {
     return (
-      <p className="rounded-xl bg-zinc-100 px-4 py-3 text-sm text-zinc-500 dark:bg-zinc-900">
+      <p className="rounded-xl bg-stone-100 px-4 py-3 text-sm text-stone-500 dark:bg-stone-900">
         지도를 불러오지 못했어요. ({error})
       </p>
     );
@@ -35,7 +35,7 @@ export function PlaceMap({ lat, lng }: { lat: number; lng: number }) {
   return (
     <div
       ref={container}
-      className="h-48 w-full overflow-hidden rounded-xl bg-zinc-200 dark:bg-zinc-800"
+      className="h-48 w-full overflow-hidden rounded-xl bg-stone-200 dark:bg-stone-800"
     />
   );
 }

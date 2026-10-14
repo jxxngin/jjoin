@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Suspense } from "react";
 import { signInWithKakao } from "@/app/auth/actions";
 
@@ -9,9 +10,10 @@ const errorMessages: Record<string, string> = {
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-8 px-4 py-16 text-center">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-bold tracking-tight">낄래?</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
+      <div className="flex flex-col items-center gap-2">
+        <Image src="/logo-512.png" alt="" width={96} height={96} priority className="mb-2 rounded-3xl" />
+        <h1 className="text-4xl font-bold tracking-tight">jjoin</h1>
+        <p className="text-stone-600 dark:text-stone-400">
           친구들과의 약속을 한곳에서 만들고 확인해요.
         </p>
       </div>

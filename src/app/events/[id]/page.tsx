@@ -18,7 +18,7 @@ import { PlaceMap } from "./place-map";
 export default function EventPage({ params }: PageProps<"/events/[id]">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
-      <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-900" />}>
+      <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         {params.then(({ id }) => (
           <EventContent id={id} />
         ))}
@@ -42,19 +42,19 @@ async function EventContent({ id }: { id: string }) {
         <div className="flex items-center gap-2">
           {event.dday && status !== "ended" && <Dday value={event.dday} />}
           <StatusBadge status={status} />
-          <span className="text-sm text-zinc-500">
+          <span className="text-sm text-stone-500">
             {formatGoing(event.goingCount, event.maxPeople)} 참여
           </span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
         {event.creator && (
-          <p className="flex items-center gap-2 text-sm text-zinc-500">
-            <Avatar src={event.creator.avatarUrl} size="sm" />
+          <p className="flex items-center gap-2 text-sm text-stone-500">
+            <Avatar src={event.creator.avatarUrl} color={event.creator.avatarColor} size="sm" />
             <span>
               <PersonName
                 nickname={event.creator.nickname}
                 kakaoName={event.creator.kakaoName}
-                className="font-medium text-zinc-700 dark:text-zinc-300"
+                className="font-medium text-stone-700 dark:text-stone-300"
               />
               님이 만든 약속
             </span>
@@ -63,16 +63,16 @@ async function EventContent({ id }: { id: string }) {
       </div>
 
       {event.endReason && (
-        <section className="flex flex-col gap-2 rounded-2xl border border-zinc-200 px-4 py-3 dark:border-zinc-800">
+        <section className="flex flex-col gap-2 rounded-2xl border border-stone-200 px-4 py-3 dark:border-stone-800">
           <p className="text-sm">
             <span className="font-semibold">종료된 약속</span>
-            <span className="text-zinc-500"> · {END_REASON_LABELS[event.endReason]}</span>
+            <span className="text-stone-500"> · {END_REASON_LABELS[event.endReason]}</span>
           </p>
-          {event.endNote && <p className="text-sm text-zinc-600 dark:text-zinc-400">{event.endNote}</p>}
+          {event.endNote && <p className="text-sm text-stone-600 dark:text-stone-400">{event.endNote}</p>}
           {event.canReopen && (
             <form action={reopenEvent}>
               <input type="hidden" name="eventId" value={event.id} />
-              <button type="submit" className="text-sm font-medium text-brand underline underline-offset-4">
+              <button type="submit" className="text-sm font-medium text-brand-ink underline underline-offset-4">
                 다시 열기
               </button>
             </form>
@@ -80,12 +80,12 @@ async function EventContent({ id }: { id: string }) {
         </section>
       )}
 
-      <dl className="flex flex-col gap-3 rounded-2xl bg-zinc-100 p-4 dark:bg-zinc-900">
+      <dl className="flex flex-col gap-3 rounded-2xl bg-stone-100 p-4 dark:bg-stone-900">
         <Row label="언제">{formatEventDate(event.startsAt)}</Row>
         <Row label="어디서">
           {event.placeName ?? "미정"}
           {event.place?.address && (
-            <span className="block text-sm text-zinc-500">{event.place.address}</span>
+            <span className="block text-sm text-stone-500">{event.place.address}</span>
           )}
         </Row>
         {event.maxPeople && <Row label="인원">최대 {event.maxPeople}명</Row>}
@@ -99,7 +99,7 @@ async function EventContent({ id }: { id: string }) {
               href={event.place.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-11 items-center justify-center rounded-xl bg-zinc-100 text-sm font-medium dark:bg-zinc-900"
+              className="flex h-11 items-center justify-center rounded-xl bg-stone-100 text-sm font-medium dark:bg-stone-900"
             >
               카카오맵에서 보기
             </a>
@@ -107,7 +107,7 @@ async function EventContent({ id }: { id: string }) {
               href={`https://map.kakao.com/link/to/${encodeURIComponent(event.placeName)},${event.place.lat},${event.place.lng}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-11 items-center justify-center rounded-xl bg-zinc-100 text-sm font-medium dark:bg-zinc-900"
+              className="flex h-11 items-center justify-center rounded-xl bg-stone-100 text-sm font-medium dark:bg-stone-900"
             >
               길찾기
             </a>
@@ -123,7 +123,7 @@ async function EventContent({ id }: { id: string }) {
             isFull={status === "full"}
           />
           {event.myWaitlistRank && (
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-stone-500">
               대기 {event.myWaitlistRank}번째예요. 자리가 나면 자동으로 참여돼요.
             </p>
           )}
@@ -140,7 +140,7 @@ async function EventContent({ id }: { id: string }) {
       {event.memo && (
         <section className="flex flex-col gap-2">
           <h2 className="font-semibold">메모</h2>
-          <p className="whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">{event.memo}</p>
+          <p className="whitespace-pre-wrap text-stone-700 dark:text-stone-300">{event.memo}</p>
         </section>
       )}
 
@@ -154,7 +154,7 @@ async function EventContent({ id }: { id: string }) {
           <div className="flex gap-2">
             <Link
               href={`/events/${event.id}/edit`}
-              className="flex h-12 flex-1 items-center justify-center rounded-xl bg-zinc-100 font-medium dark:bg-zinc-900"
+              className="flex h-12 flex-1 items-center justify-center rounded-xl bg-stone-100 font-medium dark:bg-stone-900"
             >
               수정
             </Link>
@@ -181,15 +181,15 @@ function PeopleList({
 
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold text-zinc-500">
+      <h2 className="text-sm font-semibold text-stone-500">
         {title} {people.length}
       </h2>
       <ul className="flex flex-wrap gap-x-4 gap-y-2">
         {people.map((person, i) => (
           <li key={person.id} className="flex items-center gap-2">
-            <Avatar src={person.avatarUrl} size="sm" />
+            <Avatar src={person.avatarUrl} color={person.avatarColor} size="sm" />
             <span className="text-sm">
-              {numbered && <span className="mr-1 text-zinc-500">{i + 1}.</span>}
+              {numbered && <span className="mr-1 text-stone-500">{i + 1}.</span>}
               <PersonName nickname={person.nickname} kakaoName={person.kakaoName} />
             </span>
             {person.id === creatorId && <CreatorIcon />}
@@ -220,7 +220,7 @@ function CreatorIcon() {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-4">
-      <dt className="w-12 shrink-0 text-sm text-zinc-500">{label}</dt>
+      <dt className="w-12 shrink-0 text-sm text-stone-500">{label}</dt>
       <dd>{children}</dd>
     </div>
   );

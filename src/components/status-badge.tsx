@@ -1,9 +1,9 @@
 import type { EventStatus } from "@/lib/event-status";
 
 export const statusStyles: Record<EventStatus, { label: string; className: string }> = {
-  recruiting: { label: "모집중", className: "bg-brand/10 text-brand" },
-  full: { label: "마감", className: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400" },
-  ended: { label: "종료", className: "bg-zinc-200 text-zinc-500 dark:bg-zinc-800" },
+  recruiting: { label: "모집중", className: "bg-brand/10 text-brand-ink" },
+  full: { label: "마감", className: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400" },
+  ended: { label: "종료", className: "bg-stone-200 text-stone-500 dark:bg-stone-800" },
 };
 
 export function StatusBadge({ status }: { status: EventStatus }) {

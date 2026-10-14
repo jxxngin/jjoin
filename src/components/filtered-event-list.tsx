@@ -29,13 +29,13 @@ export function FilteredEventList({ items, emptyText }: { items: EventListItem[]
   const chip = (active: boolean) =>
     `shrink-0 rounded-full px-3 py-1 text-sm font-medium transition ${
       active
-        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-        : "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
+        ? "bg-stone-900 text-white dark:bg-white dark:text-stone-900"
+        : "bg-stone-100 text-stone-600 dark:bg-stone-900 dark:text-stone-400"
     }`;
 
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
+      <div className="rounded-2xl border border-dashed border-stone-300 px-4 py-8 text-center text-sm text-stone-500 dark:border-stone-700">
         {emptyText}
       </div>
     );
@@ -57,7 +57,7 @@ export function FilteredEventList({ items, emptyText }: { items: EventListItem[]
       </div>
 
       {visible.length === 0 ? (
-        <p className="py-6 text-center text-sm text-zinc-500">
+        <p className="py-6 text-center text-sm text-stone-500">
           {statusStyles[filter].label} 약속이 없어요.
         </p>
       ) : (

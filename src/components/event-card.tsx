@@ -40,22 +40,22 @@ export function EventCard({
   return (
     <Link
       href={`/events/${event.id}`}
-      className="flex flex-col gap-1 rounded-2xl bg-zinc-100 px-4 py-3 transition active:scale-[0.99] dark:bg-zinc-900"
+      className="flex flex-col gap-1 rounded-2xl bg-stone-100 px-4 py-3 transition active:scale-[0.99] dark:bg-stone-900"
     >
       <div className="flex items-center gap-2">
         {event.dday && event.status !== "ended" && <Dday value={event.dday} />}
         <span className="truncate font-medium">{event.title}</span>
         <StatusBadge status={event.status} />
-        <span className="ml-auto flex shrink-0 items-center gap-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+        <span className="ml-auto flex shrink-0 items-center gap-1.5 text-sm font-medium text-stone-600 dark:text-stone-400">
           {countLabel ?? formatGoing(event.goingCount, event.maxPeople)}
           {event.creator && (
             <span title={`${event.creator.nickname}님이 만든 약속`}>
-              <Avatar src={event.creator.avatarUrl} size="xs" />
+              <Avatar src={event.creator.avatarUrl} color={event.creator.avatarColor} size="xs" />
             </span>
           )}
         </span>
       </div>
-      <span className="truncate text-sm text-zinc-500">{details.join(" · ")}</span>
+      <span className="truncate text-sm text-stone-500">{details.join(" · ")}</span>
     </Link>
   );
 }

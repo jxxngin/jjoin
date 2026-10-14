@@ -1,22 +1,27 @@
 @import "tailwindcss";
 
+/* 로고 색에서 가져온 팔레트: 주황 #fd6004, 크림 #fcf5e9, 진갈색 #441f10 */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fdf8f1;
+  --foreground: #2b1810;
+  --brand-ink: #c2410c;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-noto-sans-kr), system-ui, sans-serif;
-  /* 로고 배경 파랑 */
-  --color-brand: #1f74ff;
+  /* 로고 배경 주황. 버튼·배지 배경에 쓴다. */
+  --color-brand: #fd6004;
+  /* 작은 글씨용 주황. 크림 배경에서도 읽히게 더 진하다. */
+  --color-brand-ink: var(--brand-ink);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #14100e;
+    --foreground: #f5ede4;
+    --brand-ink: #fb923c;
   }
 }
 

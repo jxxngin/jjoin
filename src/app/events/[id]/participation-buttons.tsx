@@ -54,7 +54,7 @@ export function ParticipationButtons({
               className={`h-12 rounded-xl font-medium transition active:scale-[0.98] disabled:opacity-60 ${
                 active
                   ? "bg-brand text-white"
-                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                  : "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300"
               }`}
             >
               {value === "going" ? goingLabel(myStatus, isFull) : label}

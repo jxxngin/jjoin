@@ -1,4 +1,5 @@
 import "server-only";
+import type { AvatarColor } from "@/lib/avatar-style";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,6 +8,7 @@ export type Profile = {
   nickname: string;
   kakaoName: string | null;
   avatarUrl: string | null;
+  avatarColor: AvatarColor;
 };
 
 // 현재 로그인한 사용자 id. 로그인하지 않았으면 로그인 화면으로 보낸다.
@@ -25,7 +27,7 @@ export async function getCurrentProfile(): Promise<Profile> {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, nickname, kakao_name, avatar_url")
+    .select("id, nickname, kakao_name, avatar_url, avatar_color")
     .eq("id", userId)
     .single();
 
@@ -39,5 +41,6 @@ export async function getCurrentProfile(): Promise<Profile> {
     nickname: profile.nickname,
     kakaoName: profile.kakao_name,
     avatarUrl: profile.avatar_url,
+    avatarColor: profile.avatar_color,
   };
 }

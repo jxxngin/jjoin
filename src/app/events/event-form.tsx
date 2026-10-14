@@ -6,7 +6,7 @@ import { DateTimeField } from "./date-time-field";
 import { PlaceField } from "./place-field";
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-zinc-300 bg-transparent px-4 outline-none focus:border-brand dark:border-zinc-700";
+  "h-12 w-full rounded-xl border border-stone-300 bg-transparent px-4 outline-none focus:border-brand dark:border-stone-700";
 
 export function EventForm({
   action,
@@ -70,7 +70,7 @@ export function EventForm({
           rows={3}
           defaultValue={values.memo}
           placeholder="회비, 준비물 등"
-          className="w-full rounded-xl border border-zinc-300 bg-transparent px-4 py-3 outline-none focus:border-brand dark:border-zinc-700"
+          className="w-full rounded-xl border border-stone-300 bg-transparent px-4 py-3 outline-none focus:border-brand dark:border-stone-700"
         />
       </Field>
 
@@ -102,7 +102,7 @@ function Field({
     <Wrapper className="flex flex-col gap-2">
       <span className="text-sm font-medium">
         {label}
-        {hint && <span className="ml-1 font-normal text-zinc-500">· {hint}</span>}
+        {hint && <span className="ml-1 font-normal text-stone-500">· {hint}</span>}
       </span>
       {children}
     </Wrapper>

@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useState } from "react";
 import { Avatar } from "@/components/avatar";
 import type { Profile } from "@/lib/auth";
+import { AVATAR_COLORS, type AvatarColor } from "@/lib/avatar-style";
 import { updateProfile } from "./actions";
 
 const AVATAR_SIZE = 256;
@@ -43,9 +44,17 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const [nickname, setNickname] = useState(profile.nickname);
   const [avatar, setAvatar] = useState<{ blob: Blob; preview: string } | "remove" | null>(null);
   const [photoError, setPhotoError] = useState<string>();
+  const [avatarColor, setAvatarColor] = useState<AvatarColor>(profile.avatarColor);
 
+  // 사진이 없으면 Avatar가 avatarColor의 유령을 보여 준다.
   const preview =
     avatar === "remove" ? null : avatar ? avatar.preview : profile.avatarUrl;
+
+  // 색을 고르면 사진 대신 그 색의 기본 프로필을 쓴다.
+  function chooseColor(color: AvatarColor) {
+    setAvatarColor(color);
+    if (preview) setAvatar("remove");
+  }
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -62,6 +71,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     e.preventDefault();
     const formData = new FormData();
     formData.set("nickname", nickname);
+    formData.set("avatarColor", avatarColor);
     if (avatar === "remove") {
       formData.set("avatarMode", "remove");
     } else if (avatar) {
@@ -76,27 +86,37 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-3">
-        <Avatar src={preview} size="lg" />
-        <div className="flex gap-2 text-sm">
-          <label className="cursor-pointer rounded-full bg-zinc-100 px-3 py-1.5 font-medium dark:bg-zinc-900">
-            사진 변경
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleFile(e.target.files?.[0])}
-            />
-          </label>
-          {preview && (
-            <button
-              type="button"
-              onClick={() => setAvatar("remove")}
-              className="rounded-full px-3 py-1.5 text-zinc-500"
-            >
-              기본 이미지로
-            </button>
-          )}
+        <Avatar src={preview} color={avatarColor} size="lg" />
+
+        <div className="flex gap-3" role="radiogroup" aria-label="기본 프로필 색">
+          {(Object.keys(AVATAR_COLORS) as AvatarColor[]).map((color) => {
+            const active = !preview && avatarColor === color;
+            return (
+              <button
+                key={color}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                aria-label={AVATAR_COLORS[color].label}
+                onClick={() => chooseColor(color)}
+                style={{ backgroundColor: AVATAR_COLORS[color].hex }}
+                className={`size-8 rounded-full ${
+                  active ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""
+                }`}
+              />
+            );
+          })}
         </div>
+
+        <label className="cursor-pointer rounded-full bg-stone-100 px-3 py-1.5 text-sm font-medium dark:bg-stone-900">
+          사진 올리기
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleFile(e.target.files?.[0])}
+          />
+        </label>
         {photoError && <p className="text-sm text-red-600">{photoError}</p>}
       </div>
 
@@ -107,10 +127,10 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           onChange={(e) => setNickname(e.target.value)}
           required
           maxLength={20}
-          className="h-12 rounded-xl border border-zinc-300 bg-transparent px-4 outline-none focus:border-brand dark:border-zinc-700"
+          className="h-12 rounded-xl border border-stone-300 bg-transparent px-4 outline-none focus:border-brand dark:border-stone-700"
         />
         {profile.kakaoName && (
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-stone-500">
             카카오 이름: <b>{profile.kakaoName}</b> · 닉네임과 다르면 친구들에게 함께 보여요.
           </span>
         )}

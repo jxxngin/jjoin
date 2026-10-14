@@ -15,7 +15,7 @@ export function EndEventForm({ eventId }: { eventId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="h-12 flex-1 rounded-xl bg-zinc-100 font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
+        className="h-12 flex-1 rounded-xl bg-stone-100 font-medium text-stone-600 dark:bg-stone-900 dark:text-stone-400"
       >
         약속 종료
       </button>
@@ -23,7 +23,7 @@ export function EndEventForm({ eventId }: { eventId: string }) {
   }
 
   return (
-    <form action={formAction} className="flex w-full flex-col gap-3 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+    <form action={formAction} className="flex w-full flex-col gap-3 rounded-2xl border border-stone-200 p-4 dark:border-stone-800">
       <p className="font-semibold">종료 사유를 골라 주세요</p>
       <div className="flex flex-wrap gap-2">
         {MANUAL_END_REASONS.map((value) => (
@@ -31,8 +31,8 @@ export function EndEventForm({ eventId }: { eventId: string }) {
             key={value}
             className={`cursor-pointer rounded-full px-3 py-1.5 text-sm font-medium ${
               reason === value
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                : "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
+                ? "bg-stone-900 text-white dark:bg-white dark:text-stone-900"
+                : "bg-stone-100 text-stone-600 dark:bg-stone-900 dark:text-stone-400"
             }`}
           >
             <input
@@ -52,21 +52,21 @@ export function EndEventForm({ eventId }: { eventId: string }) {
         maxLength={100}
         required={reason === "other"}
         placeholder={reason === "other" ? "사유를 적어 주세요" : "한마디 남기기 (선택)"}
-        className="h-11 rounded-xl border border-zinc-300 bg-transparent px-3 text-sm outline-none focus:border-brand dark:border-zinc-700"
+        className="h-11 rounded-xl border border-stone-300 bg-transparent px-3 text-sm outline-none focus:border-brand dark:border-stone-700"
       />
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="h-11 flex-1 rounded-xl bg-zinc-100 text-sm font-medium dark:bg-zinc-900"
+          className="h-11 flex-1 rounded-xl bg-stone-100 text-sm font-medium dark:bg-stone-900"
         >
           취소
         </button>
         <button
           type="submit"
           disabled={pending || !reason}
-          className="h-11 flex-1 rounded-xl bg-zinc-900 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-zinc-900"
+          className="h-11 flex-1 rounded-xl bg-stone-900 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-stone-900"
         >
           {pending ? "종료하는 중…" : "종료하기"}
         </button>

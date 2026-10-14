@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { getUserId } from "@/lib/auth";
+import { isAvatarColor } from "@/lib/avatar-style";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProfileFormState = { error?: string; saved?: boolean };
@@ -21,7 +22,11 @@ export async function updateProfile(
 
   const userId = await getUserId();
   const supabase = await createClient();
-  const changes: { nickname: string; avatar_url?: string | null } = { nickname };
+  const avatarColor = formData.get("avatarColor")?.toString() ?? "";
+  const changes: { nickname: string; avatar_url?: string | null; avatar_color?: string } = {
+    nickname,
+  };
+  if (isAvatarColor(avatarColor)) changes.avatar_color = avatarColor;
 
   if (avatarMode === "remove") {
     changes.avatar_url = null;

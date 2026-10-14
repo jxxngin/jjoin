@@ -1,4 +1,6 @@
 import "server-only";
+import type { AvatarColor } from "@/lib/avatar-style";
+import type { GroupColor } from "@/lib/group-style";
 import { getUserId } from "@/lib/auth";
 import { formatDday } from "@/lib/datetime";
 import {
@@ -32,6 +34,7 @@ export type Person = {
   nickname: string;
   kakaoName: string | null;
   avatarUrl: string | null;
+  avatarColor: AvatarColor;
 };
 
 export type Participant = {
@@ -39,6 +42,7 @@ export type Participant = {
   nickname: string;
   kakaoName: string | null;
   avatarUrl: string | null;
+  avatarColor: AvatarColor;
 };
 
 export type EventDetail = EventSummary & {
@@ -66,7 +70,7 @@ type EventRow = {
   ended_at: string | null;
   end_reason: EndReason | null;
   end_note: string | null;
-  creator: { nickname: string; kakao_name: string | null; avatar_url: string | null } | null;
+  creator: { nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
   event_participants: { status: ParticipantStatus }[];
 };
 
@@ -80,7 +84,7 @@ type EventDetailRow = Omit<EventRow, "event_participants"> & {
   groups: { id: string; name: string; owner_id: string };
   event_participants: {
     status: ParticipantStatus;
-    profiles: { id: string; nickname: string; kakao_name: string | null; avatar_url: string | null } | null;
+    profiles: { id: string; nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
   }[];
 };
 
@@ -88,7 +92,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // event_participants 때문에 events→profiles 경로가 둘이라 만든 사람은 created_by로 지정한다.
 const BASE_COLUMNS =
-  "id, title, starts_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url)";
+  "id, title, starts_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url, avatar_color)";
 
 function toSummary(
   row: Omit<EventRow, "event_participants">,
@@ -117,6 +121,7 @@ function toSummary(
           nickname: row.creator.nickname,
           kakaoName: row.creator.kakao_name,
           avatarUrl: row.creator.avatar_url,
+          avatarColor: row.creator.avatar_color,
         }
       : null,
   };
@@ -200,6 +205,34 @@ export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
   }));
 }
 
+export type GroupedEvent = EventSummary & {
+  group: { name: string; emoji: string; color: GroupColor };
+};
+
+// 내 모든 그룹의 한 달 치 약속 (홈 캘린더). RLS가 내 그룹 약속만 돌려준다.
+export async function getMyGroupsEventsBetween(from: Date, to: Date): Promise<GroupedEvent[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(`${BASE_COLUMNS}, groups(name, emoji, color), event_participants(status)`)
+    .gte("starts_at", from.toISOString())
+    .lt("starts_at", to.toISOString())
+    .order("starts_at")
+    .overrideTypes<
+      (EventRow & { groups: { name: string; emoji: string; color: GroupColor } })[],
+      { merge: false }
+    >();
+
+  if (error) throw new Error(`약속을 불러오지 못했어요. (${error.message})`);
+  return data.map((row) => ({
+    ...toSummary(
+      row,
+      row.event_participants.map((p) => p.status),
+    ),
+    group: row.groups,
+  }));
+}
+
 // 약속 상세. 그룹 멤버가 아니거나 없는 약속이면 null.
 export async function getEvent(id: string): Promise<EventDetail | null> {
   if (!UUID.test(id)) return null;
@@ -211,7 +244,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
       .from("events")
       .select(
         `${BASE_COLUMNS}, place_address, place_lat, place_lng, place_url, memo, created_by, groups(id, name, owner_id),
-         event_participants(status, updated_at, profiles(id, nickname, kakao_name, avatar_url))`,
+         event_participants(status, updated_at, profiles(id, nickname, kakao_name, avatar_url, avatar_color))`,
       )
       .eq("id", id)
       .order("updated_at", { referencedTable: "event_participants" })
@@ -238,6 +271,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
       nickname: profile.nickname,
       kakaoName: profile.kakao_name,
       avatarUrl: profile.avatar_url,
+      avatarColor: profile.avatar_color,
     });
   }
 
