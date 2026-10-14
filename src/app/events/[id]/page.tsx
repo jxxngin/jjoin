@@ -10,6 +10,7 @@ import { getEvent, type Participant } from "@/lib/events";
 import { formatPeople } from "../format";
 import { DeleteEventButton } from "./delete-button";
 import { ParticipationButtons } from "./participation-buttons";
+import { PlaceMap } from "./place-map";
 
 export default function EventPage({ params }: PageProps<"/events/[id]">) {
   return (
@@ -47,9 +48,38 @@ async function EventContent({ id }: { id: string }) {
 
       <dl className="flex flex-col gap-3 rounded-2xl bg-zinc-100 p-4 dark:bg-zinc-900">
         <Row label="언제">{formatEventDate(event.startsAt)}</Row>
-        <Row label="어디서">{event.placeName ?? "미정"}</Row>
+        <Row label="어디서">
+          {event.placeName ?? "미정"}
+          {event.place?.address && (
+            <span className="block text-sm text-zinc-500">{event.place.address}</span>
+          )}
+        </Row>
         {people && <Row label="인원">{people}</Row>}
       </dl>
+
+      {event.place && event.placeName && (
+        <section className="flex flex-col gap-2">
+          <PlaceMap lat={event.place.lat} lng={event.place.lng} />
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href={event.place.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-11 items-center justify-center rounded-xl bg-zinc-100 text-sm font-medium dark:bg-zinc-900"
+            >
+              카카오맵에서 보기
+            </a>
+            <a
+              href={`https://map.kakao.com/link/to/${encodeURIComponent(event.placeName)},${event.place.lat},${event.place.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-11 items-center justify-center rounded-xl bg-zinc-100 text-sm font-medium dark:bg-zinc-900"
+            >
+              길찾기
+            </a>
+          </div>
+        </section>
+      )}
 
       {status !== "past" && (
         <section className="flex flex-col gap-2">

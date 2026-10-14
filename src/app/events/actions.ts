@@ -9,6 +9,10 @@ export type EventFormValues = {
   title: string;
   startsAt: string;
   placeName: string;
+  placeAddress: string;
+  placeLat: string;
+  placeLng: string;
+  placeUrl: string;
   minPeople: string;
   maxPeople: string;
   memo: string;
@@ -26,6 +30,10 @@ function readForm(formData: FormData): EventFormValues {
     title: text("title"),
     startsAt: text("startsAt"),
     placeName: text("placeName"),
+    placeAddress: text("placeAddress"),
+    placeLat: text("placeLat"),
+    placeLng: text("placeLng"),
+    placeUrl: text("placeUrl"),
     minPeople: text("minPeople"),
     maxPeople: text("maxPeople"),
     memo: text("memo"),
@@ -36,6 +44,31 @@ function parsePeople(value: string) {
   if (value === "") return null;
   const n = Number(value);
   return Number.isInteger(n) && n >= 1 && n <= 100 ? n : NaN;
+}
+
+const KAKAO_PLACE_URL = /^https?:\/\/place\.map\.kakao\.com\/\d+$/;
+
+// 카카오맵에서 고른 장소만 좌표와 링크가 있다. 값이 이상하면 이름만 저장한다.
+function parsePlace(values: EventFormValues) {
+  const lat = Number(values.placeLat);
+  const lng = Number(values.placeLng);
+  const valid =
+    values.placeName !== "" &&
+    values.placeLat !== "" &&
+    values.placeLng !== "" &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lng) <= 180 &&
+    KAKAO_PLACE_URL.test(values.placeUrl);
+
+  if (!valid) {
+    return { place_address: null, place_lat: null, place_lng: null, place_url: null };
+  }
+  return {
+    place_address: values.placeAddress.slice(0, 200) || null,
+    place_lat: lat,
+    place_lng: lng,
+    place_url: values.placeUrl.replace(/^http:/, "https:"),
+  };
 }
 
 // 검증에 실패하면 오류 메시지를, 통과하면 DB에 넣을 값을 돌려준다.
@@ -64,6 +97,7 @@ function validate(values: EventFormValues) {
       title: values.title,
       starts_at: startsAt.toISOString(),
       place_name: values.placeName || null,
+      ...parsePlace(values),
       min_people: minPeople,
       max_people: maxPeople,
       memo: values.memo || null,

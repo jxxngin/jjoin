@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { EventFormState, EventFormValues } from "./actions";
 import { DateTimeField } from "./date-time-field";
+import { PlaceField } from "./place-field";
 
 const inputClass =
   "h-12 w-full rounded-xl border border-zinc-300 bg-transparent px-4 outline-none focus:border-brand dark:border-zinc-700";
@@ -37,12 +38,14 @@ export function EventForm({
       </Field>
 
       <Field label="장소" hint="선택">
-        <input
-          name="placeName"
-          maxLength={100}
-          defaultValue={values.placeName}
-          placeholder="예: 강남역 11번 출구"
-          className={inputClass}
+        <PlaceField
+          defaultValue={{
+            name: values.placeName,
+            address: values.placeAddress,
+            lat: values.placeLat,
+            lng: values.placeLng,
+            url: values.placeUrl,
+          }}
         />
       </Field>
 

@@ -21,6 +21,8 @@ export type Participant = {
 };
 
 export type EventDetail = EventSummary & {
+  // 카카오맵에서 고른 장소일 때만 있다.
+  place: { address: string | null; lat: number; lng: number; url: string } | null;
   memo: string | null;
   group: { id: string; name: string };
   creator: { nickname: string; avatarUrl: string | null } | null;
@@ -44,6 +46,10 @@ type EventRow = {
 };
 
 type EventDetailRow = Omit<EventRow, "event_participants"> & {
+  place_address: string | null;
+  place_lat: number | null;
+  place_lng: number | null;
+  place_url: string | null;
   memo: string | null;
   created_by: string;
   groups: { id: string; name: string; owner_id: string };
@@ -106,7 +112,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
     supabase
       .from("events")
       .select(
-        `${BASE_COLUMNS}, memo, created_by, groups(id, name, owner_id), creator:profiles!created_by(nickname, avatar_url),
+        `${BASE_COLUMNS}, place_address, place_lat, place_lng, place_url, memo, created_by, groups(id, name, owner_id), creator:profiles!created_by(nickname, avatar_url),
          event_participants(status, updated_at, profiles(id, nickname, avatar_url))`,
       )
       .eq("id", id)
@@ -139,6 +145,15 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
       row,
       row.event_participants.map((p) => p.status),
     ),
+    place:
+      row.place_lat !== null && row.place_lng !== null && row.place_url
+        ? {
+            address: row.place_address,
+            lat: row.place_lat,
+            lng: row.place_lng,
+            url: row.place_url,
+          }
+        : null,
     memo: row.memo,
     group: { id: row.groups.id, name: row.groups.name },
     creator: row.creator
