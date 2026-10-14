@@ -5,7 +5,7 @@ import { loadKakaoMaps } from "@/lib/kakao-maps";
 
 export function PlaceMap({ lat, lng }: { lat: number; lng: number }) {
   const container = useRef<HTMLDivElement>(null);
-  const [failed, setFailed] = useState(false);
+  const [error, setError] = useState<string>();
 
   useEffect(() => {
     let cancelled = false;
@@ -17,14 +17,20 @@ export function PlaceMap({ lat, lng }: { lat: number; lng: number }) {
         const map = new maps.Map(container.current, { center: position, level: 3 });
         new maps.Marker({ map, position });
       })
-      .catch(() => setFailed(true));
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
 
     return () => {
       cancelled = true;
     };
   }, [lat, lng]);
 
-  if (failed) return null;
+  if (error) {
+    return (
+      <p className="rounded-xl bg-zinc-100 px-4 py-3 text-sm text-zinc-500 dark:bg-zinc-900">
+        지도를 불러오지 못했어요. ({error})
+      </p>
+    );
+  }
 
   return (
     <div
