@@ -41,7 +41,8 @@ export default function Home({ searchParams }: PageProps<"/">) {
       >
         {searchParams.then((query) => (
           <MyEventsSection
-            mode={query.view === "calendar" ? "calendar" : "list"}
+            // 내 약속은 캘린더가 기본이고, ?view=list 일 때만 목록을 보여 준다.
+            mode={query.view === "list" ? "list" : "calendar"}
             month={typeof query.month === "string" ? query.month : undefined}
           />
         ))}
@@ -80,7 +81,7 @@ function MyEventsSection({ mode, month }: { mode: ViewMode; month: string | unde
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold">내 약속</h2>
-        <ViewToggle basePath="/" mode={mode} />
+        <ViewToggle basePath="/" mode={mode} defaultMode="calendar" />
       </div>
       <Suspense fallback={<GroupListSkeleton />}>
         {mode === "calendar" ? <MyCalendar month={month} /> : <MyEvents />}
@@ -126,7 +127,7 @@ async function MyEvents() {
         <li key={event.id}>
           <EventCard
             event={event}
-            groupName={event.groupName}
+            group={event.group}
             countLabel={event.myStatus === "waitlisted" ? "대기 중" : undefined}
           />
         </li>

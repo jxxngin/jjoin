@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
-import { Dday } from "@/components/event-card";
+import { DaysLeftBadge } from "@/components/event-card";
 import { PersonName } from "@/components/person-name";
 import { BackLink } from "@/components/back-link";
 import { formatEventDate } from "@/lib/datetime";
@@ -40,7 +40,7 @@ async function EventContent({ id }: { id: string }) {
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          {event.dday && status !== "ended" && <Dday value={event.dday} />}
+          {event.daysLeft !== null && status !== "ended" && <DaysLeftBadge days={event.daysLeft} />}
           <StatusBadge status={status} />
           <span className="text-sm text-stone-500">
             {formatGoing(event.goingCount, event.maxPeople)} 참여

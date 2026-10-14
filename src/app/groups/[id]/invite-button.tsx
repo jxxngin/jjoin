@@ -2,35 +2,38 @@
 
 import { useState } from "react";
 
-// 휴대폰에서는 공유 시트(카카오톡 등)를 띄우고, 안 되면 링크를 복사한다.
+// 초대 링크를 복사한다. 복사가 막힌 브라우저에서만 공유 시트를 띄운다.
 export function InviteButton({ code, groupName }: { code: string; groupName: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleClick() {
     const url = `${window.location.origin}/invite/${code}`;
 
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      return;
+    } catch {
+      // 일부 인앱 브라우저는 클립보드를 막는다.
+    }
+
     if (navigator.share) {
       try {
         await navigator.share({ title: `${groupName} 초대`, text: `jjoin에서 "${groupName}"에 초대했어요`, url });
-        return;
-      } catch (error) {
+      } catch {
         // 사용자가 공유를 취소한 경우
-        if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
-
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
     <button
       type="button"
       onClick={handleClick}
-      className="h-12 rounded-xl bg-brand/10 font-medium text-brand-ink transition active:scale-[0.98]"
+      className="rounded-full bg-stone-900 px-3 py-1.5 text-sm font-medium text-white transition active:scale-[0.98] dark:bg-stone-100 dark:text-stone-900"
     >
-      {copied ? "링크가 복사됐어요" : "친구 초대하기"}
+      {copied ? "✓ 복사됨" : "🔗 초대 링크"}
     </button>
   );
 }

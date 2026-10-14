@@ -20,6 +20,25 @@ export async function getUserId() {
   return userId;
 }
 
+export type NotificationPrefs = { newEvent: boolean; promoted: boolean; dayBefore: boolean };
+
+// 종류별 알림 받기 설정 (마이페이지)
+export async function getNotificationPrefs(): Promise<NotificationPrefs> {
+  const userId = await getUserId();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("notify_new_event, notify_promoted, notify_day_before")
+    .eq("id", userId)
+    .single();
+
+  return {
+    newEvent: data?.notify_new_event ?? true,
+    promoted: data?.notify_promoted ?? true,
+    dayBefore: data?.notify_day_before ?? true,
+  };
+}
+
 // 현재 로그인한 사용자의 프로필.
 export async function getCurrentProfile(): Promise<Profile> {
   const userId = await getUserId();

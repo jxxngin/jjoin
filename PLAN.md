@@ -82,7 +82,7 @@ event_participants  event_id, user_id, status('going'|'maybe'|'not_going'|'waitl
 9. **PWA**: manifest, 아이콘, 홈 화면 추가 (알림의 전제 조건) ✅
 10. **알림**: 웹 푸시. 새 약속, 대기 승격, 약속 하루 전. 마이페이지에서 종류별 켜고 끄기
 11. **톡방**: 약속마다 채팅방. 약속이 끝나면 새 메시지는 막고 대화 내역은 계속 볼 수 있음
-12. **마무리**: RLS 점검, 모바일 UI 다듬기, 친구들 테스트
+12. **마무리**: RLS 점검, 모바일 UI 다듬기, 친구들 테스트, 서비스 이름 정리(GitHub 저장소·Vercel 프로젝트·Supabase 프로젝트·카카오 앱을 jjoin으로)
 
 ## 8. 이후 고려 (MVP 제외)
 - 후보 날짜 투표

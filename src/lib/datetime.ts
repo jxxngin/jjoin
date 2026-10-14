@@ -38,14 +38,20 @@ export function kstDateKey(iso: string) {
   return toKstInput(iso).slice(0, 10);
 }
 
-// 한국 날짜 기준 디데이. "D-Day", "D-3". 지난 약속이면 null.
-export function formatDday(iso: string, now: number) {
+// 한국 날짜 기준으로 며칠 남았는지. 오늘이면 0, 지난 날이면 null.
+export function daysUntil(iso: string, now: number) {
   const day = (key: string) => Date.parse(`${key}T00:00:00Z`);
   const diff = Math.round(
     (day(kstDateKey(iso)) - day(kstDateKey(new Date(now).toISOString()))) / 86_400_000,
   );
-  if (diff < 0) return null;
-  return diff === 0 ? "D-Day" : `D-${diff}`;
+  return diff < 0 ? null : diff;
+}
+
+// "오늘", "내일", "3일 후"
+export function formatDaysLeft(days: number) {
+  if (days === 0) return "오늘";
+  if (days === 1) return "내일";
+  return `${days}일 후`;
 }
 
 // 오늘 한국 날짜 "2026-10-18"

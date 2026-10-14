@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { signOut } from "@/app/auth/actions";
 import { BackLink } from "@/components/back-link";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, getNotificationPrefs } from "@/lib/auth";
+import { NotificationSettings } from "./notification-settings";
 import { ProfileForm } from "./profile-form";
 import { ThemePicker } from "./theme-picker";
 
@@ -13,6 +14,10 @@ export default function MyPage() {
 
       <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         <ProfileSection />
+      </Suspense>
+
+      <Suspense fallback={<div className="h-48 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+        <NotificationSection />
       </Suspense>
 
       <ThemePicker />
@@ -29,4 +34,9 @@ export default function MyPage() {
 async function ProfileSection() {
   const profile = await getCurrentProfile();
   return <ProfileForm profile={profile} />;
+}
+
+async function NotificationSection() {
+  const prefs = await getNotificationPrefs();
+  return <NotificationSettings prefs={prefs} />;
 }

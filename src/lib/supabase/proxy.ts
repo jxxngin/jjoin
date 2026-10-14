@@ -45,6 +45,7 @@ export async function updateSession(request: NextRequest) {
   return response;
 }
 
+// /api/cron/은 로그인 대신 CRON_SECRET으로 직접 인증한다.
 function isPublicPath(pathname: string) {
-  return pathname === "/login" || pathname.startsWith("/auth/");
+  return pathname === "/login" || pathname.startsWith("/auth/") || pathname.startsWith("/api/cron/");
 }

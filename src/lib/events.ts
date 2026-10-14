@@ -2,7 +2,7 @@ import "server-only";
 import type { AvatarColor } from "@/lib/avatar-style";
 import type { GroupColor } from "@/lib/group-style";
 import { getUserId } from "@/lib/auth";
-import { formatDday } from "@/lib/datetime";
+import { daysUntil } from "@/lib/datetime";
 import {
   getEndReason,
   getEventStatus,
@@ -25,8 +25,8 @@ export type EventSummary = {
   endNote: string | null;
   // 만든 사람·방장이 직접 종료했는지 (다시 열 수 있는지 판단)
   endedManually: boolean;
-  // "D-3", "D-Day". 지난 약속이면 null
-  dday: string | null;
+  // 며칠 남았는지 (오늘 0). 지난 약속이면 null
+  daysLeft: number | null;
   creator: Person | null;
 };
 
@@ -115,7 +115,7 @@ function toSummary(
     endReason: getEndReason({ startsAt: row.starts_at, endReason: row.end_reason }, now),
     endNote: row.end_note,
     endedManually: row.ended_at !== null,
-    dday: formatDday(row.starts_at, now),
+    daysLeft: daysUntil(row.starts_at, now),
     creator: row.creator
       ? {
           nickname: row.creator.nickname,
@@ -168,7 +168,7 @@ export function getEventsBetween(groupId: string, from: Date, to: Date) {
 }
 
 export type MyEvent = EventSummary & {
-  groupName: string;
+  group: { name: string; emoji: string };
   myStatus: "going" | "waitlisted";
 };
 
@@ -179,7 +179,7 @@ export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
   const { data, error } = await supabase
     .from("events")
     .select(
-      `${BASE_COLUMNS}, groups(name), event_participants(status),
+      `${BASE_COLUMNS}, groups(name, emoji), event_participants(status),
        mine:event_participants!inner(user_id, status)`,
     )
     .eq("mine.user_id", userId)
@@ -188,7 +188,7 @@ export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
     .order("starts_at")
     .overrideTypes<
       (EventRow & {
-        groups: { name: string };
+        groups: { name: string; emoji: string };
         mine: { status: "going" | "waitlisted" }[];
       })[],
       { merge: false }
@@ -200,7 +200,7 @@ export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
       row,
       row.event_participants.map((p) => p.status),
     ),
-    groupName: row.groups.name,
+    group: row.groups,
     myStatus: row.mine[0].status,
   }));
 }

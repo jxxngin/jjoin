@@ -2,12 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { FilteredEventList } from "@/components/filtered-event-list";
 import { GroupAvatar } from "@/components/group-avatar";
 import { ViewToggle } from "@/components/view-toggle";
-import { PersonName } from "@/components/person-name";
 import { getUserId } from "@/lib/auth";
 import { kstMonthRange, kstToday, normalizeMonth } from "@/lib/datetime";
 import { getEventsBetween, getPastEvents, getUpcomingEvents } from "@/lib/events";
@@ -15,9 +13,10 @@ import { getGroup } from "@/lib/groups";
 import { leaveGroup } from "../actions";
 import { Calendar } from "@/components/calendar";
 import { InviteButton } from "./invite-button";
+import { MemberList } from "./member-list";
 
 // month는 주소에 들어온 값 그대로다. 비었거나 잘못되면 캘린더에서 이번 달로 바꾼다.
-type View = { mode: "list" } | { mode: "calendar"; month: string | undefined };
+type View ={ mode: "list" } | { mode: "calendar"; month: string | undefined };
 
 export default function GroupPage({ params, searchParams }: PageProps<"/groups/[id]">) {
   return (
@@ -88,24 +87,12 @@ async function GroupContent({ id, view }: { id: string; view: View }) {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-semibold">멤버 {group.members.length}명</h2>
-        <InviteButton code={group.inviteCode} groupName={group.name} />
-        <ul className="flex flex-col gap-1">
-          {group.members.map((member) => (
-            <li key={member.id} className="flex items-center gap-3 py-2">
-              <Avatar src={member.avatarUrl} color={member.avatarColor} />
-              <PersonName nickname={member.nickname} kakaoName={member.kakaoName} className="font-medium" />
-              {member.id === userId && (
-                <span className="text-sm text-stone-500">(나)</span>
-              )}
-              {member.role === "owner" && (
-                <span className="ml-auto rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand-ink">
-                  방장
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">멤버 {group.members.length}명</h2>
+          <InviteButton code={group.inviteCode} groupName={group.name} />
+        </div>
+
+        <MemberList members={group.members} userId={userId} />
       </section>
 
       {!isOwner && (

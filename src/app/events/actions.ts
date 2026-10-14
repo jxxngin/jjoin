@@ -2,8 +2,10 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { fromKstInput } from "@/lib/datetime";
 import { MANUAL_END_REASONS } from "@/lib/event-status";
+import { flushNotifications } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 
 export type EventFormValues = {
@@ -118,6 +120,7 @@ export async function createEvent(
     return { error: "약속을 만들지 못했어요. 다시 시도해 주세요.", values };
   }
 
+  after(sendQueuedNotifications);
   redirect(`/events/${data.id}`);
 }
 
@@ -141,6 +144,8 @@ export async function updateEvent(
     return { error: "약속을 수정하지 못했어요.", values };
   }
 
+  // 최대 인원을 늘리면 대기자가 승격될 수 있다.
+  after(sendQueuedNotifications);
   redirect(`/events/${eventId}`);
 }
 
@@ -162,6 +167,7 @@ export async function setParticipation(
     };
   }
 
+  after(sendQueuedNotifications);
   refresh();
   return {};
 }
@@ -220,4 +226,14 @@ export async function deleteEvent(formData: FormData) {
   if (error || data.length === 0) throw new Error("약속을 삭제하지 못했어요.");
 
   redirect(`/groups/${groupId}`);
+}
+
+// DB 트리거가 쌓아 둔 알림(새 약속·대기 승격)을 응답을 보낸 뒤에 보낸다.
+// 알림이 실패해도 약속 처리에는 영향이 없게 오류는 기록만 한다.
+async function sendQueuedNotifications() {
+  try {
+    await flushNotifications();
+  } catch (error) {
+    console.error("알림을 보내지 못했어요", error);
+  }
 }

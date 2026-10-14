@@ -159,7 +159,7 @@ export function Calendar({
           <p className="py-4 text-center text-sm text-stone-500">이날은 약속이 없어요.</p>
         ) : (
           selectedItems.map(({ event, group }) => (
-            <EventCard key={event.id} event={event} groupName={group?.name} />
+            <EventCard key={event.id} event={event} group={group} />
           ))
         )}
       </div>

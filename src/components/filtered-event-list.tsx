@@ -8,7 +8,7 @@ import type { EventSummary } from "@/lib/events";
 
 export type EventListItem = {
   event: EventSummary;
-  groupName?: string;
+  group?: { name: string; emoji: string };
   countLabel?: string;
 };
 
@@ -62,9 +62,9 @@ export function FilteredEventList({ items, emptyText }: { items: EventListItem[]
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {visible.map(({ event, groupName, countLabel }) => (
+          {visible.map(({ event, group, countLabel }) => (
             <li key={event.id}>
-              <EventCard event={event} groupName={groupName} countLabel={countLabel} />
+              <EventCard event={event} group={group} countLabel={countLabel} />
             </li>
           ))}
         </ul>
