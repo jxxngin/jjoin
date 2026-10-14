@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export type Profile = {
   id: string;
   nickname: string;
+  kakaoName: string | null;
   avatarUrl: string | null;
 };
 
@@ -24,7 +25,7 @@ export async function getCurrentProfile(): Promise<Profile> {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, nickname, avatar_url")
+    .select("id, nickname, kakao_name, avatar_url")
     .eq("id", userId)
     .single();
 
@@ -36,6 +37,7 @@ export async function getCurrentProfile(): Promise<Profile> {
   return {
     id: profile.id,
     nickname: profile.nickname,
+    kakaoName: profile.kakao_name,
     avatarUrl: profile.avatar_url,
   };
 }

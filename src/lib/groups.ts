@@ -10,6 +10,7 @@ export type GroupSummary = {
 export type GroupMember = {
   id: string;
   nickname: string;
+  kakaoName: string | null;
   avatarUrl: string | null;
   role: "owner" | "member";
 };
@@ -38,7 +39,7 @@ type GroupRow = {
   group_members: {
     role: string;
     joined_at: string;
-    profiles: { id: string; nickname: string; avatar_url: string | null } | null;
+    profiles: { id: string; nickname: string; kakao_name: string | null; avatar_url: string | null } | null;
   }[];
 };
 
@@ -76,7 +77,7 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
   const { data: group } = await supabase
     .from("groups")
     .select(
-      "id, name, invite_code, owner_id, group_members(role, joined_at, profiles(id, nickname, avatar_url))",
+      "id, name, invite_code, owner_id, group_members(role, joined_at, profiles(id, nickname, kakao_name, avatar_url))",
     )
     .eq("id", id)
     .order("joined_at", { referencedTable: "group_members" })
@@ -96,6 +97,7 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
             {
               id: profile.id,
               nickname: profile.nickname,
+              kakaoName: profile.kakao_name,
               avatarUrl: profile.avatar_url,
               role: role as GroupMember["role"],
             },

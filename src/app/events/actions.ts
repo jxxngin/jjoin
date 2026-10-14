@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { fromKstInput } from "@/lib/datetime";
+import { MANUAL_END_REASONS } from "@/lib/event-status";
 import { createClient } from "@/lib/supabase/server";
 
 export type EventFormValues = {
@@ -13,7 +14,6 @@ export type EventFormValues = {
   placeLat: string;
   placeLng: string;
   placeUrl: string;
-  minPeople: string;
   maxPeople: string;
   memo: string;
 };
@@ -34,7 +34,6 @@ function readForm(formData: FormData): EventFormValues {
     placeLat: text("placeLat"),
     placeLng: text("placeLng"),
     placeUrl: text("placeUrl"),
-    minPeople: text("minPeople"),
     maxPeople: text("maxPeople"),
     memo: text("memo"),
   };
@@ -80,13 +79,9 @@ function validate(values: EventFormValues) {
   const startsAt = fromKstInput(values.startsAt);
   if (!startsAt) return { error: "날짜와 시간을 입력해 주세요." };
 
-  const minPeople = parsePeople(values.minPeople);
   const maxPeople = parsePeople(values.maxPeople);
-  if (Number.isNaN(minPeople) || Number.isNaN(maxPeople)) {
-    return { error: "인원은 1~100 사이 숫자로 입력해 주세요." };
-  }
-  if (minPeople !== null && maxPeople !== null && minPeople > maxPeople) {
-    return { error: "최소 인원이 최대 인원보다 많아요." };
+  if (Number.isNaN(maxPeople)) {
+    return { error: "최대 인원은 1~100 사이 숫자로 입력해 주세요." };
   }
 
   if (values.placeName.length > 100) return { error: "장소는 100자까지 입력할 수 있어요." };
@@ -98,7 +93,6 @@ function validate(values: EventFormValues) {
       starts_at: startsAt.toISOString(),
       place_name: values.placeName || null,
       ...parsePlace(values),
-      min_people: minPeople,
       max_people: maxPeople,
       memo: values.memo || null,
     },
@@ -162,14 +156,55 @@ export async function setParticipation(
 
   if (error) {
     return {
-      error: error.message.includes("already started")
-        ? "이미 시작한 약속이에요."
+      error: error.message.includes("already ended")
+        ? "이미 종료된 약속이에요."
         : "참여 상태를 바꾸지 못했어요.",
     };
   }
 
   refresh();
   return {};
+}
+
+export async function endEvent(
+  eventId: string,
+  _prev: { error?: string },
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const reason = formData.get("reason")?.toString() ?? "";
+  const note = formData.get("note")?.toString().trim() ?? "";
+
+  if (!(MANUAL_END_REASONS as readonly string[]).includes(reason)) {
+    return { error: "종료 사유를 골라 주세요." };
+  }
+  if (reason === "other" && !note) return { error: "기타 사유를 적어 주세요." };
+  if (note.length > 100) return { error: "사유는 100자까지 적을 수 있어요." };
+
+  // 권한이 없으면 RLS 때문에 수정된 행이 없다.
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .update({ ended_at: new Date().toISOString(), end_reason: reason, end_note: note || null })
+    .eq("id", eventId)
+    .select("id");
+  if (error || data.length === 0) return { error: "약속을 종료하지 못했어요." };
+
+  refresh();
+  return {};
+}
+
+export async function reopenEvent(formData: FormData) {
+  const eventId = formData.get("eventId")?.toString() ?? "";
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .update({ ended_at: null, end_reason: null, end_note: null })
+    .eq("id", eventId)
+    .select("id");
+  if (error || data.length === 0) throw new Error("약속을 다시 열지 못했어요.");
+
+  refresh();
 }
 
 export async function deleteEvent(formData: FormData) {

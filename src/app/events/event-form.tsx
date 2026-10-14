@@ -50,32 +50,18 @@ export function EventForm({
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="최소 인원" hint="모이면 확정">
-          <input
-            type="number"
-            name="minPeople"
-            min={1}
-            max={100}
-            inputMode="numeric"
-            defaultValue={values.minPeople}
-            placeholder="없음"
-            className={inputClass}
-          />
-        </Field>
-        <Field label="최대 인원" hint="정원">
-          <input
-            type="number"
-            name="maxPeople"
-            min={1}
-            max={100}
-            inputMode="numeric"
-            defaultValue={values.maxPeople}
-            placeholder="없음"
-            className={inputClass}
-          />
-        </Field>
-      </div>
+      <Field label="최대 인원" hint="비워 두면 제한 없음">
+        <input
+          type="number"
+          name="maxPeople"
+          min={1}
+          max={100}
+          inputMode="numeric"
+          defaultValue={values.maxPeople}
+          placeholder="제한 없음"
+          className={inputClass}
+        />
+      </Field>
 
       <Field label="메모" hint="선택">
         <textarea

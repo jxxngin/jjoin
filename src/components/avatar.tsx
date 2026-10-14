@@ -4,9 +4,9 @@ export function Avatar({
   size = "md",
 }: {
   src: string | null;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md" | "lg";
 }) {
-  const sizeClass = size === "sm" ? "size-8" : "size-10";
+  const sizeClass = { xs: "size-5", sm: "size-8", md: "size-10", lg: "size-24" }[size];
 
   if (!src) {
     return (

@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { signOut } from "@/app/auth/actions";
 import { Avatar } from "@/components/avatar";
+import { FilteredEventList } from "@/components/filtered-event-list";
 import { getCurrentProfile } from "@/lib/auth";
+import { getMyUpcomingEvents } from "@/lib/events";
 import { getMyGroups } from "@/lib/groups";
 
 export default function Home() {
@@ -18,6 +19,13 @@ export default function Home() {
           <ProfileMenu />
         </Suspense>
       </header>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-semibold">내 약속</h2>
+        <Suspense fallback={<GroupListSkeleton />}>
+          <MyEvents />
+        </Suspense>
+      </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -41,14 +49,24 @@ async function ProfileMenu() {
   const profile = await getCurrentProfile();
 
   return (
-    <div className="flex items-center gap-2">
+    <Link href="/me" aria-label="마이페이지">
       <Avatar src={profile.avatarUrl} size="sm" />
-      <form action={signOut}>
-        <button type="submit" className="text-sm text-zinc-500">
-          로그아웃
-        </button>
-      </form>
-    </div>
+    </Link>
+  );
+}
+
+async function MyEvents() {
+  const events = await getMyUpcomingEvents();
+
+  return (
+    <FilteredEventList
+      emptyText="참여하기로 한 약속이 없어요."
+      items={events.map((event) => ({
+        event,
+        groupName: event.groupName,
+        countLabel: event.myStatus === "waitlisted" ? "대기 중" : undefined,
+      }))}
+    />
   );
 }
 

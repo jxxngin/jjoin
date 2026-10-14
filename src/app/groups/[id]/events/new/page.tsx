@@ -13,7 +13,6 @@ const emptyValues = {
   placeLat: "",
   placeLng: "",
   placeUrl: "",
-  minPeople: "",
   maxPeople: "",
   memo: "",
 };

@@ -36,7 +36,6 @@ async function EditEventContent({ id }: { id: string }) {
           placeLat: event.place?.lat.toString() ?? "",
           placeLng: event.place?.lng.toString() ?? "",
           placeUrl: event.place?.url ?? "",
-          minPeople: event.minPeople?.toString() ?? "",
           maxPeople: event.maxPeople?.toString() ?? "",
           memo: event.memo ?? "",
         }}

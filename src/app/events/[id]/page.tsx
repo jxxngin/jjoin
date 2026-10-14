@@ -2,13 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
+import { Dday } from "@/components/event-card";
+import { PersonName } from "@/components/person-name";
 import { BackLink } from "@/components/back-link";
 import { formatEventDate } from "@/lib/datetime";
 import { StatusBadge } from "@/components/status-badge";
-import { formatGoing } from "@/lib/event-status";
+import { END_REASON_LABELS, formatGoing } from "@/lib/event-status";
 import { getEvent, type Participant } from "@/lib/events";
-import { formatPeople } from "../format";
+import { reopenEvent } from "../actions";
 import { DeleteEventButton } from "./delete-button";
+import { EndEventForm } from "./end-event-form";
 import { ParticipationButtons } from "./participation-buttons";
 import { PlaceMap } from "./place-map";
 
@@ -28,7 +31,6 @@ async function EventContent({ id }: { id: string }) {
   const event = await getEvent(id);
   if (!event) notFound();
 
-  const people = formatPeople(event.minPeople, event.maxPeople);
   const { status } = event;
   const { going, waitlisted, maybe, not_going } = event.participants;
 
@@ -38,13 +40,45 @@ async function EventContent({ id }: { id: string }) {
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
+          {event.dday && status !== "ended" && <Dday value={event.dday} />}
           <StatusBadge status={status} />
           <span className="text-sm text-zinc-500">
             {formatGoing(event.goingCount, event.maxPeople)} 참여
           </span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
+        {event.creator && (
+          <p className="flex items-center gap-2 text-sm text-zinc-500">
+            <Avatar src={event.creator.avatarUrl} size="sm" />
+            <span>
+              <PersonName
+                nickname={event.creator.nickname}
+                kakaoName={event.creator.kakaoName}
+                className="font-medium text-zinc-700 dark:text-zinc-300"
+              />
+              님이 만든 약속
+            </span>
+          </p>
+        )}
       </div>
+
+      {event.endReason && (
+        <section className="flex flex-col gap-2 rounded-2xl border border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <p className="text-sm">
+            <span className="font-semibold">종료된 약속</span>
+            <span className="text-zinc-500"> · {END_REASON_LABELS[event.endReason]}</span>
+          </p>
+          {event.endNote && <p className="text-sm text-zinc-600 dark:text-zinc-400">{event.endNote}</p>}
+          {event.canReopen && (
+            <form action={reopenEvent}>
+              <input type="hidden" name="eventId" value={event.id} />
+              <button type="submit" className="text-sm font-medium text-brand underline underline-offset-4">
+                다시 열기
+              </button>
+            </form>
+          )}
+        </section>
+      )}
 
       <dl className="flex flex-col gap-3 rounded-2xl bg-zinc-100 p-4 dark:bg-zinc-900">
         <Row label="언제">{formatEventDate(event.startsAt)}</Row>
@@ -54,7 +88,7 @@ async function EventContent({ id }: { id: string }) {
             <span className="block text-sm text-zinc-500">{event.place.address}</span>
           )}
         </Row>
-        {people && <Row label="인원">{people}</Row>}
+        {event.maxPeople && <Row label="인원">최대 {event.maxPeople}명</Row>}
       </dl>
 
       {event.place && event.placeName && (
@@ -81,7 +115,7 @@ async function EventContent({ id }: { id: string }) {
         </section>
       )}
 
-      {status !== "past" && (
+      {status !== "ended" && (
         <section className="flex flex-col gap-2">
           <ParticipationButtons
             eventId={event.id}
@@ -97,10 +131,10 @@ async function EventContent({ id }: { id: string }) {
       )}
 
       <section className="flex flex-col gap-4">
-        <PeopleList title="참여" people={going} />
-        <PeopleList title="대기" people={waitlisted} numbered />
-        <PeopleList title="미정" people={maybe} />
-        <PeopleList title="불참" people={not_going} />
+        <PeopleList title="참여" people={going} creatorId={event.creatorId} />
+        <PeopleList title="대기" people={waitlisted} creatorId={event.creatorId} numbered />
+        <PeopleList title="미정" people={maybe} creatorId={event.creatorId} />
+        <PeopleList title="불참" people={not_going} creatorId={event.creatorId} />
       </section>
 
       {event.memo && (
@@ -110,22 +144,22 @@ async function EventContent({ id }: { id: string }) {
         </section>
       )}
 
-      {event.creator && (
-        <p className="flex items-center gap-2 text-sm text-zinc-500">
-          <Avatar src={event.creator.avatarUrl} size="sm" />
-          {event.creator.nickname}님이 만든 약속
-        </p>
-      )}
-
       {event.canEdit && (
-        <div className="mt-auto flex gap-2">
-          <Link
-            href={`/events/${event.id}/edit`}
-            className="flex h-12 flex-1 items-center justify-center rounded-xl bg-zinc-100 font-medium dark:bg-zinc-900"
-          >
-            수정
-          </Link>
-          <DeleteEventButton eventId={event.id} groupId={event.group.id} />
+        <div className="mt-auto flex flex-col gap-2">
+          {status !== "ended" && (
+            <div className="flex">
+              <EndEventForm eventId={event.id} />
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Link
+              href={`/events/${event.id}/edit`}
+              className="flex h-12 flex-1 items-center justify-center rounded-xl bg-zinc-100 font-medium dark:bg-zinc-900"
+            >
+              수정
+            </Link>
+            <DeleteEventButton eventId={event.id} groupId={event.group.id} />
+          </div>
         </div>
       )}
     </>
@@ -135,10 +169,12 @@ async function EventContent({ id }: { id: string }) {
 function PeopleList({
   title,
   people,
+  creatorId,
   numbered,
 }: {
   title: string;
   people: Participant[];
+  creatorId: string;
   numbered?: boolean;
 }) {
   if (people.length === 0) return null;
@@ -154,12 +190,30 @@ function PeopleList({
             <Avatar src={person.avatarUrl} size="sm" />
             <span className="text-sm">
               {numbered && <span className="mr-1 text-zinc-500">{i + 1}.</span>}
-              {person.nickname}
+              <PersonName nickname={person.nickname} kakaoName={person.kakaoName} />
             </span>
+            {person.id === creatorId && <CreatorIcon />}
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+function CreatorIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className="size-4 shrink-0 text-amber-500"
+      role="img"
+      aria-label="만든 사람"
+    >
+      <title>만든 사람</title>
+      <path
+        fill="currentColor"
+        d="M2 5.5 5 8l3-4.5L11 8l3-2.5-1.2 6.5H3.2L2 5.5Zm1.3 7.5h9.4v1.2H3.3V13Z"
+      />
+    </svg>
   );
 }
 
