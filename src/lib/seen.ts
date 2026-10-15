@@ -30,8 +30,13 @@ export function readSeen(key: string): string {
 
 // 기기 시계가 서버보다 늦으면 방금 본 댓글이 "본 시각"보다 뒤로 찍혀 다시 안 읽음으로 떴다.
 // 그래서 지금 시각과 화면에 보인 가장 최근 활동 시각 중 늦은 쪽을 본 시각으로 남긴다.
-export function markSeen(key: string, latestShown: string[] = []) {
-  const latest = Math.max(Date.now(), ...latestShown.map((time) => Date.parse(time)).filter(Number.isFinite));
+// untilNow가 false면 지금 시각은 빼고, 화면에 보인 활동까지만 본 것으로 친다. (알림 목록처럼 일부만 보일 때)
+export function markSeen(key: string, latestShown: string[] = [], untilNow = true) {
+  const latest = Math.max(
+    untilNow ? Date.now() : 0,
+    ...latestShown.map((time) => Date.parse(time)).filter(Number.isFinite),
+  );
+  if (latest === 0) return;
   const previous = Date.parse(readSeen(key));
   // 이미 더 늦은 시각이 남아 있으면 되돌리지 않는다.
   if (Number.isFinite(previous) && previous >= latest) return;

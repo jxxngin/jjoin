@@ -13,6 +13,8 @@ export type NotificationItem = {
   href: string;
   timeLabel: string;
   unread: boolean;
+  // 댓글·언급 알림이면 그 댓글이 달린 약속과 시각. 알림 목록에서 댓글 내용을 읽으면 약속 카드의 안 읽은 댓글 배지도 끈다.
+  comment: { eventId: string; at: string } | null;
 };
 
 type NotificationRow = {
@@ -67,6 +69,10 @@ export async function getNotifications(): Promise<NotificationItem[]> {
     href: row.events ? `/events/${row.events.id}` : "/",
     timeLabel: formatRelative(row.created_at, now),
     unread: row.read_at === null,
+    comment:
+      (row.kind === "comment" || row.kind === "mention") && row.events
+        ? { eventId: row.events.id, at: row.created_at }
+        : null,
   }));
 }
 
