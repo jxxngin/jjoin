@@ -26,6 +26,11 @@ export function CommentForm({ eventId, members }: { eventId: string; members: Me
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
   const textarea = useRef<HTMLTextAreaElement>(null);
+  // 한글처럼 글자를 조합하는 중인지. 조합 중에 보내면 마지막 글자가 빠진 채 올라가고,
+  // 입력칸을 비운 뒤에 그 글자가 다시 들어와 "씹힌" 것처럼 보였다.
+  const composing = useRef(false);
+  const sendAfterCompose = useRef(false);
+  const sending = useRef(false);
 
   const active = mentionQuery(text, cursor);
   const suggestions = active
@@ -60,14 +65,17 @@ export function CommentForm({ eventId, members }: { eventId: string; members: Me
   }
 
   // 칩으로 고른 사람들을 댓글 앞에 "@민수 @지원 "처럼 붙여서 저장한다. (등록된 댓글에서 강조됨)
-  function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  // 내용은 화면 상태(text)가 아니라 입력칸에 실제로 들어 있는 글자를 읽는다. 조합이 막 끝난 글자까지 들어간다.
+  function send() {
+    const value = (textarea.current?.value ?? text).trim();
+    if (!value || sending.current) return;
+    sending.current = true;
     const ids = mentioned.map((m) => m.id);
     const prefix = mentioned.map((m) => `@${m.nickname} `).join("");
-    const body = prefix + text.trim();
     setError(undefined);
     startTransition(async () => {
-      const result = await postComment(eventId, body, ids);
+      const result = await postComment(eventId, prefix + value, ids);
+      sending.current = false;
       if (result.error) {
         setError(result.error);
         return;
@@ -76,6 +84,26 @@ export function CommentForm({ eventId, members }: { eventId: string; members: Me
       setMentioned([]);
       setCursor(0);
     });
+  }
+
+  // 조합 중이면 조합이 끝난 다음에 보낸다. 조합 끝 신호가 안 오는 키보드도 있어 잠시 뒤에는 그냥 보낸다.
+  function requestSend() {
+    if (!composing.current) {
+      send();
+      return;
+    }
+    sendAfterCompose.current = true;
+    setTimeout(() => {
+      if (!sendAfterCompose.current) return;
+      sendAfterCompose.current = false;
+      composing.current = false;
+      send();
+    }, 400);
+  }
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    requestSend();
   }
 
   return (
@@ -131,13 +159,31 @@ export function CommentForm({ eventId, members }: { eventId: string; members: Me
             setCursor(e.target.selectionStart);
           }}
           onSelect={(e) => setCursor(e.currentTarget.selectionStart)}
-          // 엔터로 등록, Shift+엔터로 줄바꿈. 한글을 조합하는 중의 엔터는 글자 확정이라 건드리지 않는다.
-          // 친구 목록이 떠 있으면 엔터는 맨 위 친구를 고른다.
+          onCompositionStart={() => {
+            composing.current = true;
+          }}
+          onCompositionEnd={() => {
+            composing.current = false;
+            if (!sendAfterCompose.current) return;
+            sendAfterCompose.current = false;
+            // 조합이 끝난 글자가 입력칸에 반영된 다음에 읽는다.
+            setTimeout(send, 0);
+          }}
+          // 엔터로 등록, Shift+엔터로 줄바꿈. 친구 목록이 떠 있으면 엔터는 맨 위 친구를 고른다.
           onKeyDown={(e) => {
-            if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+            if (e.key !== "Enter" && e.keyCode !== 229) return;
+            if (e.shiftKey) return;
+            // 조합 중의 엔터(키 코드 229 포함)는 글자 확정에 쓰이므로 막지 않고, 확정된 뒤에 보낸다.
+            if (e.nativeEvent.isComposing || e.keyCode === 229) {
+              if (e.key === "Enter" && suggestions.length === 0) {
+                composing.current = true;
+                requestSend();
+              }
+              return;
+            }
             e.preventDefault();
             if (suggestions.length > 0) pick(suggestions[0]);
-            else if (!pending && text.trim()) e.currentTarget.form?.requestSubmit();
+            else requestSend();
           }}
           enterKeyHint="send"
           rows={1}
