@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { keepFormOnSubmit } from "@/lib/keep-form";
 import { END_REASON_LABELS, MANUAL_END_REASONS } from "@/lib/event-status";
 import { endEvent } from "../actions";
 
@@ -23,7 +24,7 @@ export function EndEventForm({ eventId }: { eventId: string }) {
   }
 
   return (
-    <form action={formAction} className="flex w-full flex-col gap-3 rounded-2xl border border-stone-200 p-4 dark:border-stone-800">
+    <form onSubmit={keepFormOnSubmit(formAction)} className="flex w-full flex-col gap-3 rounded-2xl border border-stone-200 p-4 dark:border-stone-800">
       <p className="font-semibold">종료 사유를 골라 주세요</p>
       <div className="flex flex-wrap gap-2">
         {MANUAL_END_REASONS.map((value) => (

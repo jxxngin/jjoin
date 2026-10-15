@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { keepFormOnSubmit } from "@/lib/keep-form";
 import { DateTimeField } from "@/app/(app)/events/date-time-field";
 import { PlaceField } from "@/app/(app)/events/place-field";
 import type { PollFormState } from "./actions";
@@ -27,7 +28,7 @@ export function PollForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form onSubmit={keepFormOnSubmit(formAction)} className="flex flex-col gap-5">
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium">제목</span>
         <input name="title" required maxLength={50} placeholder="예: 연말 송년회" className={inputClass} />

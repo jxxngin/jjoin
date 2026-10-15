@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { keepFormOnSubmit } from "@/lib/keep-form";
 import { DEFAULT_GROUP_COLOR, DEFAULT_GROUP_EMOJI } from "@/lib/group-style";
 import { createGroup } from "../actions";
 import { GroupProfileFields } from "../group-profile-fields";
@@ -9,7 +10,7 @@ export function CreateGroupForm() {
   const [state, formAction, pending] = useActionState(createGroup, {});
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form onSubmit={keepFormOnSubmit(formAction)} className="flex flex-col gap-5">
       <GroupProfileFields defaultEmoji={DEFAULT_GROUP_EMOJI} defaultColor={DEFAULT_GROUP_COLOR} />
       <label className="flex flex-col gap-2">
         <span className="text-sm font-medium">그룹 이름</span>

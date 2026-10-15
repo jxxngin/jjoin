@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { keepFormOnSubmit } from "@/lib/keep-form";
 import type { EventFormState, EventFormValues } from "./actions";
 import { DateTimeField } from "./date-time-field";
 import { PlaceField } from "./place-field";
@@ -21,7 +22,7 @@ export function EventForm({
   const values = state.values ?? initialValues;
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form onSubmit={keepFormOnSubmit(formAction)} className="flex flex-col gap-5">
       <Field label="제목">
         <input
           name="title"
