@@ -180,6 +180,7 @@ export type MyEvent = EventSummary & {
 };
 
 // 모든 그룹에서 내가 참여·대기 중인 다가오는 약속. 가까운 순.
+// 날짜가 남았어도 만든 사람이 일찍 종료한 약속은 뺀다. (그룹 화면과 캘린더에서는 회색으로 보인다)
 export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
   const userId = await getUserId();
   const supabase = await createClient();
@@ -192,6 +193,7 @@ export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
     .eq("mine.user_id", userId)
     .in("mine.status", ["going", "waitlisted"])
     .gte("starts_at", new Date().toISOString())
+    .is("ended_at", null)
     .order("starts_at")
     .overrideTypes<
       (EventRow & {
