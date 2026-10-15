@@ -49,7 +49,7 @@ async function GroupContent({ id, view }: { id: string; view: View }) {
 
   return (
     <Reveal className="flex flex-1 flex-col gap-6">
-      <MarkGroupSeen groupId={group.id} />
+      <MarkGroupSeen groupId={group.id} loadedAt={group.loadedAt} />
       <header className="flex items-center gap-4">
         <GroupAvatar emoji={group.emoji} color={group.color} size="lg" />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">

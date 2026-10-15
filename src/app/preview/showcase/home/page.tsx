@@ -9,10 +9,10 @@ import { GROUPS, MY_CALENDAR, TODAY } from "../mock";
 
 // 대학 동기: 새 소식(도는 테두리) · 나머지: 다 읽음(회색)
 const MY_GROUPS: StoryGroup[] = [
-  { id: "demo-friends", ...GROUPS.friends, latestActivityAt: "2099-01-01T00:00:00Z" },
-  { id: "demo-hiking", ...GROUPS.hiking, latestActivityAt: null },
-  { id: "demo-work", ...GROUPS.work, latestActivityAt: null },
-  { id: "demo-books", name: "독서 모임", emoji: "📚", color: "sky", latestActivityAt: null },
+  { id: "demo-friends", ...GROUPS.friends, activity: [{ eventId: "demo", at: "2099-01-01T00:00:00Z" }] },
+  { id: "demo-hiking", ...GROUPS.hiking, activity: [] },
+  { id: "demo-work", ...GROUPS.work, activity: [] },
+  { id: "demo-books", name: "독서 모임", emoji: "📚", color: "sky", activity: [] },
 ];
 
 export default function ShowcaseHome() {

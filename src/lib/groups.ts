@@ -15,8 +15,8 @@ export type GroupSummary = GroupProfile & {
   id: string;
   name: string;
   memberCount: number;
-  // 다른 멤버가 약속을 올리거나 고친 시각, 댓글을 단 시각 중 가장 최근. 홈의 "새 소식" 테두리에 쓴다.
-  latestActivityAt: string | null;
+  // 약속마다 다른 멤버가 약속을 올리거나 댓글을 단 가장 최근 시각. 홈의 "새 소식" 테두리에 쓴다.
+  activity: GroupActivity[];
 };
 
 export type GroupMember = {
@@ -34,6 +34,8 @@ export type GroupDetail = GroupProfile & {
   inviteCode: string;
   ownerId: string;
   members: GroupMember[];
+  // 서버가 이 그룹을 읽은 시각. 기기 시계가 틀려도 "본 시각"을 서버 기준으로 남기는 데 쓴다.
+  loadedAt: string;
 };
 
 export type Invite = GroupProfile & {
@@ -73,19 +75,25 @@ const UUID =/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // 내가 속한 그룹. RLS가 멤버인 그룹만 돌려준다.
 type ActivityRow = {
+  id: string;
   created_by: string;
-  updated_at: string;
+  created_at: string;
   event_comments: { user_id: string; created_at: string }[];
 };
 
-// 내 활동은 빼고, 다른 멤버의 약속·댓글 중 가장 최근 시각
-function latestActivityBy(others: (userId: string) => boolean, events: ActivityRow[]) {
-  const times = events.flatMap((event) => [
-    ...(others(event.created_by) ? [event.updated_at] : []),
-    ...event.event_comments.filter((c) => others(c.user_id)).map((c) => c.created_at),
-  ]);
-  if (times.length === 0) return null;
-  return times.reduce((latest, time) => (Date.parse(time) > Date.parse(latest) ? time : latest));
+export type GroupActivity = { eventId: string; at: string };
+
+// 내 활동은 빼고, 약속마다 다른 멤버의 약속 올리기·댓글 중 가장 최근 시각.
+// updated_at은 쓰지 않는다. 리마인더를 보냈다는 기록만 바뀌어도 올라가서, 새 소식이 없는데도 테두리가 돌았다.
+function activityBy(others: (userId: string) => boolean, events: ActivityRow[]): GroupActivity[] {
+  return events.flatMap((event) => {
+    const times = [
+      ...(others(event.created_by) ? [event.created_at] : []),
+      ...event.event_comments.filter((c) => others(c.user_id)).map((c) => c.created_at),
+    ];
+    if (times.length === 0) return [];
+    return [{ eventId: event.id, at: times.reduce((a, b) => (Date.parse(a) > Date.parse(b) ? a : b)) }];
+  });
 }
 
 export async function getMyGroups(): Promise<GroupSummary[]> {
@@ -94,7 +102,7 @@ export async function getMyGroups(): Promise<GroupSummary[]> {
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, emoji, color, description, group_members(count), activity:events(created_by, updated_at, event_comments(user_id, created_at))",
+      "id, name, emoji, color, description, group_members(count), activity:events(id, created_by, created_at, event_comments(user_id, created_at))",
     )
     // 약속마다 최근 댓글 몇 개만 보면 충분하다.
     .order("created_at", { referencedTable: "activity.event_comments", ascending: false })
@@ -111,7 +119,7 @@ export async function getMyGroups(): Promise<GroupSummary[]> {
     color: group.color,
     description: group.description,
     memberCount: group.group_members[0]?.count ?? 0,
-    latestActivityAt: latestActivityBy(others, group.activity as ActivityRow[]),
+    activity: activityBy(others, group.activity as ActivityRow[]),
   }));
 }
 
@@ -140,6 +148,7 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
     description: group.description,
     inviteCode: group.invite_code,
     ownerId: group.owner_id,
+    loadedAt: new Date().toISOString(),
     members: group.group_members.flatMap(({ role, profiles: profile }) =>
       profile
         ? [

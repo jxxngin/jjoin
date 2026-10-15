@@ -3,47 +3,43 @@
 import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
 import { GROUP_COLORS, type GroupColor } from "@/lib/group-style";
-
-// 그룹을 마지막으로 본 시각. 기기마다 따로 저장한다.
-const seenKey = (groupId: string) => `group-seen:${groupId}`;
-
-function readSeen(groupId: string) {
-  try {
-    return localStorage.getItem(seenKey(groupId));
-  } catch {
-    return null;
-  }
-}
+import type { GroupActivity } from "@/lib/groups";
+import { eventSeenKey, groupSeenKey, markSeen, readSeen, subscribeSeen } from "@/lib/seen";
 
 export type StoryGroup = {
   id: string;
   name: string;
   emoji: string;
   color: GroupColor;
-  latestActivityAt: string | null;
+  activity: GroupActivity[];
 };
 
-const noopSubscribe = () => () => {};
+const time = (value: string) => (value ? Date.parse(value) : 0);
+
+// 그룹 화면을 연 뒤에 생겼고, 그 약속 화면도 아직 안 열어 본 활동이 하나라도 있으면 새 소식이다.
+// (약속을 알림이나 홈에서 바로 열어 봤으면 그 약속의 댓글은 이미 본 것으로 친다)
+function hasNews(group: StoryGroup) {
+  const groupSeen = time(readSeen(groupSeenKey(group.id)));
+  return group.activity.some(
+    ({ eventId, at }) => Date.parse(at) > Math.max(groupSeen, time(readSeen(eventSeenKey(eventId)))),
+  );
+}
 
 // 인스타 스토리처럼 동그란 그룹 아이콘을 가로로 늘어놓는다.
 // 마지막으로 본 뒤 다른 멤버가 약속을 올리거나 댓글을 달았으면 그라데이션 테두리가 돈다. (새 소식)
 // 그룹 화면을 열면 읽은 것으로 보고 테두리가 꺼진다.
 export function GroupStories({ groups }: { groups: StoryGroup[] }) {
   // 서버는 본 기록을 모르므로 처음엔 새 소식 없이 그리고, 브라우저에서 다시 계산한다.
-  const seenSnapshot = useSyncExternalStore(
-    noopSubscribe,
-    () => groups.map((g) => readSeen(g.id) ?? "").join("|"),
+  const newsSnapshot = useSyncExternalStore(
+    subscribeSeen,
+    () => groups.map((g) => (hasNews(g) ? "1" : "0")).join(""),
     () => null,
   );
-  const seen = seenSnapshot?.split("|") ?? null;
 
   return (
     <ul className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1">
       {groups.map((group, i) => {
-        const isNew =
-          seen !== null &&
-          group.latestActivityAt !== null &&
-          (seen[i] === "" || Date.parse(group.latestActivityAt) > Date.parse(seen[i]));
+        const isNew = newsSnapshot?.[i] === "1";
         const ring = isNew ? "story-ring-new" : "bg-stone-200 dark:bg-stone-800";
 
         return (
@@ -90,13 +86,9 @@ export function GroupStories({ groups }: { groups: StoryGroup[] }) {
 }
 
 // 그룹 화면을 열면 "지금 봤음"을 기록해서 홈의 새 소식 테두리를 끈다.
-export function MarkGroupSeen({ groupId }: { groupId: string }) {
+export function MarkGroupSeen({ groupId, loadedAt }: { groupId: string; loadedAt: string }) {
   useEffect(() => {
-    try {
-      localStorage.setItem(seenKey(groupId), new Date().toISOString());
-    } catch {
-      // 저장이 막힌 브라우저에서는 새 소식 표시를 끄지 못할 뿐이다.
-    }
-  }, [groupId]);
+    markSeen(groupSeenKey(groupId), [loadedAt]);
+  }, [groupId, loadedAt]);
   return null;
 }
