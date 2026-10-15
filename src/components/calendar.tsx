@@ -58,6 +58,10 @@ export function Calendar({
     const key = kstDateKey(item.event.startsAt);
     itemsByDay.set(key, [...(itemsByDay.get(key) ?? []), item]);
   }
+  // 하루 안에서는 종료된 약속을 맨 뒤로 보낸다. 나머지는 시간 순서 그대로.
+  for (const dayItems of itemsByDay.values()) {
+    dayItems.sort((a, b) => Number(a.event.status === "ended") - Number(b.event.status === "ended"));
+  }
 
   const initial =
     today >= first && today <= last
