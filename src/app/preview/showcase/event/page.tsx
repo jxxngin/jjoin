@@ -39,8 +39,7 @@ export default function ShowcaseEvent() {
       </dl>
 
       <section className="flex flex-col gap-2">
-        <ParticipationButtons eventId="demo" myStatus="waitlisted" isFull />
-        <p className="text-sm text-stone-500">대기 1번째예요. 자리가 나면 자동으로 참여돼요.</p>
+        <ParticipationButtons eventId="demo" myStatus="waitlisted" isFull waitlistRank={1} />
       </section>
 
       <section className="flex flex-col gap-4">

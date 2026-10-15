@@ -148,12 +148,8 @@ async function EventContent({ id }: { id: string }) {
             eventId={event.id}
             myStatus={event.myStatus}
             isFull={status === "full"}
+            waitlistRank={event.myWaitlistRank}
           />
-          {event.myWaitlistRank && (
-            <p className="text-sm text-stone-500">
-              대기 {event.myWaitlistRank}번째예요. 자리가 나면 자동으로 참여돼요.
-            </p>
-          )}
         </section>
       )}
 
