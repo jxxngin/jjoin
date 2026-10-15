@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import { markEventNotificationsRead } from "@/app/(app)/notifications/actions";
+import { closeSystemNotifications } from "@/lib/close-notifications";
 
 // 약속을 마지막으로 본 시각. 기기마다 따로 저장한다. (그룹의 group-seen과 같은 방식)
 const seenKey = (eventId: string) => `event-seen:${eventId}`;
@@ -42,6 +44,7 @@ export function UnreadCommentsBadge({ eventId, commentTimes }: { eventId: string
 }
 
 // 약속 화면을 열면 "지금 봤음"을 기록해서 목록의 안 읽은 댓글 배지를 끈다.
+// 이 약속에 대한 알림도 읽음으로 바꾸고, 휴대폰 알림 센터에 남은 알림도 닫는다.
 export function MarkEventSeen({ eventId }: { eventId: string }) {
   useEffect(() => {
     try {
@@ -49,6 +52,8 @@ export function MarkEventSeen({ eventId }: { eventId: string }) {
     } catch {
       // 저장이 막힌 브라우저에서는 배지를 끄지 못할 뿐이다.
     }
+    markEventNotificationsRead(eventId);
+    closeSystemNotifications(`/events/${eventId}`);
   }, [eventId]);
   return null;
 }
