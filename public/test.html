@@ -79,8 +79,13 @@ textarea:focus, button:focus-visible { outline: 2px solid var(--brand); outline-
   padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .dock div { max-width: 34rem; margin: 0 auto; display: flex; gap: 8px; align-items: center; }
 .dock button { flex: 1; font: inherit; font-weight: 700; font-size: 15px; padding: 12px; border: 0; border-radius: 12px; background: var(--brand); color: #fff; cursor: pointer; }
+.dock #sync[data-kind="idle"], .dock #sync[data-kind="busy"] { background: var(--surface); color: var(--muted); cursor: default; }
+.dock #sync[data-kind="ok"] { background: var(--ok-soft); color: var(--ok); cursor: default; }
+.dock #sync[data-kind="bad"] { background: var(--bad-soft); color: var(--bad); }
+.name { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.name input { font: inherit; font-size: 16px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.name input:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
 .dock .reset { flex: 0 0 auto; background: var(--surface); color: var(--muted); font-weight: 500; padding-inline: 14px; }
-#out { width: 100%; margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -95,12 +100,15 @@ textarea:focus, button:focus-visible { outline: 2px solid var(--brand); outline-
       <li>위 주소를 휴대폰으로 열고 순서대로 해 봐.</li>
       <li>항목마다 <b>잘 됨 / 문제 있음 / 못 해봄</b> 중 하나를 눌러 줘.</li>
       <li>이상하면 메모에 "뭘 눌렀더니 어떻게 됐다"만 적어 주면 돼.</li>
-      <li>다 하면 맨 아래 <b>결과 복사</b> → 카톡으로 보내 줘.</li>
+      <li>고르는 대로 <b>자동으로 저장</b>돼. 따로 안 보내도 돼!</li>
     </ol>
   </header>
 
   <section>
     <h2>내 환경</h2>
+    <label class="name" for="name">이름 (누군지만 알게)
+      <input id="name" maxlength="40" placeholder="예: 민수" autocomplete="nickname">
+    </label>
     <div class="device">
       <label for="os">휴대폰
         <select id="os"><option value="">선택</option><option>아이폰</option><option>안드로이드</option><option>PC</option></select>
@@ -123,8 +131,8 @@ textarea:focus, button:focus-visible { outline: 2px solid var(--brand); outline-
 
 <div class="dock"><div>
   <button class="reset" id="reset" type="button">처음부터</button>
-  <button id="copy" type="button">결과 복사</button>
-</div><textarea id="out" hidden readonly></textarea></div>
+  <button id="sync" type="button" data-kind="idle">고르면 자동으로 저장돼</button>
+</div></div>
 
 <script>
 const STEPS = [
@@ -172,7 +180,6 @@ const LABELS = { ok: "잘 됨", bad: "문제 있음", skip: "못 해봄" };
 const KEY = "jjoin-test-v1";
 let state = {};
 try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { state = {}; }
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 
 const list = document.getElementById("list");
 list.style.cssText = "display:flex;flex-direction:column;gap:28px";
@@ -212,7 +219,7 @@ function paint() {
   document.getElementById("pt").textContent = `${done} / ${total} 확인함 · 잘 됨 ${ok} · 문제 ${bad}`;
   document.getElementById("pg").style.width = `${(ok / total) * 100}%`;
   document.getElementById("pr").style.width = `${(bad / total) * 100}%`;
-  ["os", "browser", "memo-all"].forEach((k) => { const el = document.getElementById(k); if (document.activeElement !== el) el.value = state[k] || ""; });
+  ["name", "os", "browser", "memo-all"].forEach((k) => { const el = document.getElementById(k); if (document.activeElement !== el) el.value = state[k] || ""; });
 }
 
 list.addEventListener("click", (e) => {
@@ -228,43 +235,52 @@ list.addEventListener("input", (e) => {
   const id = e.target.closest("li").dataset.id;
   state[id] = { ...(state[id] || {}), memo: e.target.value }; save();
 });
-["os", "browser", "memo-all"].forEach((k) => document.getElementById(k).addEventListener("input", (e) => { state[k] = e.target.value; save(); }));
+["name", "os", "browser", "memo-all"].forEach((k) => document.getElementById(k).addEventListener("input", (e) => { state[k] = e.target.value; save(); }));
 
-function summary() {
-  const lines = ["[jjoin 테스트 결과]", `환경: ${state.os || "?"} / ${state.browser || "?"}`, ""];
-  const bad = [], skip = [];
-  let ok = 0;
-  STEPS.forEach(([no, name, items], si) => items.forEach(([q], ii) => {
-    const s = state[`s${si}i${ii}`] || {};
-    if (s.v === "ok") ok++;
-    else if (s.v === "bad") bad.push(`- [${name}] ${q}${s.memo ? `\n  → ${s.memo.trim()}` : ""}`);
-    else skip.push(`- [${name}] ${q}${s.v ? "" : " (확인 안 함)"}`);
-  }));
-  lines.push(`잘 됨 ${ok}개 / 문제 ${bad.length}개 / 못 해봄 ${skip.length}개`);
-  if (bad.length) lines.push("", "❗ 문제 있음", ...bad);
-  if (skip.length) lines.push("", "못 해봄", ...skip);
-  if ((state["memo-all"] || "").trim()) lines.push("", "💬 하고 싶은 말", state["memo-all"].trim());
-  return lines.join("\n");
+// 고를 때마다 잠깐 기다렸다가 서버에 저장한다. 기기마다 아이디를 하나 만들어 같은 줄을 덮어쓴다.
+if (!state.deviceId) {
+  state.deviceId = crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16));
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
 }
-const copyBtn = document.getElementById("copy");
-copyBtn.addEventListener("click", async () => {
-  const text = summary();
-  const out = document.getElementById("out");
+const statusEl = document.getElementById("sync");
+const setStatus = (text, kind) => { statusEl.textContent = text; statusEl.dataset.kind = kind; };
+function payload() {
+  const answers = {};
+  STEPS.forEach(([no, name, items], si) => items.forEach(([q], ii) => {
+    const s = state[`s${si}i${ii}`];
+    if (s && s.v) answers[`${name} / ${q}`] = { v: s.v, memo: s.memo || "" };
+  }));
+  return JSON.stringify({ id: state.deviceId, name: state.name, device: state.os, browser: state.browser, answers, memo: state["memo-all"] });
+}
+let timer = null, dirty = false;
+async function sync(keepalive = false) {
+  clearTimeout(timer); timer = null;
+  if (!dirty) return;
+  dirty = false;
+  setStatus("저장 중…", "busy");
   try {
-    await navigator.clipboard.writeText(text);
-    out.hidden = true;
-    copyBtn.textContent = "복사했어! 카톡에 붙여 넣어 줘";
+    const res = await fetch("/api/test-report", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload(), keepalive });
+    if (!res.ok) throw new Error(String(res.status));
+    if (!dirty) setStatus("자동 저장됨 ✓", "ok");
   } catch {
-    out.value = text; out.hidden = false; out.style.minHeight = "140px"; out.focus(); out.select();
-    copyBtn.textContent = "아래 글을 길게 눌러 복사해 줘";
+    dirty = true;
+    setStatus("저장 못 했어. 눌러서 다시 시도", "bad");
   }
-  setTimeout(() => { copyBtn.textContent = "결과 복사"; }, 2500);
-});
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+  dirty = true;
+  setStatus("저장 중…", "busy");
+  clearTimeout(timer);
+  timer = setTimeout(sync, 800);
+}
+statusEl.addEventListener("click", () => { if (statusEl.dataset.kind === "bad") sync(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") sync(true); });
 let armed = false;
 const resetBtn = document.getElementById("reset");
 resetBtn.addEventListener("click", () => {
   if (!armed) { armed = true; resetBtn.textContent = "한 번 더 누르면 지워져"; setTimeout(() => { armed = false; resetBtn.textContent = "처음부터"; }, 3000); return; }
-  armed = false; state = {}; save(); paint(); resetBtn.textContent = "처음부터";
+  armed = false; state = { deviceId: state.deviceId }; save(); paint(); resetBtn.textContent = "처음부터";
 });
 paint();
 </script>
