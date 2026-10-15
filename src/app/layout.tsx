@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import { InlineScript } from "@/components/inline-script";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -43,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         {/* next/script의 beforeInteractive는 Next 런타임이 뜬 뒤에 실행돼 깜빡임이 생긴다.
             HTML을 읽는 즉시 실행되도록 그냥 인라인 스크립트로 넣는다. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <InlineScript html={THEME_SCRIPT} />
       </head>
       <body className="min-h-full flex flex-col">
         {children}
