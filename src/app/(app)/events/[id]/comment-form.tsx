@@ -131,6 +131,15 @@ export function CommentForm({ eventId, members }: { eventId: string; members: Me
             setCursor(e.target.selectionStart);
           }}
           onSelect={(e) => setCursor(e.currentTarget.selectionStart)}
+          // 엔터로 등록, Shift+엔터로 줄바꿈. 한글을 조합하는 중의 엔터는 글자 확정이라 건드리지 않는다.
+          // 친구 목록이 떠 있으면 엔터는 맨 위 친구를 고른다.
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            if (suggestions.length > 0) pick(suggestions[0]);
+            else if (!pending && text.trim()) e.currentTarget.form?.requestSubmit();
+          }}
+          enterKeyHint="send"
           rows={1}
           maxLength={500}
           placeholder="댓글 남기기 · @로 친구 부르기"
