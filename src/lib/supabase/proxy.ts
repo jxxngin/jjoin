@@ -63,6 +63,8 @@ function isPublicPath(pathname: string) {
     pathname.startsWith("/share/") ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/api/cron/") ||
+    // 친구 테스트 체크리스트 (public/test.html). 로그인 전에도 연다.
+    pathname === "/test.html" ||
     // 가짜 데이터로 만든 시안·README 스크린샷용 페이지. 로컬 개발에서만 로그인 없이 연다.
     (process.env.NODE_ENV === "development" && pathname.startsWith("/preview/"))
   );

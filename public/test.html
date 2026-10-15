@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/logo-512.png">
+<title>jjoin 테스트 체크리스트</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+/* 레이아웃: 휴대폰 한 손 세로 목록. 단계별 묶음 → 항목마다 세 칸 상태 버튼, 맨 아래 결과 복사. jjoin 앱의 색을 그대로 쓴다. */
+:root {
+  --bg: #fafaf9;
+  --fg: #2b1810;
+  --muted: #78716c;
+  --surface: #f2efed;
+  --line: #e7e2de;
+  --brand: #fd6004;
+  --brand-ink: #c2410c;
+  --ok: #059669;
+  --ok-soft: #d1fae5;
+  --bad: #e11d48;
+  --bad-soft: #ffe4e6;
+  --font: "Noto Sans KR", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0a09; --fg: #f5f5f4; --muted: #a8a29e; --surface: #1c1917; --line: #292524;
+    --brand-ink: #fb923c; --ok: #34d399; --ok-soft: #064e3b; --bad: #fb7185; --bad-soft: #4c0519;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c0a09; --fg: #f5f5f4; --muted: #a8a29e; --surface: #1c1917; --line: #292524;
+  --brand-ink: #fb923c; --ok: #34d399; --ok-soft: #064e3b; --bad: #fb7185; --bad-soft: #4c0519;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  margin: 0;
+  padding-block: calc(28px + env(safe-area-inset-top, 0px)) 120px;
+}
+main { max-width: 34rem; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+.mark { display: inline-flex; align-items: center; gap: 8px; font-weight: 900; font-size: 22px; letter-spacing: -0.02em; }
+.mark span { background: var(--brand); color: #fff; border-radius: 9px; width: 32px; height: 32px; display: grid; place-items: center; font-size: 17px; }
+h1 { font-size: 26px; line-height: 1.3; margin: 0; font-weight: 900; text-wrap: balance; letter-spacing: -0.02em; }
+.lead { margin: 0; color: var(--muted); }
+.site { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--surface); border-radius: 14px; padding: 12px 14px; }
+.site a { color: var(--brand-ink); font-weight: 700; text-decoration: none; word-break: break-all; }
+.how { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
+.progress { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; display: flex; }
+.bar i { display: block; height: 100%; transition: width .3s; }
+.bar .g { background: var(--ok); } .bar .r { background: var(--bad); }
+section { display: flex; flex-direction: column; gap: 10px; }
+h2 { font-size: 17px; margin: 0; display: flex; align-items: baseline; gap: 8px; }
+h2 small { font-size: 12px; color: var(--brand-ink); font-weight: 700; letter-spacing: .04em; }
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+#list li { background: var(--surface); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; border: 1.5px solid transparent; transition: border-color .2s; }
+#list li[data-s="ok"] { border-color: var(--ok); }
+#list li[data-s="bad"] { border-color: var(--bad); }
+.q { font-weight: 500; }
+.q em { display: block; font-style: normal; font-size: 13px; color: var(--muted); font-weight: 400; }
+.seg { display: flex; gap: 6px; }
+.seg button { flex: 1; min-width: 0; font: inherit; font-size: 13px; font-weight: 500; padding: 7px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"][data-v="ok"] { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.seg button[aria-pressed="true"][data-v="bad"] { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); }
+.seg button[aria-pressed="true"][data-v="skip"] { background: var(--line); color: var(--fg); }
+textarea { font: inherit; font-size: 16px; width: 100%; min-height: 64px; resize: vertical; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); padding: 8px 10px; }
+textarea:focus, button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.device { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.device label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.device select { width: 100%; min-width: 0; font: inherit; font-size: 16px; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--line);
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.dock div { max-width: 34rem; margin: 0 auto; display: flex; gap: 8px; align-items: center; }
+.dock button { flex: 1; font: inherit; font-weight: 700; font-size: 15px; padding: 12px; border: 0; border-radius: 12px; background: var(--brand); color: #fff; cursor: pointer; }
+.dock .reset { flex: 0 0 auto; background: var(--surface); color: var(--muted); font-weight: 500; padding-inline: 14px; }
+#out { width: 100%; margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="mark"><img src="/logo-512.png" alt="" width="32" height="32" style="border-radius:9px">jjoin</div>
+    <h1>친구들아, 테스트 좀 도와줘!</h1>
+    <p class="lead">약속 잡는 앱 jjoin을 미리 써 보고, 잘 되는지 알려 줘. 15분이면 끝나.</p>
+    <div class="site">👉 <a href="https://jjoin.vercel.app" target="_blank" rel="noopener">jjoin.vercel.app</a></div>
+    <ol class="how">
+      <li>위 주소를 휴대폰으로 열고 순서대로 해 봐.</li>
+      <li>항목마다 <b>잘 됨 / 문제 있음 / 못 해봄</b> 중 하나를 눌러 줘.</li>
+      <li>이상하면 메모에 "뭘 눌렀더니 어떻게 됐다"만 적어 주면 돼.</li>
+      <li>다 하면 맨 아래 <b>결과 복사</b> → 카톡으로 보내 줘.</li>
+    </ol>
+  </header>
+
+  <section>
+    <h2>내 환경</h2>
+    <div class="device">
+      <label for="os">휴대폰
+        <select id="os"><option value="">선택</option><option>아이폰</option><option>안드로이드</option><option>PC</option></select>
+      </label>
+      <label for="browser">브라우저
+        <select id="browser"><option value="">선택</option><option>사파리</option><option>크롬</option><option>삼성 인터넷</option><option>카카오톡 안</option><option>기타</option></select>
+      </label>
+    </div>
+  </section>
+
+  <div class="progress"><span id="pt">0 / 0 확인함</span><div class="bar"><i class="g" id="pg"></i><i class="r" id="pr"></i></div></div>
+
+  <div id="list"></div>
+
+  <section>
+    <h2>그 밖에 하고 싶은 말</h2>
+    <textarea id="memo-all" placeholder="불편했던 점, 있었으면 하는 기능, 헷갈린 화면 등 아무거나"></textarea>
+  </section>
+</main>
+
+<div class="dock"><div>
+  <button class="reset" id="reset" type="button">처음부터</button>
+  <button id="copy" type="button">결과 복사</button>
+</div><textarea id="out" hidden readonly></textarea></div>
+
+<script>
+const STEPS = [
+  ["1단계", "설치·로그인", [
+    ["카카오로 로그인이 된다", "처음 들어가면 카카오 로그인 화면이 나와야 해"],
+    ["홈 화면에 앱으로 추가할 수 있다", "아이폰: 사파리 공유 → 홈 화면에 추가 / 안드로이드: 위쪽 안내 배너"],
+    ["홈 화면 아이콘으로 열면 앱처럼 주소창 없이 뜬다", ""],
+  ]],
+  ["2단계", "그룹", [
+    ["초대 링크로 그룹에 들어갈 수 있다", "내가 보낸 링크를 눌러서 참여"],
+    ["카톡에 초대 링크를 보내면 미리보기 카드가 뜬다", "링크를 아무 카톡방에 붙여 넣어 봐"],
+    ["홈 맨 위 그룹 동그라미를 누르면 그룹으로 간다", "새 소식이 있으면 테두리가 빙글빙글 돌아"],
+    ["멤버 목록을 펼쳐 볼 수 있다", ""],
+  ]],
+  ["3단계", "약속", [
+    ["그룹에서 약속을 만들 수 있다", "날짜·시간, 장소 검색, 최대 인원까지 넣어 봐"],
+    ["장소 검색 결과가 나오고 지도가 보인다", ""],
+    ["약속에 참여 / 취소가 된다", ""],
+    ["인원이 꽉 찬 약속에 누르면 대기로 들어간다", "누가 빠지면 대기 1번이 자동으로 들어가"],
+    ["목록 ↔ 캘린더, 주 ↔ 월 전환이 된다", ""],
+  ]],
+  ["4단계", "댓글", [
+    ["약속에 댓글을 달 수 있다", "입력칸을 눌렀을 때 화면이 확대되지 않는지도 봐 줘"],
+    ["@를 치면 멤버 이름이 뜨고 언급할 수 있다", ""],
+    ["안 읽은 댓글이 있으면 약속 카드에 숫자가 뜬다", ""],
+  ]],
+  ["5단계", "날짜 투표", [
+    ["날짜 투표를 만들 수 있다", "약속 만들기 → 날짜 투표 탭"],
+    ["여러 날짜에 투표하고 바꿀 수 있다", ""],
+    ["투표를 확정하면 약속이 생긴다", "만든 사람만 확정할 수 있어"],
+  ]],
+  ["6단계", "알림", [
+    ["알림 켜기를 하면 허락 창이 뜬다", "아이폰은 홈 화면에 추가한 앱에서만 돼"],
+    ["새 약속·댓글·언급 알림이 휴대폰에 온다", "다른 친구가 약속을 만들거나 댓글을 달 때"],
+    ["오른쪽 위 종을 누르면 받은 알림 목록이 보인다", ""],
+  ]],
+  ["7단계", "그 밖에", [
+    ["약속 제목 옆 달력 아이콘으로 내 캘린더에 추가된다", "구글 캘린더 / 캘린더 파일"],
+    ["마이페이지에서 닉네임·프로필 사진을 바꿀 수 있다", ""],
+    ["다크 모드로 바꿔도 글씨가 잘 보인다", "마이페이지 → 화면 테마"],
+    ["스크롤해도 위쪽 헤더가 붙어 있다", ""],
+  ]],
+];
+const LABELS = { ok: "잘 됨", bad: "문제 있음", skip: "못 해봄" };
+const KEY = "jjoin-test-v1";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { state = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+
+const list = document.getElementById("list");
+list.style.cssText = "display:flex;flex-direction:column;gap:28px";
+let total = 0;
+STEPS.forEach(([no, name, items], si) => {
+  const sec = document.createElement("section");
+  sec.innerHTML = `<h2><small>${no}</small>${name}</h2><ul></ul>`;
+  const ul = sec.querySelector("ul");
+  items.forEach(([q, hint], ii) => {
+    total++;
+    const id = `s${si}i${ii}`;
+    const li = document.createElement("li");
+    li.dataset.id = id;
+    li.innerHTML = `<div class="q">${q}${hint ? `<em>${hint}</em>` : ""}</div>
+      <div class="seg" role="group" aria-label="${q}">
+        ${Object.entries(LABELS).map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="false">${l}</button>`).join("")}
+      </div>
+      <textarea id="memo-${id}" placeholder="어떤 문제였는지 적어 줘" hidden></textarea>`;
+    ul.append(li);
+  });
+  list.append(sec);
+});
+
+function paint() {
+  let ok = 0, bad = 0, done = 0;
+  document.querySelectorAll("li[data-id]").forEach((li) => {
+    const s = state[li.dataset.id] || {};
+    li.dataset.s = s.v || "";
+    li.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === s.v)));
+    const memo = li.querySelector("textarea");
+    memo.hidden = s.v !== "bad";
+    if (document.activeElement !== memo) memo.value = s.memo || "";
+    if (s.v) done++;
+    if (s.v === "ok") ok++;
+    if (s.v === "bad") bad++;
+  });
+  document.getElementById("pt").textContent = `${done} / ${total} 확인함 · 잘 됨 ${ok} · 문제 ${bad}`;
+  document.getElementById("pg").style.width = `${(ok / total) * 100}%`;
+  document.getElementById("pr").style.width = `${(bad / total) * 100}%`;
+  ["os", "browser", "memo-all"].forEach((k) => { const el = document.getElementById(k); if (document.activeElement !== el) el.value = state[k] || ""; });
+}
+
+list.addEventListener("click", (e) => {
+  const b = e.target.closest(".seg button"); if (!b) return;
+  const id = b.closest("li").dataset.id;
+  const cur = state[id] || {};
+  state[id] = { ...cur, v: cur.v === b.dataset.v ? "" : b.dataset.v };
+  save(); paint();
+  if (state[id].v === "bad") b.closest("li").querySelector("textarea").focus();
+});
+list.addEventListener("input", (e) => {
+  if (e.target.tagName !== "TEXTAREA") return;
+  const id = e.target.closest("li").dataset.id;
+  state[id] = { ...(state[id] || {}), memo: e.target.value }; save();
+});
+["os", "browser", "memo-all"].forEach((k) => document.getElementById(k).addEventListener("input", (e) => { state[k] = e.target.value; save(); }));
+
+function summary() {
+  const lines = ["[jjoin 테스트 결과]", `환경: ${state.os || "?"} / ${state.browser || "?"}`, ""];
+  const bad = [], skip = [];
+  let ok = 0;
+  STEPS.forEach(([no, name, items], si) => items.forEach(([q], ii) => {
+    const s = state[`s${si}i${ii}`] || {};
+    if (s.v === "ok") ok++;
+    else if (s.v === "bad") bad.push(`- [${name}] ${q}${s.memo ? `\n  → ${s.memo.trim()}` : ""}`);
+    else skip.push(`- [${name}] ${q}${s.v ? "" : " (확인 안 함)"}`);
+  }));
+  lines.push(`잘 됨 ${ok}개 / 문제 ${bad.length}개 / 못 해봄 ${skip.length}개`);
+  if (bad.length) lines.push("", "❗ 문제 있음", ...bad);
+  if (skip.length) lines.push("", "못 해봄", ...skip);
+  if ((state["memo-all"] || "").trim()) lines.push("", "💬 하고 싶은 말", state["memo-all"].trim());
+  return lines.join("\n");
+}
+const copyBtn = document.getElementById("copy");
+copyBtn.addEventListener("click", async () => {
+  const text = summary();
+  const out = document.getElementById("out");
+  try {
+    await navigator.clipboard.writeText(text);
+    out.hidden = true;
+    copyBtn.textContent = "복사했어! 카톡에 붙여 넣어 줘";
+  } catch {
+    out.value = text; out.hidden = false; out.style.minHeight = "140px"; out.focus(); out.select();
+    copyBtn.textContent = "아래 글을 길게 눌러 복사해 줘";
+  }
+  setTimeout(() => { copyBtn.textContent = "결과 복사"; }, 2500);
+});
+let armed = false;
+const resetBtn = document.getElementById("reset");
+resetBtn.addEventListener("click", () => {
+  if (!armed) { armed = true; resetBtn.textContent = "한 번 더 누르면 지워져"; setTimeout(() => { armed = false; resetBtn.textContent = "처음부터"; }, 3000); return; }
+  armed = false; state = {}; save(); paint(); resetBtn.textContent = "처음부터";
+});
+paint();
+</script>
+</body>
+</html>
