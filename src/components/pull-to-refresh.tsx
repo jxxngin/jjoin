@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 
@@ -86,7 +86,6 @@ export function PullToRefresh() {
 
 // 머리글 로고: 다른 화면에서는 홈으로 가고, 이미 홈이면 맨 위로 올리며 새로고침한다.
 export function HomeLogoLink({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -97,7 +96,8 @@ export function HomeLogoLink({ children }: { children: ReactNode }) {
       aria-label="홈"
       className="flex items-center gap-2"
       onClick={(e) => {
-        if (pathname !== "/") return;
+        // usePathname은 미리 그려 두는 화면을 막아서, 누른 순간의 주소를 직접 본다.
+        if (window.location.pathname !== "/") return;
         e.preventDefault();
         window.scrollTo({ top: 0, behavior: "smooth" });
         startTransition(() => router.refresh());
