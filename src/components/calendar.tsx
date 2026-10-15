@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ToggleTab } from "@/components/toggle-tab";
 import { useState } from "react";
 import { EventCard } from "@/components/event-card";
 import { statusStyles } from "@/components/status-badge";
@@ -89,11 +90,6 @@ export function Calendar({
     items.flatMap((item) => (item.group ? [[item.group.name, item.group] as const] : [])),
   );
 
-  const rangeTab = (target: CalendarRange) =>
-    `rounded-full px-2.5 py-0.5 text-xs font-medium ${
-      range === target ? "bg-white shadow-sm dark:bg-stone-700" : "text-stone-500"
-    }`;
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-1">
@@ -119,24 +115,12 @@ export function Calendar({
           ›
         </Link>
         <div className="ml-1 flex rounded-full bg-stone-100 p-0.5 dark:bg-stone-900">
-          <Link
-            href={href("week", selected)}
-            replace
-            scroll={false}
-            transitionTypes={["view-zoom"]}
-            className={rangeTab("week")}
-          >
+          <ToggleTab href={href("week", selected)} active={range === "week"} transition="view-zoom" size="sm">
             주
-          </Link>
-          <Link
-            href={href("month", selected)}
-            replace
-            scroll={false}
-            transitionTypes={["view-zoom"]}
-            className={rangeTab("month")}
-          >
+          </ToggleTab>
+          <ToggleTab href={href("month", selected)} active={range === "month"} transition="view-zoom" size="sm">
             월
-          </Link>
+          </ToggleTab>
         </div>
       </div>
 
