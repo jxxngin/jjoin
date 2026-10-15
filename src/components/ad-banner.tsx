@@ -13,7 +13,7 @@ import type { Ad } from "@/lib/ads";
 const WIDTH = 1086;
 const HEIGHT = 213;
 // 한 광고를 보여 주는 시간
-const INTERVAL_MS = 8000;
+const INTERVAL_MS = 10000;
 const SLIDE_MS = 700;
 
 // 한 번 고른 첫 광고는 페이지를 새로 열 때까지 유지한다. 서버는 고르지 않는다.
