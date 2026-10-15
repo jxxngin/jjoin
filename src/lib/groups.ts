@@ -17,6 +17,8 @@ export type GroupSummary = GroupProfile & {
   memberCount: number;
   // 약속마다 다른 멤버가 약속을 올리거나 댓글을 단 가장 최근 시각. 홈의 "새 소식" 테두리에 쓴다.
   activity: GroupActivity[];
+  // 내가 이 그룹 화면을 마지막으로 본 시각 (서버 기록, 모든 기기 공통). 본 적 없으면 null
+  seenAt: string | null;
 };
 
 export type GroupMember = {
@@ -79,9 +81,11 @@ type ActivityRow = {
   created_by: string;
   created_at: string;
   event_comments: { user_id: string; created_at: string }[];
+  event_seen: { seen_at: string }[];
 };
 
-export type GroupActivity = { eventId: string; at: string };
+// at: 다른 멤버의 가장 최근 활동 시각, seenAt: 내가 그 약속을 마지막으로 본 시각(서버 기록)
+export type GroupActivity = { eventId: string; at: string; seenAt: string | null };
 
 // 내 활동은 빼고, 약속마다 다른 멤버의 약속 올리기·댓글 중 가장 최근 시각.
 // updated_at은 쓰지 않는다. 리마인더를 보냈다는 기록만 바뀌어도 올라가서, 새 소식이 없는데도 테두리가 돌았다.
@@ -92,7 +96,13 @@ function activityBy(others: (userId: string) => boolean, events: ActivityRow[]):
       ...event.event_comments.filter((c) => others(c.user_id)).map((c) => c.created_at),
     ];
     if (times.length === 0) return [];
-    return [{ eventId: event.id, at: times.reduce((a, b) => (Date.parse(a) > Date.parse(b) ? a : b)) }];
+    return [
+      {
+        eventId: event.id,
+        at: times.reduce((a, b) => (Date.parse(a) > Date.parse(b) ? a : b)),
+        seenAt: event.event_seen[0]?.seen_at ?? null,
+      },
+    ];
   });
 }
 
@@ -102,7 +112,7 @@ export async function getMyGroups(): Promise<GroupSummary[]> {
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, emoji, color, description, group_members(count), activity:events(id, created_by, created_at, event_comments(user_id, created_at))",
+      "id, name, emoji, color, description, group_members(count), group_seen(seen_at), activity:events(id, created_by, created_at, event_comments(user_id, created_at), event_seen(seen_at))",
     )
     // 약속마다 최근 댓글 몇 개만 보면 충분하다.
     .order("created_at", { referencedTable: "activity.event_comments", ascending: false })
@@ -120,6 +130,7 @@ export async function getMyGroups(): Promise<GroupSummary[]> {
     description: group.description,
     memberCount: group.group_members[0]?.count ?? 0,
     activity: activityBy(others, group.activity as ActivityRow[]),
+    seenAt: (group.group_seen as { seen_at: string }[])[0]?.seen_at ?? null,
   }));
 }
 

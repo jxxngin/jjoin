@@ -75,7 +75,7 @@ export function EventCard({
           {days !== null && <b className={`mr-1 ${colors.text}`}>{formatDaysLeft(days)}</b>}
           {details}
         </span>
-        <UnreadCommentsBadge eventId={event.id} commentTimes={event.otherCommentTimes} />
+        <UnreadCommentsBadge eventId={event.id} commentTimes={event.otherCommentTimes} serverSeenAt={event.seenAt} />
       </div>
     </Link>
   );

@@ -1,17 +1,27 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { markEventNotificationsRead } from "@/app/(app)/notifications/actions";
+import { markEventSeen } from "@/app/(app)/seen-actions";
 import { closeSystemNotifications } from "@/lib/close-notifications";
 import { eventSeenKey, markSeen, readSeen, subscribeSeen } from "@/lib/seen";
 
 // 약속 카드 오른쪽 아래: 다른 사람이 쓴 댓글 중 내가 아직 안 본 개수. 0이면 안 보인다.
-export function UnreadCommentsBadge({ eventId, commentTimes }: { eventId: string; commentTimes: string[] }) {
+// 본 시각은 서버 기록(모든 기기 공통)과 이 기기의 기록 중 늦은 쪽을 쓴다.
+// 서버 기록은 화면을 다시 불러와야 바뀌므로, 방금 읽은 것은 이 기기 기록으로 바로 끈다.
+export function UnreadCommentsBadge({
+  eventId,
+  commentTimes,
+  serverSeenAt,
+}: {
+  eventId: string;
+  commentTimes: string[];
+  serverSeenAt: string | null;
+}) {
   // 서버는 본 기록을 모르므로 브라우저에서만 센다.
   const seen = useSyncExternalStore(subscribeSeen, () => readSeen(eventSeenKey(eventId)), () => null);
   if (seen === null || commentTimes.length === 0) return null;
 
-  const seenAt = seen ? Date.parse(seen) : 0;
+  const seenAt = Math.max(seen ? Date.parse(seen) : 0, serverSeenAt ? Date.parse(serverSeenAt) : 0);
   const unread = commentTimes.filter((time) => Date.parse(time) > seenAt).length;
   if (unread === 0) return null;
 
@@ -38,7 +48,7 @@ export function MarkEventSeen({ eventId, commentTimes }: { eventId: string; comm
   const latest = commentTimes.reduce((a, b) => (a > b ? a : b), "");
   useEffect(() => {
     markSeen(eventSeenKey(eventId), latest ? [latest] : []);
-    markEventNotificationsRead(eventId);
+    markEventSeen(eventId);
     closeSystemNotifications(`/events/${eventId}`);
   }, [eventId, latest]);
   return null;

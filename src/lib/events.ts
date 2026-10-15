@@ -30,6 +30,8 @@ export type EventSummary = {
   creator: Person | null;
   // 다른 사람이 쓴 댓글 시각. 화면에서 "안 읽은 댓글" 배지를 계산한다. (내가 이 약속을 마지막으로 본 시각과 비교)
   otherCommentTimes: string[];
+  // 내가 이 약속을 마지막으로 본 시각 (서버 기록, 모든 기기 공통). 본 적 없으면 null
+  seenAt: string | null;
 };
 
 export type Person = {
@@ -74,6 +76,8 @@ type EventRow = {
   end_note: string | null;
   creator: { nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
   event_comments: { user_id: string; created_at: string }[];
+  // RLS로 내 기록만 온다.
+  event_seen: { seen_at: string }[];
   event_participants: { status: ParticipantStatus }[];
 };
 
@@ -95,7 +99,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // event_participants 때문에 events→profiles 경로가 둘이라 만든 사람은 created_by로 지정한다.
 const BASE_COLUMNS =
-  "id, title, starts_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url, avatar_color), event_comments(user_id, created_at)";
+  "id, title, starts_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url, avatar_color), event_comments(user_id, created_at), event_seen(seen_at)";
 
 function toSummary(
   row: Omit<EventRow, "event_participants">,
@@ -129,6 +133,7 @@ function toSummary(
         }
       : null,
     otherCommentTimes: row.event_comments.filter((c) => c.user_id !== userId).map((c) => c.created_at),
+    seenAt: row.event_seen[0]?.seen_at ?? null,
   };
 }
 

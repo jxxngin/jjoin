@@ -26,6 +26,7 @@ function event(
     daysLeft,
     creator: { nickname: "민수", kakaoName: "김민수", avatarUrl: null, avatarColor: "mint" },
     otherCommentTimes: [],
+    seenAt: null,
     ...extra,
   };
 }

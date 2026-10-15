@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
 import { GROUP_COLORS, type GroupColor } from "@/lib/group-style";
 import type { GroupActivity } from "@/lib/groups";
+import { markGroupSeen } from "@/app/(app)/seen-actions";
 import { eventSeenKey, groupSeenKey, markSeen, readSeen, subscribeSeen } from "@/lib/seen";
 
 export type StoryGroup = {
@@ -12,16 +13,19 @@ export type StoryGroup = {
   emoji: string;
   color: GroupColor;
   activity: GroupActivity[];
+  seenAt: string | null;
 };
 
-const time = (value: string) => (value ? Date.parse(value) : 0);
+const time = (value: string | null) => (value ? Date.parse(value) : 0);
 
 // 그룹 화면을 연 뒤에 생겼고, 그 약속 화면도 아직 안 열어 본 활동이 하나라도 있으면 새 소식이다.
 // (약속을 알림이나 홈에서 바로 열어 봤으면 그 약속의 댓글은 이미 본 것으로 친다)
+// 본 시각은 서버 기록(모든 기기 공통)과 이 기기의 기록 중 늦은 쪽을 쓴다.
 function hasNews(group: StoryGroup) {
-  const groupSeen = time(readSeen(groupSeenKey(group.id)));
+  const groupSeen = Math.max(time(group.seenAt), time(readSeen(groupSeenKey(group.id))));
   return group.activity.some(
-    ({ eventId, at }) => Date.parse(at) > Math.max(groupSeen, time(readSeen(eventSeenKey(eventId)))),
+    ({ eventId, at, seenAt }) =>
+      Date.parse(at) > Math.max(groupSeen, time(seenAt), time(readSeen(eventSeenKey(eventId)))),
   );
 }
 
@@ -89,6 +93,7 @@ export function GroupStories({ groups }: { groups: StoryGroup[] }) {
 export function MarkGroupSeen({ groupId, loadedAt }: { groupId: string; loadedAt: string }) {
   useEffect(() => {
     markSeen(groupSeenKey(groupId), [loadedAt]);
+    markGroupSeen(groupId);
   }, [groupId, loadedAt]);
   return null;
 }
