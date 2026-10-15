@@ -6,20 +6,26 @@ import { formatEventDate } from "@/lib/datetime";
 import { getGroup } from "@/lib/groups";
 import { CommentForm, DeleteCommentButton } from "./comment-form";
 
-// 댓글 본문에서 실제로 언급한 사람의 "@닉네임"만 강조한다.
-function CommentBody({ body, names }: { body: string; names: Set<string> }) {
-  const parts = body.split(/(@[^\s@]+)/g);
+// 언급은 댓글 맨 앞에 "@민수 @지원 "처럼 저장된다. (comment-form.tsx)
+// 그 앞부분은 저장된 글자 대신 지금 닉네임으로 다시 그려서, 닉네임을 바꿔도 강조가 풀리지 않게 한다.
+function CommentBody({ body, mentions }: { body: string; mentions: { id: string; name: string | null }[] }) {
+  let rest = body;
+  const shown: { id: string; name: string }[] = [];
+  for (const mention of mentions) {
+    const match = /^@([^s@]+) /.exec(rest);
+    if (!match) break;
+    rest = rest.slice(match[0].length);
+    // 그룹을 나간 사람은 저장된 이름 그대로 보여 준다.
+    shown.push({ id: mention.id, name: mention.name ?? match[1] });
+  }
   return (
     <p className="text-sm whitespace-pre-wrap break-words text-stone-700 dark:text-stone-300">
-      {parts.map((part, i) =>
-        part.startsWith("@") && names.has(part.slice(1)) ? (
-          <span key={i} className="font-semibold text-brand-ink">
-            {part}
-          </span>
-        ) : (
-          part
-        ),
-      )}
+      {shown.map((mention) => (
+        <span key={mention.id} className="font-semibold text-brand-ink">
+          @{mention.name}{" "}
+        </span>
+      ))}
+      {rest}
     </p>
   );
 }
@@ -67,14 +73,7 @@ export async function Comments({ eventId, groupId }: { eventId: string; groupId:
                 </div>
                 <CommentBody
                   body={comment.body}
-                  names={
-                    new Set(
-                      comment.mentions.flatMap((id) => {
-                        const name = nicknameById.get(id);
-                        return name ? [name] : [];
-                      }),
-                    )
-                  }
+                  mentions={comment.mentions.map((id) => ({ id, name: nicknameById.get(id) ?? null }))}
                 />
               </div>
             </li>
