@@ -33,6 +33,13 @@ html {
   overscroll-behavior-y: contain;
 }
 
+/* 드롭다운 목록 색을 직접 정한다. 웨일 같은 일부 브라우저는 다크 모드에서도 목록 바탕을 흰색으로 그리는데,
+   글자색만 화면 글자색(밝은색)을 물려받아 고른 항목 말고는 하얗게 안 보였다. */
+option {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
