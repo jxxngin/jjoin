@@ -39,7 +39,7 @@ async function NotificationList() {
 
   return (
     <>
-      <MarkRead />
+      <MarkRead latestId={Math.max(...items.map((item) => item.id))} />
       <ul className="reveal flex flex-col gap-1">
         {items.map((item) => (
           <li key={item.id}>

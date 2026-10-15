@@ -70,14 +70,17 @@ export async function getNotifications(): Promise<NotificationItem[]> {
   }));
 }
 
-// 읽지 않은 알림이 있는지 (홈의 종 아이콘 점)
-export async function hasUnreadNotifications(): Promise<boolean> {
+// 읽지 않은 알림 중 가장 최근 것의 id. 없으면 null. (머리글 종 아이콘의 점)
+// 브라우저에서 "모두 읽음"으로 점을 끈 뒤에 새 알림이 오면 id가 바뀌어 점이 다시 켜진다.
+export async function getLatestUnreadNotificationId(): Promise<number | null> {
   const userId = await getUserId();
   const supabase = await createClient();
-  const { count } = await supabase
+  const { data } = await supabase
     .from("notifications")
-    .select("id", { count: "exact", head: true })
+    .select("id")
     .eq("user_id", userId)
-    .is("read_at", null);
-  return (count ?? 0) > 0;
+    .is("read_at", null)
+    .order("id", { ascending: false })
+    .limit(1);
+  return data?.[0]?.id ?? null;
 }

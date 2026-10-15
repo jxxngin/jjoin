@@ -5,7 +5,8 @@ import { Avatar } from "@/components/avatar";
 import { HomeLogoLink } from "@/components/pull-to-refresh";
 import { Wordmark } from "@/components/wordmark";
 import { getCurrentProfile } from "@/lib/auth";
-import { hasUnreadNotifications } from "@/lib/notifications";
+import { UnreadDot } from "@/components/unread-dot";
+import { getLatestUnreadNotificationId } from "@/lib/notifications";
 
 // 로그인한 뒤 모든 화면 위에 붙는 머리글: 로고(홈), 알림, 내 프로필.
 // 스크롤해도 화면 맨 위에 붙어 있고, 화면이 옆으로 넘어가도 움직이지 않게
@@ -31,14 +32,14 @@ export function AppHeader() {
 
 // 오른쪽 위: 알림 기록(종)과 마이페이지(프로필 사진)
 async function ProfileMenu() {
-  const [profile, unread] = await Promise.all([getCurrentProfile(), hasUnreadNotifications()]);
+  const [profile, latestUnreadId] = await Promise.all([getCurrentProfile(), getLatestUnreadNotificationId()]);
 
   return (
     <div className="flex items-center gap-3">
       <Link
         href="/notifications"
         transitionTypes={["nav-forward"]}
-        aria-label={unread ? "알림 (새 알림 있음)" : "알림"}
+        aria-label={latestUnreadId !== null ? "알림 (새 알림 있음)" : "알림"}
         className="relative flex size-8 items-center justify-center text-stone-600 dark:text-stone-300"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6">
@@ -51,9 +52,7 @@ async function ProfileMenu() {
             strokeLinejoin="round"
           />
         </svg>
-        {unread && (
-          <span className="absolute top-1 right-1 size-2.5 rounded-full border-2 border-background bg-brand" />
-        )}
+        <UnreadDot latestUnreadId={latestUnreadId} />
       </Link>
       <Link href="/me" transitionTypes={["nav-forward"]} aria-label="마이페이지">
         <Avatar src={profile.avatarUrl} color={profile.avatarColor} size="sm" />
