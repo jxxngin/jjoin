@@ -6,7 +6,7 @@ import { Avatar } from "@/components/avatar";
 import { DaysLeftBadge } from "@/components/event-card";
 import { PersonName } from "@/components/person-name";
 import { BackLink } from "@/components/back-link";
-import { formatEventPeriod } from "@/lib/datetime";
+import { Period } from "@/components/period";
 import { StatusBadge } from "@/components/status-badge";
 import { MarkEventSeen } from "@/components/unread-comments";
 import { END_REASON_LABELS, formatGoing } from "@/lib/event-status";
@@ -119,7 +119,9 @@ async function EventContent({ id, invite }: { id: string; invite: string | null 
       )}
 
       <dl className="flex flex-col gap-3 rounded-2xl bg-stone-100 p-4 dark:bg-stone-900">
-        <Row label="언제">{formatEventPeriod(event.startsAt, event.endsAt)}</Row>
+        <Row label="언제">
+          <Period startsAt={event.startsAt} endsAt={event.endsAt} />
+        </Row>
         <Row label="어디서">
           {event.placeName ?? "미정"}
           {event.place?.address && (
@@ -280,7 +282,7 @@ async function EventJoin({ eventId, code }: { eventId: string; code: string }) {
         </p>
         <h1 className="text-2xl font-bold tracking-tight">{invite.event.title}</h1>
         <p className="text-stone-600 dark:text-stone-400">
-          {formatEventPeriod(invite.event.startsAt, invite.event.endsAt)}
+          <Period startsAt={invite.event.startsAt} endsAt={invite.event.endsAt} />
         </p>
       </div>
       <p className="text-sm text-stone-500">그룹에 참여하면 약속을 보고 참여 여부를 정할 수 있어요.</p>

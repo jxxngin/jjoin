@@ -4,15 +4,22 @@ import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { Page, Reveal } from "@/components/slide-view";
-import { formatDayRange, formatEventDate } from "@/lib/datetime";
+import { Period } from "@/components/period";
+import { eventPeriodParts } from "@/lib/datetime";
 import { getPoll, topOptions, type PollOption } from "@/lib/polls";
 import { ConfirmButton, PollManage, VoteButton } from "./poll-controls";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-// 후보 이름. 당일 투표는 "10월 18일 (일) 오후 7:00", 기간 투표는 "10월 24일 (금) ~ 10월 26일 (일) · 2박 3일"
-function optionLabel(option: PollOption) {
-  return option.endsAt ? formatDayRange(option.startsAt, option.endsAt) : formatEventDate(option.startsAt);
+// 후보 이름. 당일 투표는 "10월 18일 (일) 오후 7:00", 기간 투표는 "10월 24일 (금) ~ 10월 26일 (일)" + "2박 3일" 배지
+function OptionLabel({ option }: { option: PollOption }) {
+  return <Period startsAt={option.startsAt} endsAt={option.endsAt} withTime={!option.endsAt} />;
+}
+
+// 확정 확인 문구에 쓰는 글자 버전
+function labelText(option: PollOption) {
+  const { dates, nights } = eventPeriodParts(option.startsAt, option.endsAt, !option.endsAt);
+  return nights ? `${dates} (${nights})` : dates;
 }
 
 // 기간 투표의 출발 시간 "오전 10:00" (모든 후보가 같다)
@@ -99,11 +106,11 @@ async function PollContent({ id }: { id: string }) {
                     {MEDALS[i]}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="font-medium">{optionLabel(option)}</span>
+                    <span className="font-medium"><OptionLabel option={option} /></span>
                     <Voters option={option} />
                   </div>
                   {poll.canManage && (
-                    <ConfirmButton pollId={poll.id} optionId={option.id} label={optionLabel(option)} />
+                    <ConfirmButton pollId={poll.id} optionId={option.id} label={labelText(option)} />
                   )}
                 </li>
               ))}
@@ -130,7 +137,7 @@ async function PollContent({ id }: { id: string }) {
               />
               <div className="relative flex items-center gap-3">
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="font-medium">{optionLabel(option)}</span>
+                  <span className="font-medium"><OptionLabel option={option} /></span>
                   <Voters option={option} />
                 </div>
                 {!poll.closed && <VoteButton optionId={option.id} voted={option.votedByMe} />}

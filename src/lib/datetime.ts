@@ -152,3 +152,13 @@ export function formatDayRange(startsAt: string, endsAt: string) {
   const last = lastDayKey(endsAt);
   return `${formatDay(first)} ~ ${formatDay(last)} · ${formatNights(first, last)}`;
 }
+
+// 화면에서 "2박 3일"을 날짜 옆 작은 배지로 따로 보여 줄 때 쓴다. (src/components/period.tsx)
+// dates: "10월 24일 (금) 오전 10:00 ~ 10월 26일 (일)", nights: "2박 3일" (하루 약속이면 null)
+// withTime이 false면 시간은 빼고 날짜만 (기간 투표 후보)
+export function eventPeriodParts(startsAt: string, endsAt: string | null, withTime = true) {
+  const start = withTime ? formatEventDate(startsAt) : formatDay(kstDateKey(startsAt));
+  if (!endsAt) return { dates: start, nights: null };
+  const last = lastDayKey(endsAt);
+  return { dates: `${start} ~ ${formatDay(last)}`, nights: formatNights(kstDateKey(startsAt), last) };
+}

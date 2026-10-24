@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { StatusBadge } from "@/components/status-badge";
 import { UnreadCommentsBadge } from "@/components/unread-comments";
-import { formatDaysLeft, formatEventPeriod } from "@/lib/datetime";
+import { eventPeriodParts, formatDaysLeft, formatEventDate } from "@/lib/datetime";
 import { formatGoing } from "@/lib/event-status";
 import type { EventSummary } from "@/lib/events";
 
@@ -41,10 +41,10 @@ export function EventCard({
 }) {
   const days = event.status === "ended" ? null : event.daysLeft;
   const colors = urgency(days);
+  // 한 줄에 들어가게 시작 날짜만 쓰고, 여러 날 약속이면 "2박 3일"을 작은 배지로 붙인다.
+  const { nights } = eventPeriodParts(event.startsAt, event.endsAt);
   // 그룹 줄이 있으면 무거워 보이지 않게 장소는 빼고 날짜만 남긴다.
-  const details = group
-    ? formatEventPeriod(event.startsAt, event.endsAt)
-    : [formatEventPeriod(event.startsAt, event.endsAt), event.placeName].filter(Boolean).join(" · ");
+  const place = group ? null : event.placeName;
 
   return (
     <Link
@@ -73,7 +73,13 @@ export function EventCard({
       <div className="flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-sm text-stone-500">
           {days !== null && <b className={`mr-1 ${colors.text}`}>{formatDaysLeft(days)}</b>}
-          {details}
+          {formatEventDate(event.startsAt)}
+          {nights && (
+            <span className="ml-1 rounded-full bg-sky-100 px-1.5 py-px text-[11px] font-semibold text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+              {nights}
+            </span>
+          )}
+          {place && ` · ${place}`}
         </span>
         <UnreadCommentsBadge eventId={event.id} commentTimes={event.otherCommentTimes} serverSeenAt={event.seenAt} />
       </div>
