@@ -1,6 +1,6 @@
 import "server-only";
 import webpush from "web-push";
-import { formatEventDate } from "@/lib/datetime";
+import { formatEventPeriod } from "@/lib/datetime";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Kind = "new_event" | "promoted" | "day_before" | "mention" | "hour_before" | "comment";
@@ -13,6 +13,7 @@ type OutboxRow = {
     id: string;
     title: string;
     starts_at: string;
+    ends_at: string | null;
     place_name: string | null;
     groups: { name: string };
   } | null;
@@ -59,7 +60,7 @@ function wants(row: OutboxRow) {
 function payloadFor(row: OutboxRow): PushPayload | null {
   const event = row.events;
   if (!event) return null;
-  const when = formatEventDate(event.starts_at);
+  const when = formatEventPeriod(event.starts_at, event.ends_at);
   const where = event.place_name ? ` · ${event.place_name}` : "";
   const url = `/events/${event.id}`;
 
@@ -131,7 +132,7 @@ export async function flushNotifications() {
       pending.map((row) => row.id),
     )
     .select(
-      "id, user_id, kind, events(id, title, starts_at, place_name, groups(name)), event_comments(body, profiles(nickname)), profiles(notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment)",
+      "id, user_id, kind, events(id, title, starts_at, ends_at, place_name, groups(name)), event_comments(body, profiles(nickname)), profiles(notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment)",
     )
     .overrideTypes<OutboxRow[], { merge: false }>();
   if (!claimed || claimed.length === 0) return;

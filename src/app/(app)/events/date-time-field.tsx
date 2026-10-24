@@ -18,7 +18,16 @@ function formatDate(value: string) {
 
 // 날짜는 yyyy/mm/dd로 보여 주고, 시간은 5분 단위로 고른다.
 // 서버에는 숨은 input으로 "2026-10-18T19:00" 형식을 보낸다.
-export function DateTimeField({ name, defaultValue }: { name: string; defaultValue: string }) {
+export function DateTimeField({
+  name,
+  defaultValue,
+  onDateChange,
+}: {
+  name: string;
+  defaultValue: string;
+  // 날짜를 바꿀 때 알려 준다. (약속 폼의 끝나는 날 칸이 "2박 3일"을 계산한다)
+  onDateChange?: (date: string) => void;
+}) {
   const [initialDate = "", initialTime = "19:00"] = defaultValue ? defaultValue.split("T") : [];
   const [initialHour, initialMinute] = initialTime.split(":");
 
@@ -41,7 +50,10 @@ export function DateTimeField({ name, defaultValue }: { name: string; defaultVal
           type="date"
           required
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={(e) => {
+            setDate(e.target.value);
+            onDateChange?.(e.target.value);
+          }}
           onClick={(e) => e.currentTarget.showPicker?.()}
           aria-label="날짜"
           className="absolute inset-0 cursor-pointer opacity-0"

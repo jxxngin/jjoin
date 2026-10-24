@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { StatusBadge } from "@/components/status-badge";
 import { UnreadCommentsBadge } from "@/components/unread-comments";
-import { formatDaysLeft, formatEventDate } from "@/lib/datetime";
+import { formatDaysLeft, formatEventPeriod } from "@/lib/datetime";
 import { formatGoing } from "@/lib/event-status";
 import type { EventSummary } from "@/lib/events";
 
@@ -43,8 +43,8 @@ export function EventCard({
   const colors = urgency(days);
   // 그룹 줄이 있으면 무거워 보이지 않게 장소는 빼고 날짜만 남긴다.
   const details = group
-    ? formatEventDate(event.startsAt)
-    : [formatEventDate(event.startsAt), event.placeName].filter(Boolean).join(" · ");
+    ? formatEventPeriod(event.startsAt, event.endsAt)
+    : [formatEventPeriod(event.startsAt, event.endsAt), event.placeName].filter(Boolean).join(" · ");
 
   return (
     <Link

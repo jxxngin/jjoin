@@ -10,6 +10,7 @@ import { NewEventTabs } from "./new-event-tabs";
 const emptyValues = {
   title: "",
   startsAt: "",
+  endsOn: "",
   placeName: "",
   placeAddress: "",
   placeLat: "",

@@ -1,10 +1,12 @@
-// 약속을 개인 캘린더(구글, 애플, 아웃룩)로 내보낸다. 끝나는 시각이 없어서 2시간짜리로 넣는다.
+// 약속을 개인 캘린더(구글, 애플, 아웃룩)로 내보낸다.
+// 하루 약속은 끝나는 시각이 없어서 2시간짜리로, 여러 날 약속은 마지막 날 자정까지로 넣는다.
 const DURATION_MS = 2 * 60 * 60 * 1000;
 
 type Exportable = {
   id: string;
   title: string;
   startsAt: string;
+  endsAt: string | null;
   placeName: string | null;
   address: string | null;
   memo: string | null;
@@ -13,6 +15,10 @@ type Exportable = {
 // 20261018T100000Z
 function utcStamp(date: Date) {
   return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+function endOf(event: Exportable, start: Date) {
+  return event.endsAt ? new Date(event.endsAt) : new Date(start.getTime() + DURATION_MS);
 }
 
 function location(event: Exportable) {
@@ -24,7 +30,7 @@ export function googleCalendarUrl(event: Exportable, url: string) {
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: event.title,
-    dates: `${utcStamp(start)}/${utcStamp(new Date(start.getTime() + DURATION_MS))}`,
+    dates: `${utcStamp(start)}/${utcStamp(endOf(event, start))}`,
     location: location(event),
     details: [event.memo, url].filter(Boolean).join("\n\n"),
   });
@@ -47,7 +53,7 @@ export function icsFor(event: Exportable, url: string, now: Date) {
     `UID:${event.id}@jjoin`,
     `DTSTAMP:${utcStamp(now)}`,
     `DTSTART:${utcStamp(start)}`,
-    `DTEND:${utcStamp(new Date(start.getTime() + DURATION_MS))}`,
+    `DTEND:${utcStamp(endOf(event, start))}`,
     `SUMMARY:${escape(event.title)}`,
     location(event) && `LOCATION:${escape(location(event))}`,
     `DESCRIPTION:${escape([event.memo, url].filter(Boolean).join("\n\n"))}`,

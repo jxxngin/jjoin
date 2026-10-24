@@ -16,6 +16,7 @@ function event(
     id,
     title,
     startsAt,
+    endsAt: null,
     placeName: null,
     maxPeople: null,
     goingCount: 3,

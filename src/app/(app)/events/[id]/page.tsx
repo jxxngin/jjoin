@@ -6,7 +6,7 @@ import { Avatar } from "@/components/avatar";
 import { DaysLeftBadge } from "@/components/event-card";
 import { PersonName } from "@/components/person-name";
 import { BackLink } from "@/components/back-link";
-import { formatEventDate } from "@/lib/datetime";
+import { formatEventPeriod } from "@/lib/datetime";
 import { StatusBadge } from "@/components/status-badge";
 import { MarkEventSeen } from "@/components/unread-comments";
 import { END_REASON_LABELS, formatGoing } from "@/lib/event-status";
@@ -64,6 +64,7 @@ async function EventContent({ id }: { id: string }) {
                   id: event.id,
                   title: event.title,
                   startsAt: event.startsAt,
+                  endsAt: event.endsAt,
                   placeName: event.placeName,
                   address: event.place?.address ?? null,
                   memo: event.memo,
@@ -108,7 +109,7 @@ async function EventContent({ id }: { id: string }) {
       )}
 
       <dl className="flex flex-col gap-3 rounded-2xl bg-stone-100 p-4 dark:bg-stone-900">
-        <Row label="언제">{formatEventDate(event.startsAt)}</Row>
+        <Row label="언제">{formatEventPeriod(event.startsAt, event.endsAt)}</Row>
         <Row label="어디서">
           {event.placeName ?? "미정"}
           {event.place?.address && (
@@ -253,3 +254,4 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     </div>
   );
 }
+

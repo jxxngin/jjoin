@@ -29,24 +29,29 @@ export const MANUAL_END_REASONS = [
   "other",
 ] as const satisfies readonly EndReason[];
 
+// 약속이 끝나는 시각. 여러 날 약속은 마지막 날이 지나야, 하루 약속은 시작 시각이 지나면 끝난다.
+export function eventOverAt(event: { startsAt: string; endsAt: string | null }) {
+  return new Date(event.endsAt ?? event.startsAt).getTime();
+}
+
 // 상태는 참여 인원·시각·종료 여부로 계산한다.
 export function getEventStatus(
-  event: { startsAt: string; maxPeople: number | null; endedAt: string | null },
+  event: { startsAt: string; endsAt: string | null; maxPeople: number | null; endedAt: string | null },
   goingCount: number,
   now: number,
 ): EventStatus {
-  if (event.endedAt || new Date(event.startsAt).getTime() < now) return "ended";
+  if (event.endedAt || eventOverAt(event) < now) return "ended";
   if (event.maxPeople !== null && goingCount >= event.maxPeople) return "full";
   return "recruiting";
 }
 
 // 직접 종료했으면 그 사유, 시간이 지났으면 기간 종료, 아니면 null
 export function getEndReason(
-  event: { startsAt: string; endReason: EndReason | null },
+  event: { startsAt: string; endsAt: string | null; endReason: EndReason | null },
   now: number,
 ): EndReason | null {
   if (event.endReason) return event.endReason;
-  return new Date(event.startsAt).getTime() < now ? "time_passed" : null;
+  return eventOverAt(event) < now ? "time_passed" : null;
 }
 
 // "3/6명", 정원이 없으면 "3명"

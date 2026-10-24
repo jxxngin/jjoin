@@ -16,6 +16,8 @@ export type EventSummary = {
   id: string;
   title: string;
   startsAt: string;
+  // 여러 날 약속(2박 3일 등)이 끝나는 시각. 하루 약속이면 null (src/lib/datetime.ts)
+  endsAt: string | null;
   placeName: string | null;
   maxPeople: number | null;
   goingCount: number;
@@ -25,7 +27,7 @@ export type EventSummary = {
   endNote: string | null;
   // 만든 사람·방장이 직접 종료했는지 (다시 열 수 있는지 판단)
   endedManually: boolean;
-  // 며칠 남았는지 (오늘 0). 지난 약속이면 null
+  // 며칠 남았는지 (오늘 0, 여러 날 약속이 진행 중이어도 0). 지난 약속이면 null
   daysLeft: number | null;
   creator: Person | null;
   // 다른 사람이 쓴 댓글 시각. 화면에서 "안 읽은 댓글" 배지를 계산한다. (내가 이 약속을 마지막으로 본 시각과 비교)
@@ -69,6 +71,7 @@ type EventRow = {
   id: string;
   title: string;
   starts_at: string;
+  ends_at: string | null;
   place_name: string | null;
   max_people: number | null;
   ended_at: string | null;
@@ -99,7 +102,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // event_participants 때문에 events→profiles 경로가 둘이라 만든 사람은 created_by로 지정한다.
 const BASE_COLUMNS =
-  "id, title, starts_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url, avatar_color), event_comments(user_id, created_at), event_seen(seen_at)";
+  "id, title, starts_at, ends_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url, avatar_color), event_comments(user_id, created_at), event_seen(seen_at)";
 
 function toSummary(
   row: Omit<EventRow, "event_participants">,
@@ -111,6 +114,7 @@ function toSummary(
     id: row.id,
     title: row.title,
     startsAt: row.starts_at,
+    endsAt: row.ends_at,
     placeName: row.place_name,
     maxPeople: row.max_people,
     goingCount,
@@ -120,10 +124,10 @@ function toSummary(
   return {
     ...summary,
     status: getEventStatus({ ...summary, endedAt: row.ended_at }, goingCount, now),
-    endReason: getEndReason({ startsAt: row.starts_at, endReason: row.end_reason }, now),
+    endReason: getEndReason({ startsAt: row.starts_at, endsAt: row.ends_at, endReason: row.end_reason }, now),
     endNote: row.end_note,
     endedManually: row.ended_at !== null,
-    daysLeft: daysUntil(row.starts_at, now),
+    daysLeft: daysUntil(row.starts_at, now) ?? (row.ends_at && Date.parse(row.ends_at) > now ? 0 : null),
     creator: row.creator
       ? {
           nickname: row.creator.nickname,
@@ -137,10 +141,35 @@ function toSummary(
   };
 }
 
-// 그룹 약속을 기간으로 조회한다. from 이상, to 미만.
+// 기간 [from, to)에 걸치는 약속만 남긴다. 여러 날 약속은 시작이 from보다 앞서도 from 뒤에 끝나면 들어간다.
+function overlapping<Q extends { or(filter: string): Q; lt(column: string, value: string): Q }>(
+  query: Q,
+  from?: Date,
+  to?: Date,
+) {
+  let q = query;
+  if (from) q = q.or(`starts_at.gte.${from.toISOString()},ends_at.gt.${from.toISOString()}`);
+  if (to) q = q.lt("starts_at", to.toISOString());
+  return q;
+}
+
+// 그룹 약속을 기간으로 조회한다. from 이상, to 미만. (기간에 걸치는 여러 날 약속 포함)
 async function getGroupEvents(
   groupId: string,
-  { from, to, latestFirst = false, limit }: { from?: Date; to?: Date; latestFirst?: boolean; limit?: number },
+  {
+    from,
+    to,
+    finishedOnly = false,
+    latestFirst = false,
+    limit,
+  }: {
+    from?: Date;
+    to?: Date;
+    // 다 끝난 약속만 (진행 중인 여러 날 약속은 뺀다)
+    finishedOnly?: boolean;
+    latestFirst?: boolean;
+    limit?: number;
+  },
 ): Promise<EventSummary[]> {
   const userId = await getUserId();
   const supabase = await createClient();
@@ -148,8 +177,8 @@ async function getGroupEvents(
     .from("events")
     .select(`${BASE_COLUMNS}, event_participants(status)`)
     .eq("group_id", groupId);
-  if (from) query = query.gte("starts_at", from.toISOString());
-  if (to) query = query.lt("starts_at", to.toISOString());
+  query = overlapping(query, from, to);
+  if (finishedOnly && to) query = query.or(`ends_at.is.null,ends_at.lte.${to.toISOString()}`);
   query = query.order("starts_at", { ascending: !latestFirst });
   if (limit) query = query.limit(limit);
 
@@ -171,7 +200,7 @@ export function getUpcomingEvents(groupId: string) {
 
 // 지난 약속. 최근 순으로 30개까지.
 export function getPastEvents(groupId: string) {
-  return getGroupEvents(groupId, { to: new Date(), latestFirst: true, limit: 30 });
+  return getGroupEvents(groupId, { to: new Date(), finishedOnly: true, latestFirst: true, limit: 30 });
 }
 
 // 캘린더 한 달 치. 지난 약속도 포함한다.
@@ -197,7 +226,7 @@ export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
     )
     .eq("mine.user_id", userId)
     .in("mine.status", ["going", "waitlisted"])
-    .gte("starts_at", new Date().toISOString())
+    .or(`starts_at.gte.${new Date().toISOString()},ends_at.gt.${new Date().toISOString()}`)
     .is("ended_at", null)
     .order("starts_at")
     .overrideTypes<
@@ -236,7 +265,7 @@ export async function getMyEventsBetween(from: Date, to: Date): Promise<GroupedE
     )
     .eq("mine.user_id", userId)
     .in("mine.status", ["going", "waitlisted"])
-    .gte("starts_at", from.toISOString())
+    .or(`starts_at.gte.${from.toISOString()},ends_at.gt.${from.toISOString()}`)
     .lt("starts_at", to.toISOString())
     .order("starts_at")
     .overrideTypes<

@@ -113,3 +113,42 @@ export function calendarRangeKeys(range: "week" | "month", anchor: string) {
   const month = anchor.slice(0, 7);
   return { fromKey: `${month}-01`, toKey: `${shiftMonth(month, 1)}-01` };
 }
+
+// ---- 여러 날 약속 (2박 3일 등) ----
+// 끝나는 시각(ends_at)은 마지막 날 다음 날 0시(한국 시간)로 저장한다. 마지막 날 하루 종일이 기간에 들어간다.
+
+// 마지막 날 "2026-10-26" → 저장할 끝나는 시각
+export function endsAtFromLastDay(lastDayKey: string) {
+  return new Date(`${addDays(lastDayKey, 1)}T00:00:00+09:00`);
+}
+
+// 저장된 끝나는 시각 → 마지막 날 "2026-10-26"
+export function lastDayKey(endsAt: string) {
+  return addDays(kstDateKey(endsAt), -1);
+}
+
+// "2박 3일", 하루면 "당일"
+export function formatNights(firstKey: string, lastKey: string) {
+  const nights = Math.round((keyToUtc(lastKey) - keyToUtc(firstKey)) / 86_400_000);
+  return nights <= 0 ? "당일" : `${nights}박 ${nights + 1}일`;
+}
+
+// "10월 24일 (금)"
+export function formatDay(key: string) {
+  return dateFormat.format(new Date(`${key}T12:00:00+09:00`));
+}
+
+// 약속 날짜. 하루 약속은 "10월 18일 (일) 오후 7:00",
+// 여러 날 약속은 "10월 24일 (금) 오전 10:00 ~ 10월 26일 (일) · 2박 3일"
+export function formatEventPeriod(startsAt: string, endsAt: string | null) {
+  if (!endsAt) return formatEventDate(startsAt);
+  const last = lastDayKey(endsAt);
+  return `${formatEventDate(startsAt)} ~ ${formatDay(last)} · ${formatNights(kstDateKey(startsAt), last)}`;
+}
+
+// 기간 투표 후보처럼 시간은 따로 보여 줄 때: "10월 24일 (금) ~ 10월 26일 (일) · 2박 3일"
+export function formatDayRange(startsAt: string, endsAt: string) {
+  const first = kstDateKey(startsAt);
+  const last = lastDayKey(endsAt);
+  return `${formatDay(first)} ~ ${formatDay(last)} · ${formatNights(first, last)}`;
+}

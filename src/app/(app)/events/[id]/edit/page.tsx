@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { updateEvent } from "@/app/(app)/events/actions";
 import { EventForm } from "@/app/(app)/events/event-form";
 import { BackLink } from "@/components/back-link";
-import { toKstInput } from "@/lib/datetime";
+import { lastDayKey, toKstInput } from "@/lib/datetime";
 import { getEvent } from "@/lib/events";
 import { Page, Reveal } from "@/components/slide-view";
 
@@ -32,6 +32,7 @@ async function EditEventContent({ id }: { id: string }) {
         initialValues={{
           title: event.title,
           startsAt: toKstInput(event.startsAt),
+          endsOn: event.endsAt ? lastDayKey(event.endsAt) : "",
           placeName: event.placeName ?? "",
           placeAddress: event.place?.address ?? "",
           placeLat: event.place?.lat.toString() ?? "",

@@ -14,6 +14,7 @@ export async function GET(request: Request, { params }: RouteContext<"/events/[i
       id: event.id,
       title: event.title,
       startsAt: event.startsAt,
+      endsAt: event.endsAt,
       placeName: event.placeName,
       address: event.place?.address ?? null,
       memo: event.memo,

@@ -5,7 +5,7 @@ import { ToggleTab } from "@/components/toggle-tab";
 import { useState } from "react";
 import { EventCard } from "@/components/event-card";
 import { statusStyles } from "@/components/status-badge";
-import { addDays, kstDateKey, shiftMonth, weekStart } from "@/lib/datetime";
+import { addDays, kstDateKey, lastDayKey, shiftMonth, weekStart } from "@/lib/datetime";
 import type { EventSummary } from "@/lib/events";
 import { GROUP_COLORS, type GroupColor } from "@/lib/group-style";
 
@@ -54,9 +54,13 @@ export function Calendar({
   const last = days[days.length - 1];
 
   const itemsByDay = new Map<string, CalendarItem[]>();
+  // 여러 날 약속(2박 3일 등)은 걸치는 날마다 넣는다. 보이는 기간 밖의 날은 건너뛴다.
   for (const item of items) {
-    const key = kstDateKey(item.event.startsAt);
-    itemsByDay.set(key, [...(itemsByDay.get(key) ?? []), item]);
+    const start = kstDateKey(item.event.startsAt);
+    const end = item.event.endsAt ? lastDayKey(item.event.endsAt) : start;
+    for (let key = start < first ? first : start; key <= end && key <= last; key = addDays(key, 1)) {
+      itemsByDay.set(key, [...(itemsByDay.get(key) ?? []), item]);
+    }
   }
   // 하루 안에서는 종료된 약속을 맨 뒤로 보낸다. 나머지는 시간 순서 그대로.
   for (const dayItems of itemsByDay.values()) {

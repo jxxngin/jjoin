@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { keepFormOnSubmit } from "@/lib/keep-form";
 import type { EventFormState, EventFormValues } from "./actions";
 import { DateTimeField } from "./date-time-field";
+import { EndDateField } from "./end-date-field";
 import { PlaceField } from "./place-field";
 
 const inputClass =
@@ -20,6 +21,8 @@ export function EventForm({
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const values = state.values ?? initialValues;
+  // 끝나는 날 칸이 "2박 3일"을 계산하고 그보다 이른 날은 못 고르게 한다.
+  const [startDate, setStartDate] = useState(values.startsAt.slice(0, 10));
 
   return (
     <form onSubmit={keepFormOnSubmit(formAction)} className="flex flex-col gap-5">
@@ -35,7 +38,11 @@ export function EventForm({
       </Field>
 
       <Field label="날짜와 시간">
-        <DateTimeField name="startsAt" defaultValue={values.startsAt} />
+        <DateTimeField name="startsAt" defaultValue={values.startsAt} onDateChange={setStartDate} />
+      </Field>
+
+      <Field label="끝나는 날" hint="여러 날 약속일 때만" as="div">
+        <EndDateField name="endsOn" defaultValue={values.endsOn} startDate={startDate} />
       </Field>
 
       {/* 검색 결과 버튼을 탭할 때 label이 입력칸으로 초점을 옮기지 않게 div로 감싼다. */}

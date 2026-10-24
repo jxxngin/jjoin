@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { fromKstInput } from "@/lib/datetime";
+import { endsAtFromLastDay, formatNights, fromKstInput } from "@/lib/datetime";
 import { MANUAL_END_REASONS } from "@/lib/event-status";
 import { flushNotifications } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 export type EventFormValues = {
   title: string;
   startsAt: string;
+  // 여러 날 약속의 마지막 날 "2026-10-26". 하루 약속이면 빈 문자열
+  endsOn: string;
   placeName: string;
   placeAddress: string;
   placeLat: string;
@@ -31,6 +33,7 @@ function readForm(formData: FormData): EventFormValues {
   return {
     title: text("title"),
     startsAt: text("startsAt"),
+    endsOn: text("endsOn"),
     placeName: text("placeName"),
     placeAddress: text("placeAddress"),
     placeLat: text("placeLat"),
@@ -81,6 +84,19 @@ function validate(values: EventFormValues) {
   const startsAt = fromKstInput(values.startsAt);
   if (!startsAt) return { error: "날짜와 시간을 입력해 주세요." };
 
+  // 마지막 날이 시작한 날과 같으면 하루 약속으로 친다.
+  const firstDay = values.startsAt.slice(0, 10);
+  let endsAt: Date | null = null;
+  if (values.endsOn && values.endsOn !== firstDay) {
+    if (!/^d{4}-d{2}-d{2}$/.test(values.endsOn) || values.endsOn < firstDay) {
+      return { error: "끝나는 날은 시작하는 날보다 뒤여야 해요." };
+    }
+    if (Number.parseInt(formatNights(firstDay, values.endsOn)) > 30) {
+      return { error: "여러 날 약속은 30박까지 잡을 수 있어요." };
+    }
+    endsAt = endsAtFromLastDay(values.endsOn);
+  }
+
   const maxPeople = parsePeople(values.maxPeople);
   if (Number.isNaN(maxPeople)) {
     return { error: "최대 인원은 1~100 사이 숫자로 입력해 주세요." };
@@ -93,6 +109,7 @@ function validate(values: EventFormValues) {
     row: {
       title: values.title,
       starts_at: startsAt.toISOString(),
+      ends_at: endsAt?.toISOString() ?? null,
       place_name: values.placeName || null,
       ...parsePlace(values),
       max_people: maxPeople,
