@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getUserId } from "@/lib/auth";
+import { dispatchAutofix } from "@/lib/autofix";
 import { isAppAdmin } from "@/lib/inquiries";
 import { sendKakaoToMe } from "@/lib/kakao-message";
 import { sendToUser } from "@/lib/push";
@@ -39,6 +40,9 @@ export async function createInquiry(_prev: InquiryFormState, formData: FormData)
     .single();
   if (error?.message.includes("too many")) return { error: "문의는 하루에 5건까지 남길 수 있어요." };
   if (error || !data) return { error: "문의를 남기지 못했어요. 다시 시도해 주세요." };
+
+  // 오류 신고면 GitHub 자동 수정 작업을 깨운다. (응답을 보낸 뒤에)
+  if (category === "bug") after(() => dispatchAutofix(data.id));
 
   redirect(`/support/${data.id}?sent=1`);
 }

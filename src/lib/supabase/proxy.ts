@@ -63,6 +63,8 @@ function isPublicPath(pathname: string) {
     pathname.startsWith("/share/") ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/api/cron/") ||
+    // GitHub 자동 수정 작업이 AUTOFIX_SECRET으로 직접 인증한다. (src/lib/autofix.ts)
+    pathname.startsWith("/api/autofix/") ||
     // 친구 테스트 체크리스트 (public/test.html). 로그인 전에도 연다.
     pathname === "/test.html" ||
     pathname === "/api/test-report" ||
