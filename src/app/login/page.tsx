@@ -33,12 +33,13 @@ async function LoginForm({
 }: {
   searchParams: PageProps<"/login">["searchParams"];
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, bye } = await searchParams;
   const message = typeof error === "string" ? errorMessages[error] : undefined;
 
   return (
     <div className="flex w-full flex-col gap-3">
       {message && <p className="text-sm text-red-600">{message}</p>}
+      {bye && <p className="text-sm text-stone-500">탈퇴가 끝났어요. 그동안 jjoin을 써 주셔서 고마워요.</p>}
       <KakaoButton next={typeof next === "string" ? next : "/"} />
     </div>
   );

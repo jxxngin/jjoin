@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { signOut } from "@/app/auth/actions";
 import { BackLink } from "@/components/back-link";
@@ -23,11 +24,16 @@ export default function MyPage() {
 
       <ThemePicker />
 
-      <form action={signOut} className="mt-auto">
-        <button type="submit" className="text-sm text-stone-500 underline underline-offset-4">
-          로그아웃
-        </button>
-      </form>
+      <div className="mt-auto flex items-center justify-between">
+        <form action={signOut}>
+          <button type="submit" className="text-sm text-stone-500 underline underline-offset-4">
+            로그아웃
+          </button>
+        </form>
+        <Link href="/me/delete" transitionTypes={["nav-forward"]} className="text-xs text-stone-400">
+          회원 탈퇴
+        </Link>
+      </div>
     </Page>
   );
 }
