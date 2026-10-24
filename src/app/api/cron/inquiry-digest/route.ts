@@ -1,10 +1,9 @@
-import { sendKakaoToMe } from "@/lib/kakao-message";
 import { sendToUser } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // 문의 1시간 요약. Supabase pg_cron이 1시간마다 이 주소를 부른다. (README의 "문의 요약 예약" 참고)
-// 새 문의와 새 자동 수정 결과가 있을 때만 관리자 카톡(나와의 채팅)과 jjoin 푸시 알림으로 보낸다.
-// 카톡 나와의 채팅은 기기·설정에 따라 알림이 안 울릴 수 있어서 푸시를 함께 보낸다.
+// 새 문의와 새 자동 수정 결과가 있을 때만 관리자 휴대폰에 jjoin 푸시 알림으로 보낸다.
+// (관리자가 마이페이지에서 "이 기기에서 알림 받기"를 켜 둔 기기로 간다)
 // Authorization: Bearer <CRON_SECRET> 헤더가 있어야 한다.
 
 const LABELS: Record<string, string> = { bug: "🐞 오류", feature: "💡 제안", usage: "❓ 이용", account: "👤 계정", other: "💬 기타" };
@@ -41,14 +40,8 @@ export async function GET(request: Request) {
     ...newOnes.slice(0, 3).map((inquiry) => `· ${inquiry.title}`),
   ].filter(Boolean);
 
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
   let sent = 0;
   for (const { user_id } of admins ?? []) {
-    try {
-      if (await sendKakaoToMe(user_id, { text: lines.join("\n"), url: `${base}/support/admin`, button: "문의 보기" })) sent++;
-    } catch (error) {
-      console.error("문의 요약 카톡을 보내지 못했어요", error);
-    }
     try {
       // 첫 줄은 제목, 나머지는 본문 (휴대폰 알림에 들어가게 짧게)
       const delivered = await sendToUser(user_id, {
