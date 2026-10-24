@@ -9,6 +9,7 @@ import { eventPeriodParts } from "@/lib/datetime";
 import { getPoll, topOptions, type PollOption } from "@/lib/polls";
 import { ConfirmButton, PollManage, VoteButton } from "./poll-controls";
 import { CommentSection } from "@/app/(app)/events/[id]/comments";
+import { PlaceVote } from "@/app/(app)/events/[id]/place-vote-section";
 import { getUserId } from "@/lib/auth";
 import { getPollComments } from "@/lib/comments";
 import { getGroup } from "@/lib/groups";
@@ -151,6 +152,13 @@ async function PollContent({ id }: { id: string }) {
           ))}
         </ul>
       </section>
+
+      {/* 약속으로 확정되면 장소 후보는 약속으로 옮겨 가므로 여기서는 보이지 않는다. */}
+      {!poll.eventId && (
+        <Suspense fallback={null}>
+          <PlaceVote target={{ kind: "poll", id: poll.id }} hasPlace={poll.placeName !== null} canManage={poll.canManage} />
+        </Suspense>
+      )}
 
       <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         <PollComments pollId={poll.id} groupId={poll.group.id} />

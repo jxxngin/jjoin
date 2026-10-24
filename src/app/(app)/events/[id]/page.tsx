@@ -23,6 +23,7 @@ import { DeleteEventButton } from "./delete-button";
 import { EndEventForm } from "./end-event-form";
 import { ParticipationButtons } from "./participation-buttons";
 import { PlaceMap } from "./place-map";
+import { PlaceVote } from "./place-vote-section";
 import { Page, Reveal } from "@/components/slide-view";
 
 export default function EventPage({ params, searchParams }: PageProps<"/events/[id]">) {
@@ -153,6 +154,12 @@ async function EventContent({ id, invite }: { id: string; invite: string | null 
             </a>
           </div>
         </section>
+      )}
+
+      {status !== "ended" && (
+        <Suspense fallback={null}>
+          <PlaceVote target={{ kind: "event", id: event.id }} hasPlace={event.placeName !== null} canManage={event.canEdit} />
+        </Suspense>
       )}
 
       {status !== "ended" && (
@@ -299,3 +306,4 @@ async function EventJoin({ eventId, code }: { eventId: string; code: string }) {
     </Reveal>
   );
 }
+
