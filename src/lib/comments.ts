@@ -8,6 +8,8 @@ export type Comment = {
   // 댓글에서 @로 부른 멤버 id
   mentions: string[];
   createdAt: string;
+  // 하트를 누른 사람 id (누른 순서)
+  likes: string[];
   author: {
     id: string;
     nickname: string;
@@ -22,6 +24,7 @@ type CommentRow = {
   body: string;
   mentions: string[];
   created_at: string;
+  comment_likes: { user_id: string }[];
   profiles: {
     id: string;
     nickname: string;
@@ -36,9 +39,10 @@ export async function getComments(eventId: string): Promise<Comment[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("event_comments")
-    .select("id, body, mentions, created_at, profiles(id, nickname, kakao_name, avatar_url, avatar_color)")
+    .select("id, body, mentions, created_at, comment_likes(user_id), profiles(id, nickname, kakao_name, avatar_url, avatar_color)")
     .eq("event_id", eventId)
     .order("created_at")
+    .order("created_at", { referencedTable: "comment_likes" })
     .overrideTypes<CommentRow[], { merge: false }>();
 
   if (error) throw new Error(`댓글을 불러오지 못했어요. (${error.message})`);
@@ -48,6 +52,7 @@ export async function getComments(eventId: string): Promise<Comment[]> {
     body: row.body,
     mentions: row.mentions,
     createdAt: row.created_at,
+    likes: row.comment_likes.map((like) => like.user_id),
     author: row.profiles
       ? {
           id: row.profiles.id,
@@ -59,3 +64,4 @@ export async function getComments(eventId: string): Promise<Comment[]> {
       : null,
   }));
 }
+

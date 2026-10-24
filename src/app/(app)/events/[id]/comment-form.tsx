@@ -3,7 +3,6 @@
 import { useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/avatar";
 import type { AvatarColor } from "@/lib/avatar-style";
-import { deleteComment, postComment } from "../comment-actions";
 
 export type Mentionable = {
   id: string;
@@ -19,7 +18,15 @@ function mentionQuery(text: string, cursor: number) {
   return match ? { query: match[2], start: cursor - match[2].length - 1 } : null;
 }
 
-export function CommentForm({ eventId, members }: { eventId: string; members: Mentionable[] }) {
+// post: 댓글을 저장하는 서버 함수 (약속 댓글·투표 댓글이 각자 넘겨준다)
+// members: @로 부를 수 있는 사람. 비우면 @ 목록이 뜨지 않는다.
+export function CommentForm({
+  post,
+  members,
+}: {
+  post: (body: string, mentionIds: string[]) => Promise<{ error?: string }>;
+  members: Mentionable[];
+}) {
   const [text, setText] = useState("");
   const [cursor, setCursor] = useState(0);
   const [mentioned, setMentioned] = useState<Mentionable[]>([]);
@@ -74,7 +81,7 @@ export function CommentForm({ eventId, members }: { eventId: string; members: Me
     const prefix = mentioned.map((m) => `@${m.nickname} `).join("");
     setError(undefined);
     startTransition(async () => {
-      const result = await postComment(eventId, prefix + value, ids);
+      const result = await post(prefix + value, ids);
       sending.current = false;
       if (result.error) {
         setError(result.error);
@@ -204,7 +211,8 @@ export function CommentForm({ eventId, members }: { eventId: string; members: Me
   );
 }
 
-export function DeleteCommentButton({ commentId }: { commentId: string }) {
+// remove: 그 댓글을 지우는 서버 함수 (id를 묶어서 넘겨준다)
+export function DeleteCommentButton({ remove }: { remove: () => Promise<void> }) {
   const [pending, startTransition] = useTransition();
 
   return (
@@ -212,7 +220,7 @@ export function DeleteCommentButton({ commentId }: { commentId: string }) {
       type="button"
       disabled={pending}
       onClick={() => {
-        if (confirm("댓글을 지울까요?")) startTransition(() => deleteComment(commentId));
+        if (confirm("댓글을 지울까요?")) startTransition(() => remove());
       }}
       className="shrink-0 text-xs text-stone-400 disabled:opacity-50"
     >

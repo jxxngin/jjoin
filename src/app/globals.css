@@ -173,3 +173,10 @@ body {
     animation: none;
   }
 }
+
+/* 댓글 하트를 누를 때 한 번 톡 커진다. (comment-like-button.tsx) */
+@keyframes heart-pop {
+  50% {
+    scale: 1.3;
+  }
+}

@@ -46,3 +46,16 @@ export async function deleteComment(commentId: string) {
   await supabase.from("event_comments").delete().eq("id", commentId);
   refresh();
 }
+
+// 댓글 하트를 누르거나 취소한다. 화면은 먼저 바뀌어 있으므로 다시 그리지 않는다.
+// 그룹 멤버가 아니면 RLS 때문에 아무것도 바뀌지 않는다.
+export async function toggleCommentLike(commentId: string, like: boolean): Promise<{ error?: string }> {
+  if (!UUID.test(commentId)) return { error: "하트를 누르지 못했어요." };
+  const supabase = await createClient();
+  const { error } = like
+    ? await supabase.from("comment_likes").insert({ comment_id: commentId })
+    : await supabase.from("comment_likes").delete().eq("comment_id", commentId);
+  // 이미 눌러 둔 하트를 또 누른 경우(23505)는 성공으로 친다.
+  if (error && error.code !== "23505") return { error: "하트를 누르지 못했어요." };
+  return {};
+}
