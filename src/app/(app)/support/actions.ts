@@ -3,6 +3,9 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { getUserId } from "@/lib/auth";
+import { isAppAdmin } from "@/lib/inquiries";
+import { sendKakaoToMe } from "@/lib/kakao-message";
 import { sendToUser } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 
@@ -65,3 +68,18 @@ export async function updateInquiry(id: string, _prev: InquiryFormState, formDat
   return {};
 }
 
+// 관리자: 카톡 알림이 잘 오는지 시험 메시지를 보낸다.
+export async function sendTestKakao(): Promise<{ error?: string; sent?: boolean }> {
+  if (!(await isAppAdmin())) return { error: "관리자만 보낼 수 있어요." };
+  try {
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://jjoin.vercel.app";
+    const sent = await sendKakaoToMe(await getUserId(), {
+      text: "📮 jjoin 문의 알림 시험\n새 문의가 오면 1시간마다 이렇게 모아서 알려 드려요.",
+      url: `${base}/support/admin`,
+      button: "문의 보기",
+    });
+    return sent ? { sent: true } : { error: "먼저 카톡 알림을 연결해 주세요." };
+  } catch {
+    return { error: "보내지 못했어요. 연결을 다시 해 주세요." };
+  }
+}
