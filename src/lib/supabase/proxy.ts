@@ -53,7 +53,7 @@ export async function updateSession(request: NextRequest) {
 // /api/cron/은 로그인 대신 CRON_SECRET으로 직접 인증한다.
 function previewPath(request: NextRequest) {
   if (!LINK_PREVIEW_BOTS.test(request.headers.get("user-agent") ?? "")) return null;
-  const match = /^\/(invite|events)\/([^/]+)$/.exec(request.nextUrl.pathname);
+  const match = /^\/(invite|events|polls)\/([^/]+)$/.exec(request.nextUrl.pathname);
   return match ? `/share/${match[1]}/${match[2]}` : null;
 }
 

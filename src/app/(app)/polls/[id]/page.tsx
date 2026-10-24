@@ -9,6 +9,11 @@ import { eventPeriodParts } from "@/lib/datetime";
 import { getPoll, topOptions, type PollOption } from "@/lib/polls";
 import { ConfirmButton, PollManage, VoteButton } from "./poll-controls";
 import { CommentSection } from "@/app/(app)/events/[id]/comments";
+import { CopyLinkButton } from "@/app/(app)/events/[id]/copy-link-button";
+import { joinGroup } from "@/app/(app)/groups/actions";
+import { GroupAvatar } from "@/components/group-avatar";
+import { getPollInvite } from "@/lib/event-invite";
+import { headers } from "next/headers";
 import { PlaceVote } from "@/app/(app)/events/[id]/place-vote-section";
 import { getUserId } from "@/lib/auth";
 import { getPollComments } from "@/lib/comments";
@@ -31,12 +36,12 @@ function labelText(option: PollOption) {
 // 기간 투표의 출발 시간 "오전 10:00" (모든 후보가 같다)
 const timeFormat = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "numeric", minute: "2-digit" });
 
-export default function PollPage({ params }: PageProps<"/polls/[id]">) {
+export default function PollPage({ params, searchParams }: PageProps<"/polls/[id]">) {
   return (
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
-        {params.then(({ id }) => (
-          <PollContent id={id} />
+        {Promise.all([params, searchParams]).then(([{ id }, query]) => (
+          <PollContent id={id} invite={typeof query.invite === "string" ? query.invite : null} />
         ))}
       </Suspense>
     </Page>
@@ -59,9 +64,14 @@ function Voters({ option }: { option: PollOption }) {
   );
 }
 
-async function PollContent({ id }: { id: string }) {
+// invite: 투표 공유 링크에 붙은 그룹 초대 코드. 그룹 밖 사람이면 참여 안내를 보여 준다.
+async function PollContent({ id, invite }: { id: string; invite: string | null }) {
   const poll = await getPoll(id);
-  if (!poll) notFound();
+  if (!poll) {
+    if (invite) return <PollJoin pollId={id} code={invite} />;
+    notFound();
+  }
+  const host = (await headers()).get("host");
 
   const maxVotes = Math.max(1, ...poll.options.map((o) => o.voters.length));
   const top = topOptions(poll.options);
@@ -74,7 +84,10 @@ async function PollContent({ id }: { id: string }) {
         <span className="w-fit rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
           {poll.kind === "trip" ? "🧳 기간 투표" : "⏰ 당일 투표"} · {poll.closed ? "마감" : "투표 중"}
         </span>
-        <h1 className="text-2xl font-bold tracking-tight">{poll.title}</h1>
+        <div className="flex items-start gap-2">
+          <h1 className="min-w-0 flex-1 text-2xl font-bold tracking-tight">{poll.title}</h1>
+          <CopyLinkButton url={`https://${host}/polls/${poll.id}?invite=${poll.group.inviteCode}`} />
+        </div>
         <p className="text-sm text-stone-500">
           {[
             poll.kind === "trip" && poll.options[0] && `출발 ${timeFormat.format(new Date(poll.options[0].startsAt))}`,
@@ -186,5 +199,38 @@ async function PollComments({ pollId, groupId }: { pollId: string; groupId: stri
       withLikes={false}
       mentionables={[]}
     />
+  );
+}
+
+// 투표 공유 링크로 그룹 밖 사람이 들어왔을 때: 어떤 투표인지 보여 주고, 그룹에 참여하면 이 투표로 돌아온다.
+// 초대 코드가 이 투표의 그룹 것이 아니면(또는 초대 링크를 새로 만들어 예전 코드면) 볼 수 없다고 안내한다.
+async function PollJoin({ pollId, code }: { pollId: string; code: string }) {
+  const invite = await getPollInvite(pollId, code);
+  if (!invite || invite.isMember) notFound();
+
+  return (
+    <Reveal className="flex flex-1 flex-col items-center justify-center gap-6 py-10 text-center">
+      <div className="flex flex-col items-center gap-2">
+        <GroupAvatar emoji={invite.emoji} color={invite.color} size="lg" />
+        <p className="text-sm text-stone-500">
+          <b className="text-foreground">{invite.groupName}</b> 그룹의 투표예요 · 멤버 {invite.memberCount}명
+        </p>
+        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+          {invite.poll.kind === "trip" ? "🧳 기간 투표" : "⏰ 당일 투표"}
+        </span>
+        <h1 className="text-2xl font-bold tracking-tight">{invite.poll.title}</h1>
+      </div>
+      <p className="text-sm text-stone-500">그룹에 참여하면 되는 날에 바로 투표할 수 있어요.</p>
+      <form action={joinGroup} className="w-full">
+        <input type="hidden" name="code" value={code} />
+        <input type="hidden" name="next" value={`/polls/${pollId}`} />
+        <button
+          type="submit"
+          className="h-12 w-full rounded-xl bg-brand font-medium text-white transition active:scale-[0.98]"
+        >
+          그룹에 참여하고 투표하기
+        </button>
+      </form>
+    </Reveal>
   );
 }

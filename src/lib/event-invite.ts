@@ -25,3 +25,18 @@ export async function getEventInvite(eventId: string, code: string): Promise<Eve
     event: { title: event.title, startsAt: event.starts_at, endsAt: event.ends_at },
   };
 }
+
+export type PollInvite = Invite & { poll: { title: string; kind: "day" | "trip" } };
+
+// 날짜 투표 공유 링크(/polls/<id>?invite=<코드>)도 같은 방식. 코드가 그 투표의 그룹 것일 때만 돌려준다.
+export async function getPollInvite(pollId: string, code: string): Promise<PollInvite | null> {
+  if (!UUID.test(pollId) || !code) return null;
+
+  const [invite, { data: poll }] = await Promise.all([
+    getInvite(code),
+    createAdminClient().from("date_polls").select("group_id, title, kind").eq("id", pollId).maybeSingle(),
+  ]);
+  if (!invite || !poll || poll.group_id !== invite.groupId) return null;
+
+  return { ...invite, poll: { title: poll.title, kind: poll.kind } };
+}

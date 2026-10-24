@@ -28,7 +28,8 @@ export type PollDetail = {
   memo: string | null;
   closed: boolean;
   eventId: string | null;
-  group: { id: string; name: string };
+  // inviteCode: 투표 공유 링크에 붙이는 그룹 초대 코드 (그룹 밖 사람이 참여한 뒤 이 투표로 오게)
+  group: { id: string; name: string; inviteCode: string };
   canManage: boolean;
   // 날짜 순
   options: PollOption[];
@@ -55,7 +56,7 @@ type PollRow = {
   created_by: string;
   closed_at: string | null;
   event_id: string | null;
-  groups: { id: string; name: string; owner_id: string };
+  groups: { id: string; name: string; owner_id: string; invite_code: string };
   date_poll_options: {
     id: string;
     starts_at: string;
@@ -109,7 +110,7 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
     supabase
       .from("date_polls")
       .select(
-        `id, kind, title, place_name, max_people, memo, created_by, closed_at, event_id, groups(id, name, owner_id),
+        `id, kind, title, place_name, max_people, memo, created_by, closed_at, event_id, groups(id, name, owner_id, invite_code),
          date_poll_options(id, starts_at, ends_at, date_poll_votes(user_id, profiles(nickname, avatar_url, avatar_color)))`,
       )
       .eq("id", id)
@@ -148,7 +149,7 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
     memo: row.memo,
     closed: row.closed_at !== null,
     eventId: row.event_id,
-    group: { id: row.groups.id, name: row.groups.name },
+    group: { id: row.groups.id, name: row.groups.name, inviteCode: row.groups.invite_code },
     canManage: row.created_by === userId || row.groups.owner_id === userId,
     options,
     voterCount: new Set(options.flatMap((o) => o.voters.map((v) => v.id))).size,

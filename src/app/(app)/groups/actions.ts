@@ -76,7 +76,7 @@ export async function updateGroup(
   redirect(`/groups/${groupId}`);
 }
 
-// 초대 링크로 그룹에 참여한다. 약속 공유 링크에서 참여했으면 next(그 약속 주소)로 돌아간다.
+// 초대 링크로 그룹에 참여한다. 약속·투표 공유 링크에서 참여했으면 next(그 주소)로 돌아간다.
 export async function joinGroup(formData: FormData) {
   const code = formData.get("code")?.toString() ?? "";
   const next = formData.get("next")?.toString() ?? "";
@@ -85,7 +85,7 @@ export async function joinGroup(formData: FormData) {
   const { data: groupId, error } = await supabase.rpc("join_group", { code });
   if (error || !groupId) throw new Error("그룹에 참여하지 못했어요.");
 
-  redirect(/^\/events\/[0-9a-f-]{36}$/i.test(next) ? next : `/groups/${groupId}`);
+  redirect(/^\/(events|polls)\/[0-9a-f-]{36}$/i.test(next) ? next : `/groups/${groupId}`);
 }
 
 export async function leaveGroup(formData: FormData) {

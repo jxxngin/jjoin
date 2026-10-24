@@ -34,3 +34,26 @@ export async function getEventPreview(id: string) {
     group: row.groups,
   };
 }
+
+// 날짜 투표 링크(/polls/id) 미리보기: 제목, 종류(당일·기간), 후보 수, 그룹
+export async function getPollPreview(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { data } = await createAdminClient()
+    .from("date_polls")
+    .select("title, kind, groups(name, emoji), date_poll_options(id)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  const row = data as unknown as {
+    title: string;
+    kind: "day" | "trip";
+    groups: { name: string; emoji: string };
+    date_poll_options: { id: string }[];
+  };
+  return {
+    title: row.title,
+    kindLabel: row.kind === "trip" ? "🧳 기간 투표" : "⏰ 당일 투표",
+    optionCount: row.date_poll_options.length,
+    group: row.groups,
+  };
+}
