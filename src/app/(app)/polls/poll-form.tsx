@@ -14,7 +14,7 @@ const EMPTY_PLACE = { name: "", address: "", lat: "", lng: "", url: "" };
 
 const KINDS = [
   { value: "day", icon: "⏰", label: "당일 약속", hint: "날짜와 시간 후보" },
-  { value: "trip", icon: "🧳", label: "여러 날 약속", hint: "2박 3일처럼 기간 후보" },
+  { value: "trip", icon: "🧳", label: "여러 날 약속", hint: "가는 날~오는 날 후보" },
 ] as const;
 
 // 날짜 투표 만들기. 후보를 2~10개 넣으면 멤버들이 되는 후보에 모두 투표한다.
