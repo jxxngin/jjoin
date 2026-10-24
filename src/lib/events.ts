@@ -55,7 +55,8 @@ export type EventDetail = EventSummary & {
   // 카카오맵에서 고른 장소일 때만 있다.
   place: { address: string | null; lat: number; lng: number; url: string } | null;
   memo: string | null;
-  group: { id: string; name: string };
+  // inviteCode: 약속 공유 링크에 붙이는 그룹 초대 코드 (그룹 밖 사람이 참여한 뒤 이 약속으로 오게)
+  group: { id: string; name: string; inviteCode: string };
   creatorId: string;
   canEdit: boolean;
   canReopen: boolean;
@@ -91,7 +92,7 @@ type EventDetailRow = Omit<EventRow, "event_participants"> & {
   place_url: string | null;
   memo: string | null;
   created_by: string;
-  groups: { id: string; name: string; owner_id: string };
+  groups: { id: string; name: string; owner_id: string; invite_code: string };
   event_participants: {
     status: ParticipantStatus;
     profiles: { id: string; nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
@@ -294,7 +295,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
     supabase
       .from("events")
       .select(
-        `${BASE_COLUMNS}, place_address, place_lat, place_lng, place_url, memo, created_by, groups(id, name, owner_id),
+        `${BASE_COLUMNS}, place_address, place_lat, place_lng, place_url, memo, created_by, groups(id, name, owner_id, invite_code),
          event_participants(status, updated_at, profiles(id, nickname, kakao_name, avatar_url, avatar_color))`,
       )
       .eq("id", id)
@@ -342,7 +343,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
           }
         : null,
     memo: row.memo,
-    group: { id: row.groups.id, name: row.groups.name },
+    group: { id: row.groups.id, name: row.groups.name, inviteCode: row.groups.invite_code },
     creatorId: row.created_by,
     canEdit,
     // 직접 종료했고 아직 시작 전이면 다시 열 수 있다.
