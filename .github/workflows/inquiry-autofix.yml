@@ -3,6 +3,8 @@
 # - 문의 내용은 AUTOFIX_SECRET으로 앱에서 받아 온다. 문의 글은 누구나 쓸 수 있으므로 "지시"가 아닌 "자료"로만 다룬다.
 # - Claude는 코드를 읽고 고치는 도구만 쓴다. 네트워크·푸시·배포는 할 수 없다.
 # - 수정안은 autofix/ 브랜치의 PR로만 올라가고, 관리자가 확인하고 Merge해야 운영에 배포된다.
+# - PR·커밋에는 신고 원문 대신 코드 기준 요약만 남기고, 파일 3개·80줄을 넘는 수정안은 버린다.
+# - 저장소가 공개면 Actions 로그·PR이 누구에게나 보이므로 비공개 저장소를 권장한다. (Actions 월 2,000분 무료)
 # 필요한 GitHub Secrets: CLAUDE_CODE_OAUTH_TOKEN (claude setup-token), AUTOFIX_SECRET
 name: 문의 오류 자동 수정
 
@@ -72,8 +74,13 @@ jobs:
             2. 코드에서 원인을 찾는다. 이 저장소 AGENTS.md를 따른다. (Next.js 문서는 node_modules/next/dist/docs/)
             3. 위 규칙 안에서 코드만으로 확실히 고칠 수 있으면 고친다. 주변 코드처럼 한국어 주석과 같은 스타일로 쓴다.
             4. 고쳤다면 `npx tsc --noEmit`과 `npx eslint <바꾼 파일>`이 통과하는지 확인한다.
-            5. 마지막에 .autofix-result.json을 아래 모양으로 쓴다. (이 파일만은 반드시 만든다)
-               {"status": "fixed" | "skipped" | "failed", "summary": "한국어 2~4줄: 원인, 고친 내용(또는 못 고친 이유)"}
+            5. 바꾸는 범위는 파일 3개, 줄 80줄 이내로 한다. 넘으면 고치지 말고 failed로 끝낸다. (넘는 수정안은 작업이 버린다)
+            6. 마지막에 .autofix-result.json을 아래 모양으로 쓴다. (이 파일만은 반드시 만든다)
+               {"status": "fixed" | "skipped" | "failed", "summary": "…", "verify": "…"}
+               - summary: 한국어 2~4줄. 코드 기준의 원인과 고친 내용(또는 못 고친 이유)만 쓴다.
+               - verify: 한국어 1~3줄. 수정이 맞는지 확인하는 방법 (들어갈 화면 주소와 누를 것)
+               - summary·verify는 PR·커밋에 그대로 실린다. 신고 글(title·body)을 인용하거나 옮겨 적지 말고,
+                 이름·연락처·기기 정보 같은 개인정보도 쓰지 않는다.
                - fixed: 원인을 찾아 고쳤고 검사를 통과함
                - skipped: 코드 버그가 아님(사용 방법·기능 요청·재현 불가·규칙상 바꿀 수 없는 영역)
                - failed: 버그 같지만 확실히 고치지 못함
@@ -91,11 +98,22 @@ jobs:
 
           STATUS=$(node -e 'try{const r=JSON.parse(require("fs").readFileSync(".autofix-result.json","utf8"));console.log(["fixed","skipped","failed"].includes(r.status)?r.status:"failed")}catch{console.log("failed")}')
           node -e 'try{console.log(JSON.parse(require("fs").readFileSync(".autofix-result.json","utf8")).summary||"")}catch{console.log("결과 파일이 없어요.")}' > "$RUNNER_TEMP/summary.txt"
+          node -e 'try{console.log(JSON.parse(require("fs").readFileSync(".autofix-result.json","utf8")).verify||"")}catch{console.log("")}' > "$RUNNER_TEMP/verify.txt"
           rm -f .autofix-result.json .autofix-inquiry.json
 
           # 바꾸면 안 되는 곳을 건드렸으면 버린다.
           if git status --porcelain | grep -qE ' (supabase/migrations/|\.github/|package(-lock)?\.json|next\.config\.ts|src/lib/supabase/|\.env)'; then
             echo "금지된 파일이 바뀌어 수정안을 버립니다."
+            report failed
+            exit 0
+          fi
+
+          # 바꾼 범위가 크면(파일 3개 또는 80줄 초과) 사람이 직접 보도록 수정안을 버린다.
+          git add -A -N
+          FILES=$(git diff --name-only | wc -l)
+          LINES=$(git diff --numstat | awk '{ s += $1 + $2 } END { print s + 0 }')
+          if [ "$FILES" -gt 3 ] || [ "$LINES" -gt 80 ]; then
+            echo "변경 범위가 커서(파일 $FILES개, $LINES줄) 수정안을 버립니다."
             report failed
             exit 0
           fi
@@ -129,6 +147,9 @@ jobs:
             echo "🤖 문의하기 오류 신고를 Claude가 자동으로 고친 수정안이에요."
             echo
             echo "$(cat "$RUNNER_TEMP/summary.txt")"
+            echo
+            echo "**확인 방법**"
+            echo "$(cat "$RUNNER_TEMP/verify.txt")"
             echo
             echo "- 관리자 화면: $APP_URL/support/$INQUIRY_ID"
             echo "- Vercel 미리보기에서 확인한 뒤 **Merge**하면 운영에 배포돼요. 이상하면 Close하세요."
