@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Next.js 보안 업그레이드 도우미(next upgrade --agent=security)로 올린 프로젝트라는 표시
+    agentUpgrade: "security",
+  },
   // 링크 미리보기 크롤러에게는 메타데이터를 <head>에 바로 넣어 준다. (src/lib/bots.ts와 같은 목록)
   htmlLimitedBots:
     /kakaotalk-scrap|facebookexternalhit|facebookcatalog|Twitterbot|Slackbot|Discordbot|TelegramBot|LinkedInBot|WhatsApp|Applebot|Yeti|Daum|Line\//i,
