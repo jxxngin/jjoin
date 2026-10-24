@@ -28,6 +28,7 @@ export default function AdminInquiriesPage({ searchParams }: PageProps<"/support
           <AdminContent
             status={typeof query.status === "string" ? query.status : "all"}
             kakao={typeof query.kakao === "string" ? query.kakao : null}
+            reason={typeof query.reason === "string" ? query.reason.slice(0, 40) : null}
           />
         ))}
       </Suspense>
@@ -35,7 +36,18 @@ export default function AdminInquiriesPage({ searchParams }: PageProps<"/support
   );
 }
 
-async function AdminContent({ status, kakao }: { status: string; kakao: string | null }) {
+// 카톡 연결 실패 원인별 안내 (카카오 오류 코드 KOE…)
+const KAKAO_REASONS: Record<string, string> = {
+  KOE010: "클라이언트 시크릿이 필요해요. KAKAO_CLIENT_SECRET 환경변수를 넣어 주세요.",
+  KOE006: "등록되지 않은 Redirect URI예요. 카카오 콘솔의 REST API 키에 콜백 주소를 추가해 주세요.",
+  KOE320: "동의 코드가 만료됐어요. 다시 연결해 주세요.",
+  KOE303: "Redirect URI가 맞지 않아요.",
+  access_denied: "카카오 동의를 취소했어요.",
+  state: "연결 확인값이 맞지 않아요. 다시 연결해 주세요.",
+  save: "토큰은 받았지만 저장하지 못했어요.",
+};
+
+async function AdminContent({ status, kakao, reason }: { status: string; kakao: string | null; reason: string | null }) {
   if (!(await isAppAdmin())) notFound();
   const filter = FILTERS.find((f) => f.value === status)?.value ?? "all";
   const [inquiries, connection] = await Promise.all([
@@ -49,7 +61,12 @@ async function AdminContent({ status, kakao }: { status: string; kakao: string |
       <section className="flex flex-col gap-2 rounded-2xl bg-yellow-100 p-4 text-sm text-stone-800 dark:bg-yellow-950/50 dark:text-stone-200">
         <span className="font-semibold">💬 카톡 알림 (1시간 요약)</span>
         {kakao === "connected" && <span className="text-emerald-700 dark:text-emerald-300">✓ 연결했어요.</span>}
-        {kakao === "failed" && <span className="text-red-600">연결하지 못했어요. 다시 시도해 주세요.</span>}
+        {kakao === "failed" && (
+          <span className="text-red-600">
+            연결하지 못했어요.{" "}
+            {reason ? `${KAKAO_REASONS[reason] ?? "다시 시도해 주세요."} (${reason})` : "다시 시도해 주세요."}
+          </span>
+        )}
         <span className="text-xs text-stone-600 dark:text-stone-400">
           {connection
             ? `연결됨 · ${formatEventDate(connection.updated_at)} 갱신${connection.refresh_expires_at ? ` · ${formatEventDate(connection.refresh_expires_at)}까지 유효` : ""}`

@@ -14,7 +14,15 @@ type TokenResponse = {
   refresh_token?: string;
   refresh_token_expires_in?: number;
   error?: string;
+  error_code?: string;
 };
+
+// 카카오가 돌려준 오류 코드(KOE…)를 담는다. 관리자 화면에 원인으로 보여 준다.
+export class KakaoTokenError extends Error {
+  constructor(readonly code: string) {
+    super(`카카오 토큰을 받지 못했어요. (${code})`);
+  }
+}
 
 function clientParams() {
   const key = process.env.KAKAO_REST_API_KEY;
@@ -43,7 +51,7 @@ async function requestToken(body: Record<string, string>): Promise<TokenResponse
     body: new URLSearchParams({ ...clientParams(), ...body }),
   });
   const data = (await response.json()) as TokenResponse;
-  if (!response.ok || data.error) throw new Error("카카오 토큰을 받지 못했어요.");
+  if (!response.ok || data.error) throw new KakaoTokenError(data.error_code ?? data.error ?? String(response.status));
   return data;
 }
 
