@@ -166,3 +166,22 @@ export async function deletePoll(pollId: string, groupId: string): Promise<{ err
   if (error || data.length === 0) return { error: "투표를 삭제하지 못했어요." };
   redirect(`/groups/${groupId}`);
 }
+
+// 날짜 투표에 댓글을 남긴다. 그룹 멤버가 아니면 RLS 때문에 실패한다.
+export async function postPollComment(pollId: string, body: string): Promise<{ error?: string }> {
+  const text = body.trim();
+  if (!text) return { error: "댓글을 입력해 주세요." };
+  if (text.length > 500) return { error: "댓글은 500자까지 쓸 수 있어요." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("poll_comments").insert({ poll_id: pollId, body: text });
+  if (error) return { error: "댓글을 남기지 못했어요." };
+  refresh();
+  return {};
+}
+
+// 본인 댓글이 아니면 RLS 때문에 지워지지 않는다.
+export async function deletePollComment(commentId: string) {
+  const supabase = await createClient();
+  await supabase.from("poll_comments").delete().eq("id", commentId);
+  refresh();
+}

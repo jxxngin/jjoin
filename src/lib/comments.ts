@@ -65,3 +65,32 @@ export async function getComments(eventId: string): Promise<Comment[]> {
   }));
 }
 
+// 날짜 투표 댓글. 오래된 순. @언급·하트는 없다. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
+export async function getPollComments(pollId: string): Promise<Comment[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("poll_comments")
+    .select("id, body, created_at, profiles(id, nickname, kakao_name, avatar_url, avatar_color)")
+    .eq("poll_id", pollId)
+    .order("created_at")
+    .overrideTypes<Omit<CommentRow, "mentions" | "comment_likes">[], { merge: false }>();
+
+  if (error) throw new Error(`댓글을 불러오지 못했어요. (${error.message})`);
+
+  return data.map((row) => ({
+    id: row.id,
+    body: row.body,
+    mentions: [],
+    createdAt: row.created_at,
+    likes: [],
+    author: row.profiles
+      ? {
+          id: row.profiles.id,
+          nickname: row.profiles.nickname,
+          kakaoName: row.profiles.kakao_name,
+          avatarUrl: row.profiles.avatar_url,
+          avatarColor: row.profiles.avatar_color,
+        }
+      : null,
+  }));
+}

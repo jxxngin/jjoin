@@ -8,6 +8,11 @@ import { Period } from "@/components/period";
 import { eventPeriodParts } from "@/lib/datetime";
 import { getPoll, topOptions, type PollOption } from "@/lib/polls";
 import { ConfirmButton, PollManage, VoteButton } from "./poll-controls";
+import { CommentSection } from "@/app/(app)/events/[id]/comments";
+import { getUserId } from "@/lib/auth";
+import { getPollComments } from "@/lib/comments";
+import { getGroup } from "@/lib/groups";
+import { deletePollComment, postPollComment } from "../actions";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -147,11 +152,31 @@ async function PollContent({ id }: { id: string }) {
         </ul>
       </section>
 
+      <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+        <PollComments pollId={poll.id} groupId={poll.group.id} />
+      </Suspense>
+
       {poll.canManage && !poll.eventId && (
         <div className="mt-auto">
           <PollManage pollId={poll.id} groupId={poll.group.id} closed={poll.closed} />
         </div>
       )}
     </Reveal>
+  );
+}
+
+// 투표 아래 댓글. "이 날은 안 돼요" 같은 이야기를 나눈다. (@언급·하트 없음)
+async function PollComments({ pollId, groupId }: { pollId: string; groupId: string }) {
+  const [comments, userId, group] = await Promise.all([getPollComments(pollId), getUserId(), getGroup(groupId)]);
+  return (
+    <CommentSection
+      comments={comments}
+      userId={userId}
+      nicknameById={new Map((group?.members ?? []).map((m) => [m.id, m.nickname]))}
+      post={postPollComment.bind(null, pollId)}
+      remove={deletePollComment}
+      withLikes={false}
+      mentionables={[]}
+    />
   );
 }
