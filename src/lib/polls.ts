@@ -5,17 +5,23 @@ import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// day: 당일 투표 (후보 = 날짜와 시간), trip: 기간 투표 (후보 = 가는 날~오는 날, 출발 시간은 모두 같다)
+export type PollKind = "day" | "trip";
+
 export type Voter = { id: string; nickname: string; avatarUrl: string | null; avatarColor: AvatarColor };
 
 export type PollOption = {
   id: string;
   startsAt: string;
+  // 기간 투표 후보가 끝나는 시각 (마지막 날 다음 날 0시). 당일 투표면 null
+  endsAt: string | null;
   voters: Voter[];
   votedByMe: boolean;
 };
 
 export type PollDetail = {
   id: string;
+  kind: PollKind;
   title: string;
   placeName: string | null;
   maxPeople: number | null;
@@ -32,6 +38,7 @@ export type PollDetail = {
 
 export type PollSummary = {
   id: string;
+  kind: PollKind;
   title: string;
   closed: boolean;
   optionCount: number;
@@ -40,6 +47,7 @@ export type PollSummary = {
 
 type PollRow = {
   id: string;
+  kind: PollKind;
   title: string;
   place_name: string | null;
   max_people: number | null;
@@ -51,6 +59,7 @@ type PollRow = {
   date_poll_options: {
     id: string;
     starts_at: string;
+    ends_at: string | null;
     date_poll_votes: {
       user_id: string;
       profiles: { nickname: string; avatar_url: string | null; avatar_color: AvatarColor } | null;
@@ -63,13 +72,14 @@ export async function getGroupPolls(groupId: string): Promise<PollSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("date_polls")
-    .select("id, title, closed_at, date_poll_options(id, date_poll_votes(user_id))")
+    .select("id, kind, title, closed_at, date_poll_options(id, date_poll_votes(user_id))")
     .eq("group_id", groupId)
     .is("event_id", null)
     .order("created_at", { ascending: false })
     .overrideTypes<
       {
         id: string;
+        kind: PollKind;
         title: string;
         closed_at: string | null;
         date_poll_options: { id: string; date_poll_votes: { user_id: string }[] }[];
@@ -81,6 +91,7 @@ export async function getGroupPolls(groupId: string): Promise<PollSummary[]> {
 
   return data.map((poll) => ({
     id: poll.id,
+    kind: poll.kind,
     title: poll.title,
     closed: poll.closed_at !== null,
     optionCount: poll.date_poll_options.length,
@@ -98,8 +109,8 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
     supabase
       .from("date_polls")
       .select(
-        `id, title, place_name, max_people, memo, created_by, closed_at, event_id, groups(id, name, owner_id),
-         date_poll_options(id, starts_at, date_poll_votes(user_id, profiles(nickname, avatar_url, avatar_color)))`,
+        `id, kind, title, place_name, max_people, memo, created_by, closed_at, event_id, groups(id, name, owner_id),
+         date_poll_options(id, starts_at, ends_at, date_poll_votes(user_id, profiles(nickname, avatar_url, avatar_color)))`,
       )
       .eq("id", id)
       .order("starts_at", { referencedTable: "date_poll_options" })
@@ -112,6 +123,7 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
   const options = row.date_poll_options.map((option) => ({
     id: option.id,
     startsAt: option.starts_at,
+    endsAt: option.ends_at,
     votedByMe: option.date_poll_votes.some((v) => v.user_id === userId),
     voters: option.date_poll_votes.flatMap((v) =>
       v.profiles
@@ -129,6 +141,7 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
 
   return {
     id: row.id,
+    kind: row.kind,
     title: row.title,
     placeName: row.place_name,
     maxPeople: row.max_people,

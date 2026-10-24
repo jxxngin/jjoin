@@ -183,7 +183,7 @@ async function GroupPolls({ groupId }: { groupId: string }) {
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate font-medium">{poll.title}</span>
                 <span className="text-sm text-stone-500">
-                  후보 {poll.optionCount}개 · {poll.voterCount}명 참여
+                  {poll.kind === "trip" ? "🧳 기간" : "⏰ 당일"} · 후보 {poll.optionCount}개 · {poll.voterCount}명 참여
                 </span>
               </div>
               <span

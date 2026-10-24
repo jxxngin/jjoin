@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { fromKstInput } from "@/lib/datetime";
+import { endsAtFromLastDay, formatNights, fromKstInput } from "@/lib/datetime";
 import { flushNotifications } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 
@@ -11,7 +11,39 @@ export type PollFormState = { error?: string };
 
 const KAKAO_PLACE_URL = /^https?:\/\/place\.map\.kakao\.com\/\d+$/;
 
-// 날짜를 못 정한 약속을 투표로 올린다. 후보 날짜는 2~10개, 모두 지금 이후여야 한다.
+// 후보 읽기. 당일 투표는 "2026-10-18T19:00", 기간 투표는 가는 날·오는 날 쌍 + 공통 출발 시간.
+// 돌려주는 값: 후보마다 [시작 시각, 끝나는 시각(기간 투표만)] 또는 오류 메시지
+function readOptions(formData: FormData, kind: "day" | "trip"): { error: string } | { starts: Date[]; ends: Date[] } {
+  if (kind === "day") {
+    const dates = formData
+      .getAll("options")
+      .map((value) => value.toString())
+      .filter(Boolean)
+      .map(fromKstInput);
+    if (dates.some((date) => date === null)) return { error: "후보 날짜와 시간을 모두 골라 주세요." };
+    return { starts: dates as Date[], ends: [] };
+  }
+
+  const time = formData.get("tripTime")?.toString() ?? "";
+  if (!/^d{2}:d{2}$/.test(time)) return { error: "출발 시간을 골라 주세요." };
+  const firsts = formData.getAll("tripStart").map((value) => value.toString());
+  const lasts = formData.getAll("tripEnd").map((value) => value.toString());
+  const starts: Date[] = [];
+  const ends: Date[] = [];
+  for (const [i, first] of firsts.entries()) {
+    const last = lasts[i] ?? "";
+    if (!first && !last) continue;
+    const start = fromKstInput(`${first}T${time}`);
+    if (!start || !/^d{4}-d{2}-d{2}$/.test(last)) return { error: "후보마다 가는 날과 오는 날을 모두 골라 주세요." };
+    if (last <= first) return { error: "오는 날은 가는 날보다 뒤여야 해요. (1박 이상)" };
+    if (Number.parseInt(formatNights(first, last)) > 30) return { error: "기간은 30박까지 잡을 수 있어요." };
+    starts.push(start);
+    ends.push(endsAtFromLastDay(last));
+  }
+  return { starts, ends };
+}
+
+// 날짜를 못 정한 약속을 투표로 올린다. 후보는 2~10개, 모두 지금 이후여야 한다.
 export async function createPoll(
   groupId: string,
   _prev: PollFormState,
@@ -21,16 +53,20 @@ export async function createPoll(
   const title = text("title");
   if (title.length < 1 || title.length > 50) return { error: "제목은 1~50자로 입력해 주세요." };
 
-  const dates = formData
-    .getAll("options")
-    .map((value) => value.toString())
-    .filter(Boolean)
-    .map(fromKstInput);
-  if (dates.some((date) => date === null)) return { error: "후보 날짜와 시간을 모두 골라 주세요." };
-  const unique = [...new Set(dates.map((date) => date!.toISOString()))];
-  if (unique.length < 2) return { error: "서로 다른 후보 날짜를 2개 이상 넣어 주세요." };
-  if (unique.length > 10) return { error: "후보 날짜는 10개까지 넣을 수 있어요." };
-  if (unique.some((iso) => Date.parse(iso) < Date.now())) return { error: "지난 날짜는 후보로 넣을 수 없어요." };
+  const kind = formData.get("kind") === "trip" ? "trip" : "day";
+  const read = readOptions(formData, kind);
+  if ("error" in read) return { error: read.error };
+  // 같은 후보는 하나로 합친다. (기간 투표는 가는 날·오는 날이 모두 같아야 같은 후보)
+  const pairs = new Map(
+    read.starts.map((start, i) => {
+      const end = read.ends[i]?.toISOString() ?? null;
+      return [`${start.toISOString()}|${end}`, { start: start.toISOString(), end }] as const;
+    }),
+  );
+  const unique = [...pairs.values()];
+  if (unique.length < 2) return { error: "서로 다른 후보를 2개 이상 넣어 주세요." };
+  if (unique.length > 10) return { error: "후보는 10개까지 넣을 수 있어요." };
+  if (unique.some(({ start }) => Date.parse(start) < Date.now())) return { error: "지난 날짜는 후보로 넣을 수 없어요." };
 
   const maxRaw = text("maxPeople");
   const maxPeople = maxRaw === "" ? null : Number(maxRaw);
@@ -58,7 +94,9 @@ export async function createPoll(
     p_place_url: hasPlace ? placeUrl.replace(/^http:/, "https:") : null,
     p_max_people: maxPeople,
     p_memo: memo || null,
-    p_options: unique,
+    p_options: unique.map(({ start }) => start),
+    p_kind: kind,
+    p_ends: kind === "trip" ? unique.map(({ end }) => end) : null,
   });
   if (error || !pollId) return { error: "날짜 투표를 만들지 못했어요." };
 

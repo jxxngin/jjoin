@@ -4,11 +4,19 @@ import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { Page, Reveal } from "@/components/slide-view";
-import { formatEventDate } from "@/lib/datetime";
+import { formatDayRange, formatEventDate } from "@/lib/datetime";
 import { getPoll, topOptions, type PollOption } from "@/lib/polls";
 import { ConfirmButton, PollManage, VoteButton } from "./poll-controls";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
+
+// 후보 이름. 당일 투표는 "10월 18일 (일) 오후 7:00", 기간 투표는 "10월 24일 (금) ~ 10월 26일 (일) · 2박 3일"
+function optionLabel(option: PollOption) {
+  return option.endsAt ? formatDayRange(option.startsAt, option.endsAt) : formatEventDate(option.startsAt);
+}
+
+// 기간 투표의 출발 시간 "오전 10:00" (모든 후보가 같다)
+const timeFormat = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "numeric", minute: "2-digit" });
 
 export default function PollPage({ params }: PageProps<"/polls/[id]">) {
   return (
@@ -51,11 +59,16 @@ async function PollContent({ id }: { id: string }) {
 
       <div className="flex flex-col gap-2">
         <span className="w-fit rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">
-          🗳️ 날짜 투표 · {poll.closed ? "마감" : "투표 중"}
+          {poll.kind === "trip" ? "🧳 기간 투표" : "⏰ 당일 투표"} · {poll.closed ? "마감" : "투표 중"}
         </span>
         <h1 className="text-2xl font-bold tracking-tight">{poll.title}</h1>
         <p className="text-sm text-stone-500">
-          {[poll.placeName, poll.maxPeople && `최대 ${poll.maxPeople}명`, `${poll.voterCount}명 참여`]
+          {[
+            poll.kind === "trip" && poll.options[0] && `출발 ${timeFormat.format(new Date(poll.options[0].startsAt))}`,
+            poll.placeName,
+            poll.maxPeople && `최대 ${poll.maxPeople}명`,
+            `${poll.voterCount}명 참여`,
+          ]
             .filter(Boolean)
             .join(" · ")}
         </p>
@@ -75,7 +88,7 @@ async function PollContent({ id }: { id: string }) {
 
       {poll.closed && !poll.eventId && (
         <section className="flex flex-col gap-3">
-          <h2 className="font-semibold">투표 결과 · 가장 많이 고른 날짜</h2>
+          <h2 className="font-semibold">투표 결과 · 가장 많이 고른 후보</h2>
           {top.length === 0 ? (
             <p className="text-sm text-stone-500">투표한 사람이 없어요. 투표를 다시 열어 보세요.</p>
           ) : (
@@ -86,11 +99,11 @@ async function PollContent({ id }: { id: string }) {
                     {MEDALS[i]}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="font-medium">{formatEventDate(option.startsAt)}</span>
+                    <span className="font-medium">{optionLabel(option)}</span>
                     <Voters option={option} />
                   </div>
                   {poll.canManage && (
-                    <ConfirmButton pollId={poll.id} optionId={option.id} label={formatEventDate(option.startsAt)} />
+                    <ConfirmButton pollId={poll.id} optionId={option.id} label={optionLabel(option)} />
                   )}
                 </li>
               ))}
@@ -104,7 +117,7 @@ async function PollContent({ id }: { id: string }) {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-semibold">
-          {poll.closed ? "전체 결과" : "되는 날짜를 모두 골라 주세요"}
+          {poll.closed ? "전체 결과" : poll.kind === "trip" ? "되는 기간을 모두 골라 주세요" : "되는 날짜를 모두 골라 주세요"}
         </h2>
         <ul className="flex flex-col gap-2">
           {poll.options.map((option) => (
@@ -117,7 +130,7 @@ async function PollContent({ id }: { id: string }) {
               />
               <div className="relative flex items-center gap-3">
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="font-medium">{formatEventDate(option.startsAt)}</span>
+                  <span className="font-medium">{optionLabel(option)}</span>
                   <Voters option={option} />
                 </div>
                 {!poll.closed && <VoteButton optionId={option.id} voted={option.votedByMe} />}
