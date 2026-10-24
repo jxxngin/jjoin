@@ -78,11 +78,6 @@ export function InquiryForm({ categories, fromPath }: { categories: Category[]; 
         />
       </label>
 
-      {fromPath && (
-        <p className="text-xs text-stone-500">
-          문의를 연 화면(<code>{fromPath}</code>)과 기기 정보가 함께 전달돼요.
-        </p>
-      )}
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
 
       <button
