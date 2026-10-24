@@ -127,3 +127,26 @@ select cron.schedule(
      ); $$
 );
 ```
+
+### 문의 요약 예약 (Supabase pg_cron)
+
+새 문의와 오류 자동 수정 결과를 1시간마다 관리자 카톡(나와의 채팅)으로 모아 보내요. 관리자 화면(`/support/admin`)에서 "카톡 알림 연결"을 먼저 해 두세요.
+
+```sql
+select cron.schedule(
+  'jjoin-inquiry-digest',
+  '0 * * * *',
+  $$ select net.http_get(
+       url := 'https://jjoin.vercel.app/api/cron/inquiry-digest',
+       headers := jsonb_build_object('Authorization', 'Bearer <CRON_SECRET>')
+     ); $$
+);
+```
+
+### 오류 신고 자동 수정 (GitHub Actions)
+
+문의하기에 🐞 오류 신고가 들어오면 `.github/workflows/inquiry-autofix.yml`이 Claude로 원인을 찾아 수정안(PR)을 만들어요. PR을 확인하고 Merge해야 운영에 배포돼요.
+
+- GitHub Secrets: `CLAUDE_CODE_OAUTH_TOKEN`(`claude setup-token`으로 만든 구독 토큰), `AUTOFIX_SECRET`
+- Vercel 환경 변수: `GITHUB_DISPATCH_TOKEN`(jjoin 저장소 Contents 쓰기 권한 fine-grained 토큰), `AUTOFIX_SECRET`
+- 저장소 Settings → Actions → General → Workflow permissions: Read and write + "Allow GitHub Actions to create and approve pull requests"
