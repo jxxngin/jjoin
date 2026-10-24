@@ -88,7 +88,7 @@ function validate(values: EventFormValues) {
   const firstDay = values.startsAt.slice(0, 10);
   let endsAt: Date | null = null;
   if (values.endsOn && values.endsOn !== firstDay) {
-    if (!/^d{4}-d{2}-d{2}$/.test(values.endsOn) || values.endsOn < firstDay) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(values.endsOn) || values.endsOn < firstDay) {
       return { error: "끝나는 날은 시작하는 날보다 뒤여야 해요." };
     }
     if (Number.parseInt(formatNights(firstDay, values.endsOn)) > 30) {

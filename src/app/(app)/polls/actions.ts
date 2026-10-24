@@ -25,7 +25,7 @@ function readOptions(formData: FormData, kind: "day" | "trip"): { error: string 
   }
 
   const time = formData.get("tripTime")?.toString() ?? "";
-  if (!/^d{2}:d{2}$/.test(time)) return { error: "출발 시간을 골라 주세요." };
+  if (!/^\d{2}:\d{2}$/.test(time)) return { error: "출발 시간을 골라 주세요." };
   const firsts = formData.getAll("tripStart").map((value) => value.toString());
   const lasts = formData.getAll("tripEnd").map((value) => value.toString());
   const starts: Date[] = [];
@@ -34,7 +34,7 @@ function readOptions(formData: FormData, kind: "day" | "trip"): { error: string 
     const last = lasts[i] ?? "";
     if (!first && !last) continue;
     const start = fromKstInput(`${first}T${time}`);
-    if (!start || !/^d{4}-d{2}-d{2}$/.test(last)) return { error: "후보마다 가는 날과 오는 날을 모두 골라 주세요." };
+    if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(last)) return { error: "후보마다 가는 날과 오는 날을 모두 골라 주세요." };
     if (last <= first) return { error: "오는 날은 가는 날보다 뒤여야 해요. (1박 이상)" };
     if (Number.parseInt(formatNights(first, last)) > 30) return { error: "기간은 30박까지 잡을 수 있어요." };
     starts.push(start);
