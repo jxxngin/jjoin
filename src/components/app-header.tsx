@@ -5,6 +5,7 @@ import { Avatar } from "@/components/avatar";
 import { HomeLogoLink } from "@/components/pull-to-refresh";
 import { Wordmark } from "@/components/wordmark";
 import { getCurrentProfile } from "@/lib/auth";
+import { SupportLink } from "@/components/support-link";
 import { UnreadDot } from "@/components/unread-dot";
 import { getLatestUnreadNotificationId } from "@/lib/notifications";
 
@@ -22,7 +23,7 @@ export function AppHeader() {
           <Image src="/logo-512.png" alt="" width={32} height={32} className="rounded-lg" />
           <Wordmark height={26} priority />
         </HomeLogoLink>
-        <Suspense fallback={<div className="h-8 w-[76px]" />}>
+        <Suspense fallback={<div className="h-8 w-[120px]" />}>
           <ProfileMenu />
         </Suspense>
       </div>
@@ -30,12 +31,13 @@ export function AppHeader() {
   );
 }
 
-// 오른쪽 위: 알림 기록(종)과 마이페이지(프로필 사진)
+// 오른쪽 위: 문의하기, 알림 기록(종), 마이페이지(프로필 사진)
 async function ProfileMenu() {
   const [profile, latestUnreadId] = await Promise.all([getCurrentProfile(), getLatestUnreadNotificationId()]);
 
   return (
     <div className="flex items-center gap-3">
+      <SupportLink />
       <Link
         href="/notifications"
         transitionTypes={["nav-forward"]}
