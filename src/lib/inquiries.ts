@@ -113,3 +113,14 @@ export async function getInquiry(id: string): Promise<Inquiry | null> {
     .overrideTypes<Row, { merge: false }>();
   return data ? toInquiry(data, Date.now()) : null;
 }
+
+// 관리자 머리글 배지: 아직 손대지 않은(접수) 문의 수. 관리자가 아니면 null.
+export async function getAdminInquiryBadge(): Promise<number | null> {
+  if (!(await isAppAdmin())) return null;
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("inquiries")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "received");
+  return count ?? 0;
+}
