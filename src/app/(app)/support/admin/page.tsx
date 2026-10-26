@@ -11,10 +11,12 @@ const FILTERS: { value: InquiryStatus | "all"; label: string }[] = [
   { value: "all", label: "전체" },
   { value: "received", label: INQUIRY_STATUS.received.label },
   { value: "in_progress", label: INQUIRY_STATUS.in_progress.label },
+  { value: "on_hold", label: INQUIRY_STATUS.on_hold.label },
   { value: "done", label: INQUIRY_STATUS.done.label },
 ];
 
-// 관리자: 모든 문의. 상태로 거른다. 관리자가 아니면 없는 화면처럼 보인다.
+// 관리자: 모든 문의. 상태로 거른다. 처리 안 된 긴급·오래된 문의가 위에 오고, 같은 문의는 하나로 묶인다.
+// 관리자가 아니면 없는 화면처럼 보인다.
 export default function AdminInquiriesPage({ searchParams }: PageProps<"/support/admin">) {
   return (
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
@@ -36,15 +38,23 @@ async function AdminContent({ status }: { status: string }) {
 
   return (
     <Reveal className="flex flex-col gap-4">
-      {/* 새 문의는 1시간마다 관리자 휴대폰에 jjoin 푸시로 모아서 온다. (/api/cron/inquiry-digest) */}
+      {/* 오류 신고·문의 대화의 새 글은 바로, 나머지 새 문의는 1시간마다 jjoin 푸시로 온다. (/api/cron/inquiry-digest) */}
       <section className="flex flex-col gap-2 rounded-2xl bg-violet-50 p-4 text-sm dark:bg-violet-950/40">
-        <span className="font-semibold">🔔 문의 알림 (1시간 요약)</span>
+        <span className="font-semibold">🔔 문의 알림</span>
         <span className="text-xs text-stone-600 dark:text-stone-400">
-          새 문의가 오면 1시간마다 이 휴대폰에 푸시 알림으로 모아서 알려 드려요. 마이페이지에서 &ldquo;이 기기에서 알림 받기&rdquo;가 켜져 있어야 해요.
+          🐞 오류 신고와 문의 대화의 새 글은 바로, 다른 새 문의는 1시간마다 모아서 이 휴대폰에 푸시로 알려 드려요. 마이페이지에서 &ldquo;이 기기에서 알림 받기&rdquo;가 켜져 있어야 해요.
         </span>
         <PushTestButton />
       </section>
-      <div className="flex gap-1.5">
+      <Link
+        href="/support/admin/errors"
+        transitionTypes={["nav-forward"]}
+        className="flex items-center justify-between rounded-2xl bg-stone-100 px-4 py-3 text-sm font-medium dark:bg-stone-900"
+      >
+        🧯 화면 오류 기록
+        <span>›</span>
+      </Link>
+      <div className="flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (
           <Link
             key={f.value}
@@ -64,7 +74,7 @@ async function AdminContent({ status }: { status: string }) {
       {inquiries.length === 0 ? (
         <p className="py-8 text-center text-sm text-stone-500">문의가 없어요.</p>
       ) : (
-        <InquiryList inquiries={inquiries} showAuthor />
+        <InquiryList inquiries={inquiries} admin />
       )}
     </Reveal>
   );

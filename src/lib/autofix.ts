@@ -5,14 +5,31 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // GitHub에는 문의 번호만 보내고, 내용은 작업이 AUTOFIX_SECRET으로 /api/autofix/inquiry/<id>에서 받아 간다.
 // 작업은 수정안(PR)만 만들고, 운영 배포는 관리자가 PR을 확인하고 Merge할 때 된다.
 
-export async function dispatchAutofix(inquiryId: string) {
+// 자동 수정은 관리자의 Claude 구독 사용량을 같이 쓰므로 24시간에 이만큼만 깨운다.
+// 넘으면 'capped'로 두고, 관리자가 문의 화면에서 직접 다시 실행할 수 있다. (force)
+export const DAILY_AUTOFIX_LIMIT = 3;
+
+export async function dispatchAutofix(inquiryId: string, { force = false } = {}) {
   const token = process.env.GITHUB_DISPATCH_TOKEN;
   // 토큰이 없으면(로컬 개발 등) 자동 수정을 건너뛴다.
   if (!token) return;
   const repo = process.env.GITHUB_REPOSITORY ?? "jxxngin/jjoin";
 
   const admin = createAdminClient();
-  await admin.from("inquiries").update({ auto_fix_status: "pending" }).eq("id", inquiryId);
+  if (!force) {
+    const { count } = await admin
+      .from("inquiries")
+      .select("id", { count: "exact", head: true })
+      .gt("auto_fix_at", new Date(Date.now() - 864e5).toISOString());
+    if ((count ?? 0) >= DAILY_AUTOFIX_LIMIT) {
+      await admin.from("inquiries").update({ auto_fix_status: "capped" }).eq("id", inquiryId);
+      return;
+    }
+  }
+  await admin
+    .from("inquiries")
+    .update({ auto_fix_status: "pending", auto_fix_url: null, auto_fix_at: new Date().toISOString() })
+    .eq("id", inquiryId);
   const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
     method: "POST",
     headers: {
