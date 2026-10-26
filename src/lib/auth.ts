@@ -22,7 +22,7 @@ export async function getUserId() {
 
 export type NotificationPrefs = { newEvent: boolean; promoted: boolean; dayBefore: boolean; mention: boolean; hourBefore: boolean; comment: boolean };
 
-// 종류별 알림 받기 설정 (마이페이지)
+// 종류별 알림 받기 설정 (알림 화면의 알림 설정)
 export async function getNotificationPrefs(): Promise<NotificationPrefs> {
   const userId = await getUserId();
   const supabase = await createClient();

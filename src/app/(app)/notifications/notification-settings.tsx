@@ -117,8 +117,6 @@ export function NotificationSettings({ prefs: initialPrefs }: { prefs: Notificat
 
   return (
     <section className="flex flex-col gap-3">
-      <span className="text-sm font-medium">알림</span>
-
       <div className="flex items-center justify-between gap-3 rounded-xl bg-stone-100 px-4 py-3 dark:bg-stone-900">
         <div className="flex flex-col text-sm">
           <span className="font-medium">이 기기에서 알림 받기</span>

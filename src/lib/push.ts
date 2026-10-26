@@ -157,7 +157,7 @@ export async function flushNotifications() {
   );
 }
 
-// 마이페이지의 "테스트 알림" 용
+// 알림 설정의 "테스트 알림" 용
 export async function sendToUser(userId: string, payload: PushPayload) {
   const { data: subscriptions } = await createAdminClient()
     .from("push_subscriptions")

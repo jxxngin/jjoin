@@ -42,7 +42,7 @@ async function AdminContent({ status }: { status: string }) {
       <section className="flex flex-col gap-2 rounded-2xl bg-violet-50 p-4 text-sm dark:bg-violet-950/40">
         <span className="font-semibold">🔔 문의 알림</span>
         <span className="text-xs text-stone-600 dark:text-stone-400">
-          🐞 오류 신고와 문의 대화의 새 글은 바로, 다른 새 문의는 1시간마다 모아서 이 휴대폰에 푸시로 알려 드려요. 마이페이지에서 &ldquo;이 기기에서 알림 받기&rdquo;가 켜져 있어야 해요.
+          🐞 오류 신고와 문의 대화의 새 글은 바로, 다른 새 문의는 1시간마다 모아서 이 휴대폰에 푸시로 알려 드려요. 알림(🔔) 화면의 ⚙️ 알림 설정에서 &ldquo;이 기기에서 알림 받기&rdquo;가 켜져 있어야 해요.
         </span>
         <PushTestButton />
       </section>

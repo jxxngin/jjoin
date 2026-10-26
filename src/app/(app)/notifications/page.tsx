@@ -2,8 +2,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { BackLink } from "@/components/back-link";
 import { Page } from "@/components/slide-view";
+import { getNotificationPrefs } from "@/lib/auth";
 import { getNotifications, type NotificationKind } from "@/lib/notifications";
 import { MarkRead } from "./mark-read";
+import { NotificationSettings } from "./notification-settings";
 import { ReadAllButton } from "./read-all-button";
 
 const ICONS: Record<NotificationKind, string> = {
@@ -21,6 +23,9 @@ export default function NotificationsPage() {
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/" label="홈" />
       <h1 className="text-2xl font-bold tracking-tight">알림</h1>
+      <Suspense fallback={<div className="h-12 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+        <SettingsSection />
+      </Suspense>
       <Suspense fallback={<NotificationsSkeleton />}>
         <NotificationList />
       </Suspense>
@@ -78,6 +83,22 @@ async function NotificationList() {
         ))}
       </ul>
     </>
+  );
+}
+
+// 알림 설정: 이 기기에서 알림 받기, 종류별 켜고 끄기. 평소엔 접어 둔다.
+async function SettingsSection() {
+  const prefs = await getNotificationPrefs();
+  return (
+    <details className="group rounded-2xl border border-stone-200 dark:border-stone-800">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+        ⚙️ 알림 설정
+        <span className="text-stone-400 transition group-open:rotate-90">›</span>
+      </summary>
+      <div className="px-4 pb-4">
+        <NotificationSettings prefs={prefs} />
+      </div>
+    </details>
   );
 }
 

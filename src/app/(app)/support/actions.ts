@@ -147,5 +147,5 @@ export async function sendTestPush(): Promise<{ error?: string; sent?: boolean }
   });
   return delivered > 0
     ? { sent: true }
-    : { error: "알림을 켠 기기가 없어요. 마이페이지에서 “이 기기에서 알림 받기”를 켜 주세요." };
+    : { error: "알림을 켠 기기가 없어요. 알림(🔔) 화면의 ⚙️ 알림 설정에서 “이 기기에서 알림 받기”를 켜 주세요." };
 }

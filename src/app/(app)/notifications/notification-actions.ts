@@ -63,7 +63,7 @@ export async function sendTestNotification() {
   const count = await sendToUser(userId, {
     title: "jjoin 알림 테스트",
     body: "알림이 잘 도착했어요!",
-    url: "/me",
+    url: "/notifications",
   });
   return count > 0 ? {} : { error: "이 계정에 알림을 켠 기기가 없어요." };
 }
