@@ -28,9 +28,12 @@
   --color-brand-ink: var(--brand-ink);
 }
 
-/* 브라우저 기본 "당겨서 새로고침"은 끄고 직접 만든 것만 쓴다. (pull-to-refresh.tsx) */
+/* 브라우저 기본 "당겨서 새로고침"은 끄고 직접 만든 것만 쓴다. (pull-to-refresh.tsx)
+   PC에서 내용이 길어져 스크롤바가 새로 생겨도 화면이 옆으로 밀리지 않게 스크롤바 자리를 늘 비워 둔다.
+   (휴대폰은 스크롤바가 화면 위에 떠서 영향이 없다) */
 html {
   overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
 }
 
 /* 드롭다운 목록 색을 직접 정한다. 웨일 같은 일부 브라우저는 다크 모드에서도 목록 바탕을 흰색으로 그리는데,
