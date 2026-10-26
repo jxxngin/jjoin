@@ -32,9 +32,9 @@ jobs:
       - name: 문의 번호 확인
         run: '[[ "$INQUIRY_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "잘못된 문의 번호"; exit 1; }'
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -52,8 +52,12 @@ jobs:
 
       - name: Claude가 원인을 찾고 고치기
         uses: anthropics/claude-code-action@v1
+        # Claude가 실패해도(토큰 만료 등) 다음 단계에서 결과(failed)를 앱에 알린다.
+        continue-on-error: true
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # 이 작업의 기본 토큰을 쓴다. (없으면 Claude GitHub 앱 설치용 OIDC 토큰을 찾다가 실패한다)
+          github_token: ${{ github.token }}
           claude_args: |
             --max-turns 40
             --allowedTools Read,Edit,Write,Glob,Grep,Bash(npx tsc --noEmit),Bash(npx eslint:*),Bash(git diff:*),Bash(git status)
@@ -86,6 +90,7 @@ jobs:
                - failed: 버그 같지만 확실히 고치지 못함
 
       - name: 수정안(PR) 만들기와 결과 알리기
+        if: always()
         env:
           AUTOFIX_SECRET: ${{ secrets.AUTOFIX_SECRET }}
           GH_TOKEN: ${{ github.token }}
