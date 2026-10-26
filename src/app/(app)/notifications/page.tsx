@@ -12,6 +12,7 @@ const ICONS: Record<NotificationKind, string> = {
   mention: "📣",
   hour_before: "🔔",
   comment: "💬",
+  inquiry_reply: "📮",
 };
 
 export default function NotificationsPage() {

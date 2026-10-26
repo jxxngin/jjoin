@@ -3,7 +3,7 @@ import { getUserId } from "@/lib/auth";
 import { formatRelative } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 
-export type NotificationKind = "new_event" | "promoted" | "day_before" | "mention" | "hour_before" | "comment";
+export type NotificationKind = "new_event" | "promoted" | "day_before" | "mention" | "hour_before" | "comment" | "inquiry_reply";
 
 export type NotificationItem = {
   id: number;
@@ -24,9 +24,11 @@ type NotificationRow = {
   read_at: string | null;
   events: { id: string; title: string; groups: { name: string; emoji: string } } | null;
   event_comments: { body: string; profiles: { nickname: string } | null } | null;
+  inquiries: { id: string; title: string } | null;
 };
 
 function describe(row: NotificationRow): { title: string; body: string } {
+  if (row.kind === "inquiry_reply") return { title: "문의에 답변이 왔어요", body: row.inquiries?.title ?? "삭제된 문의" };
   const event = row.events;
   const eventTitle = event?.title ?? "삭제된 약속";
   if (row.kind === "new_event") {
@@ -52,7 +54,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notifications")
-    .select("id, kind, created_at, read_at, events(id, title, groups(name, emoji)), event_comments(body, profiles(nickname))")
+    .select("id, kind, created_at, read_at, events(id, title, groups(name, emoji)), event_comments(body, profiles(nickname)), inquiries(id, title)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50)
@@ -66,7 +68,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
     id: row.id,
     kind: row.kind,
     ...describe(row),
-    href: row.events ? `/events/${row.events.id}` : "/",
+    href: row.inquiries ? `/support/${row.inquiries.id}` : row.events ? `/events/${row.events.id}` : "/",
     timeLabel: formatRelative(row.created_at, now),
     unread: row.read_at === null,
     comment:
