@@ -1,0 +1,39 @@
+# 고친 문의가 운영에 배포되면 자동으로 "처리 완료"로 바꾼다.
+# - Vercel이 운영(Production) 배포를 마치면 GitHub에 deployment_status(success)를 남긴다. 그때 이 작업이 돈다.
+# - 배포된 커밋까지 최근 커밋 메시지에서 "Inquiry: <문의 번호>" 줄을 모아 앱(/api/autofix/deployed)에 보낸다.
+# - 앱은 문의마다 한 번만 처리 완료로 바꾸고, 대화에 배포 안내를 남기고, 문의한 사람에게 알림을 보낸다.
+# 필요한 GitHub Secret: AUTOFIX_SECRET (자동 수정 작업과 같은 값)
+name: 고친 문의 배포 완료 처리
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      APP_URL: https://jjoin.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+          fetch-depth: 50
+
+      - name: 커밋에서 문의 번호 모으기와 처리 완료 알리기
+        env:
+          AUTOFIX_SECRET: ${{ secrets.AUTOFIX_SECRET }}
+        run: |
+          set -eu
+          # 이미 처리한 문의는 앱이 건너뛰므로(deployed_at) 최근 50개 커밋을 매번 다시 봐도 된다.
+          IDS=$(git log -50 --format=%B | grep -oiE '^Inquiry: *[0-9a-f-]{36}' | grep -oiE '[0-9a-f-]{36}' | sort -u || true)
+          if [ -z "$IDS" ]; then
+            echo "문의 번호가 적힌 커밋이 없어요."
+            exit 0
+          fi
+          echo "$IDS" | node -e 'const ids=require("fs").readFileSync(0,"utf8").split(/\s+/).filter(Boolean);console.log(JSON.stringify({inquiry_ids:ids}))' \
+            | curl -fsS -X POST -H "Authorization: Bearer $AUTOFIX_SECRET" -H "Content-Type: application/json" --data @- "$APP_URL/api/autofix/deployed"

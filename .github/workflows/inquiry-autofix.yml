@@ -140,6 +140,8 @@ jobs:
           fix: 문의 오류 자동 수정 ($SHORT)
 
           $(cat "$RUNNER_TEMP/summary.txt")
+
+          Inquiry: $INQUIRY_ID
           MSG
           git push -f origin "$BRANCH"
 
@@ -152,7 +154,9 @@ jobs:
             echo "$(cat "$RUNNER_TEMP/verify.txt")"
             echo
             echo "- 관리자 화면: $APP_URL/support/$INQUIRY_ID"
-            echo "- Vercel 미리보기에서 확인한 뒤 **Merge**하면 운영에 배포돼요. 이상하면 Close하세요."
+            echo "- Vercel 미리보기에서 확인한 뒤 **Merge**하면 운영에 배포되고, 배포가 끝나면 문의가 자동으로 처리 완료돼요. 이상하면 Close하세요."
+            echo
+            echo "Inquiry: $INQUIRY_ID"
           } > "$RUNNER_TEMP/pr-body.md"
           URL=$(gh pr create --base main --head "$BRANCH" --title "fix: 문의 오류 자동 수정 ($SHORT)" --body-file "$RUNNER_TEMP/pr-body.md")
           report pr_opened "$URL"
