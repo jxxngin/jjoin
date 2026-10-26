@@ -23,15 +23,30 @@ export async function getUserId() {
 
 export type NotificationPrefs = { newEvent: boolean; promoted: boolean; dayBefore: boolean; mention: boolean; hourBefore: boolean; comment: boolean };
 
+type PrefRow = {
+  notify_new_event: boolean;
+  notify_promoted: boolean;
+  notify_day_before: boolean;
+  notify_mention: boolean;
+  notify_hour_before: boolean;
+  notify_comment: boolean;
+};
+
 // 종류별 알림 받기 설정 (알림 화면의 알림 설정)
+// 알림 설정 열은 본인만 읽도록 함수로 읽는다. (0031) 함수가 아직 없으면(SQL 실행 전) 예전처럼 표에서 읽는다.
 export async function getNotificationPrefs(): Promise<NotificationPrefs> {
   const userId = await getUserId();
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment")
-    .eq("id", userId)
-    .single();
+  const fromFunction = await supabase.rpc("my_notification_prefs").maybeSingle<PrefRow>();
+  const data = fromFunction.error
+    ? (
+        await supabase
+          .from("profiles")
+          .select("notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment")
+          .eq("id", userId)
+          .maybeSingle<PrefRow>()
+      ).data
+    : fromFunction.data;
 
   return {
     newEvent: data?.notify_new_event ?? true,
