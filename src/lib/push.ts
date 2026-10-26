@@ -113,12 +113,16 @@ async function deliver(subscriptions: Subscription[], payload: PushPayload) {
 }
 
 // 쌓인 알림을 보낸다. 서버 액션의 after()와 Cron에서 부른다.
+// Java Spring 워커(backend/)가 발송을 맡으면 PUSH_WORKER=spring으로 두고 여기서는 보내지 않는다. (PLAN.md §10 B1)
+// 둘을 같이 켜 둬도 '대기(pending)' 행만 지우며 가져가므로 워커가 잡은 행과 겹치지 않는다. (0032)
 export async function flushNotifications() {
+  if (process.env.PUSH_WORKER === "spring") return;
   const admin = createAdminClient();
 
   const { data: pending } = await admin
     .from("notification_outbox")
     .select("id")
+    .eq("status", "pending")
     .order("id")
     .limit(500);
   if (!pending || pending.length === 0) return;
@@ -127,6 +131,7 @@ export async function flushNotifications() {
   const { data: claimed } = await admin
     .from("notification_outbox")
     .delete()
+    .eq("status", "pending")
     .in(
       "id",
       pending.map((row) => row.id),
