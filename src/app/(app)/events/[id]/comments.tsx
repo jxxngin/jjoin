@@ -14,7 +14,7 @@ function CommentBody({ body, mentions }: { body: string; mentions: { id: string;
   let rest = body;
   const shown: { id: string; name: string }[] = [];
   for (const mention of mentions) {
-    const match = /^@([^s@]+) /.exec(rest);
+    const match = /^@([^\s@]+) /.exec(rest);
     if (!match) break;
     rest = rest.slice(match[0].length);
     // 그룹을 나간 사람은 저장된 이름 그대로 보여 준다.
