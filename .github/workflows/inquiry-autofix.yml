@@ -60,7 +60,7 @@ jobs:
           github_token: ${{ github.token }}
           claude_args: |
             --max-turns 40
-            --allowedTools Read,Edit,Write,Glob,Grep,Bash(npx tsc --noEmit),Bash(npx eslint:*),Bash(git diff:*),Bash(git status)
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npx tsc --noEmit),Bash(npx eslint:*),Bash(git diff:*),Bash(git status)"
           prompt: |
             너는 jjoin(Next.js 16 + Supabase, 한국어 모바일 웹앱)의 버그를 고치는 개발자다.
             사용자가 남긴 오류 신고가 .autofix-inquiry.json 파일에 있다.
