@@ -1,0 +1,38 @@
+# jjoin 백엔드 설정. 비밀값은 모두 환경 변수로 받는다. (backend/README.md)
+spring:
+  application:
+    name: jjoin-backend
+  datasource:
+    # Supabase 커넥션 풀러(세션 모드, 서울) 예) jdbc:postgresql://aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require&prepareThreshold=0
+    url: ${DATABASE_URL}
+    # 워커 전용 계정 (0032) 예) jjoin_worker.<프로젝트 ref>
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 3
+      connection-timeout: 10000
+
+jjoin:
+  push:
+    enabled: ${PUSH_ENABLED:true}
+    vapid-public-key: ${VAPID_PUBLIC_KEY:}
+    vapid-private-key: ${VAPID_PRIVATE_KEY:}
+    vapid-subject: ${VAPID_SUBJECT:}
+    poll-interval: ${PUSH_POLL_INTERVAL:3s}
+    batch-size: 50
+    max-attempts: 5
+    first-retry-delay: 30s
+    stale-after: 5m
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
