@@ -1,5 +1,6 @@
 import "server-only";
 import type { AvatarColor } from "@/lib/avatar-style";
+import { getVisibleKakaoNames } from "@/lib/kakao-names";
 import { createClient } from "@/lib/supabase/server";
 
 export type Comment = {
@@ -33,7 +34,6 @@ type CommentRow = {
   profiles: {
     id: string;
     nickname: string;
-    kakao_name: string | null;
     avatar_url: string | null;
     avatar_color: AvatarColor;
   } | null;
@@ -42,9 +42,10 @@ type CommentRow = {
 // 약속 댓글. 오래된 순. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
 export async function getComments(eventId: string): Promise<Comment[]> {
   const supabase = await createClient();
+  const kakaoNames = await getVisibleKakaoNames();
   const { data, error } = await supabase
     .from("event_comments")
-    .select("id, body, mentions, created_at, parent_id, edited_at, comment_likes(user_id), profiles(id, nickname, kakao_name, avatar_url, avatar_color)")
+    .select("id, body, mentions, created_at, parent_id, edited_at, comment_likes(user_id), profiles(id, nickname, avatar_url, avatar_color)")
     .eq("event_id", eventId)
     .order("created_at")
     .order("created_at", { referencedTable: "comment_likes" })
@@ -64,7 +65,7 @@ export async function getComments(eventId: string): Promise<Comment[]> {
       ? {
           id: row.profiles.id,
           nickname: row.profiles.nickname,
-          kakaoName: row.profiles.kakao_name,
+          kakaoName: kakaoNames.get(row.profiles.id) ?? null,
           avatarUrl: row.profiles.avatar_url,
           avatarColor: row.profiles.avatar_color,
         }
@@ -75,9 +76,10 @@ export async function getComments(eventId: string): Promise<Comment[]> {
 // 날짜 투표 댓글. 오래된 순. 하트는 없다. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
 export async function getPollComments(pollId: string): Promise<Comment[]> {
   const supabase = await createClient();
+  const kakaoNames = await getVisibleKakaoNames();
   const { data, error } = await supabase
     .from("poll_comments")
-    .select("id, body, mentions, created_at, parent_id, edited_at, profiles(id, nickname, kakao_name, avatar_url, avatar_color)")
+    .select("id, body, mentions, created_at, parent_id, edited_at, profiles(id, nickname, avatar_url, avatar_color)")
     .eq("poll_id", pollId)
     .order("created_at")
     .overrideTypes<Omit<CommentRow, "comment_likes">[], { merge: false }>();
@@ -96,7 +98,7 @@ export async function getPollComments(pollId: string): Promise<Comment[]> {
       ? {
           id: row.profiles.id,
           nickname: row.profiles.nickname,
-          kakaoName: row.profiles.kakao_name,
+          kakaoName: kakaoNames.get(row.profiles.id) ?? null,
           avatarUrl: row.profiles.avatar_url,
           avatarColor: row.profiles.avatar_color,
         }

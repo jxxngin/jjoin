@@ -1,6 +1,7 @@
 import "server-only";
 import type { AvatarColor } from "@/lib/avatar-style";
 import { redirect } from "next/navigation";
+import { getVisibleKakaoNames } from "@/lib/kakao-names";
 import { createClient } from "@/lib/supabase/server";
 
 export type Profile = {
@@ -49,7 +50,7 @@ export async function getCurrentProfile(): Promise<Profile> {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, nickname, kakao_name, avatar_url, avatar_color")
+    .select("id, nickname, avatar_url, avatar_color")
     .eq("id", userId)
     .single();
 
@@ -61,7 +62,7 @@ export async function getCurrentProfile(): Promise<Profile> {
   return {
     id: profile.id,
     nickname: profile.nickname,
-    kakaoName: profile.kakao_name,
+    kakaoName: (await getVisibleKakaoNames()).get(userId) ?? null,
     avatarUrl: profile.avatar_url,
     avatarColor: profile.avatar_color,
   };

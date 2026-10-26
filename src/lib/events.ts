@@ -2,6 +2,7 @@ import "server-only";
 import type { AvatarColor } from "@/lib/avatar-style";
 import type { GroupColor } from "@/lib/group-style";
 import { getUserId } from "@/lib/auth";
+import { getVisibleKakaoNames } from "@/lib/kakao-names";
 import { daysUntil } from "@/lib/datetime";
 import {
   getEndReason,
@@ -78,7 +79,7 @@ type EventRow = {
   ended_at: string | null;
   end_reason: EndReason | null;
   end_note: string | null;
-  creator: { nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
+  creator: { id: string; nickname: string; avatar_url: string | null; avatar_color: AvatarColor } | null;
   event_comments: { user_id: string; created_at: string }[];
   // RLS로 내 기록만 온다.
   event_seen: { seen_at: string }[];
@@ -95,7 +96,7 @@ type EventDetailRow = Omit<EventRow, "event_participants"> & {
   groups: { id: string; name: string; owner_id: string; invite_code: string };
   event_participants: {
     status: ParticipantStatus;
-    profiles: { id: string; nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
+    profiles: { id: string; nickname: string; avatar_url: string | null; avatar_color: AvatarColor } | null;
   }[];
 };
 
@@ -103,12 +104,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // event_participants 때문에 events→profiles 경로가 둘이라 만든 사람은 created_by로 지정한다.
 const BASE_COLUMNS =
-  "id, title, starts_at, ends_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(nickname, kakao_name, avatar_url, avatar_color), event_comments(user_id, created_at), event_seen(seen_at)";
+  "id, title, starts_at, ends_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(id, nickname, avatar_url, avatar_color), event_comments(user_id, created_at), event_seen(seen_at)";
 
 function toSummary(
   row: Omit<EventRow, "event_participants">,
   statuses: ParticipantStatus[],
   userId: string,
+  // 내가 볼 수 있는 카톡 이름 (방장인 그룹의 멤버만, kakao-names.ts)
+  kakaoNames: Map<string, string>,
 ): EventSummary {
   const goingCount = statuses.filter((status) => status === "going").length;
   const summary = {
@@ -132,7 +135,7 @@ function toSummary(
     creator: row.creator
       ? {
           nickname: row.creator.nickname,
-          kakaoName: row.creator.kakao_name,
+          kakaoName: kakaoNames.get(row.creator.id) ?? null,
           avatarUrl: row.creator.avatar_url,
           avatarColor: row.creator.avatar_color,
         }
@@ -172,7 +175,7 @@ async function getGroupEvents(
     limit?: number;
   },
 ): Promise<EventSummary[]> {
-  const userId = await getUserId();
+  const [userId, kakaoNames] = await Promise.all([getUserId(), getVisibleKakaoNames()]);
   const supabase = await createClient();
   let query = supabase
     .from("events")
@@ -190,6 +193,7 @@ async function getGroupEvents(
       row,
       row.event_participants.map((p) => p.status),
       userId,
+      kakaoNames,
     ),
   );
 }
@@ -217,7 +221,7 @@ export type MyEvent = EventSummary & {
 // 모든 그룹에서 내가 참여·대기 중인 다가오는 약속. 가까운 순.
 // 날짜가 남았어도 만든 사람이 일찍 종료한 약속은 뺀다. (그룹 화면과 캘린더에서는 회색으로 보인다)
 export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
-  const userId = await getUserId();
+  const [userId, kakaoNames] = await Promise.all([getUserId(), getVisibleKakaoNames()]);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
@@ -244,6 +248,7 @@ export async function getMyUpcomingEvents(): Promise<MyEvent[]> {
       row,
       row.event_participants.map((p) => p.status),
       userId,
+      kakaoNames,
     ),
     group: row.groups,
     myStatus: row.mine[0].status,
@@ -256,7 +261,7 @@ export type GroupedEvent = EventSummary & {
 
 // 한 달 동안 내가 참여·대기한 약속 (홈 캘린더). 모든 그룹을 모아 그룹 색으로 구분한다.
 export async function getMyEventsBetween(from: Date, to: Date): Promise<GroupedEvent[]> {
-  const userId = await getUserId();
+  const [userId, kakaoNames] = await Promise.all([getUserId(), getVisibleKakaoNames()]);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
@@ -280,6 +285,7 @@ export async function getMyEventsBetween(from: Date, to: Date): Promise<GroupedE
       row,
       row.event_participants.map((p) => p.status),
       userId,
+      kakaoNames,
     ),
     group: row.groups,
   }));
@@ -290,13 +296,14 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
   if (!UUID.test(id)) return null;
 
   const supabase = await createClient();
-  const [userId, { data: row }] = await Promise.all([
+  const [userId, kakaoNames, { data: row }] = await Promise.all([
     getUserId(),
+    getVisibleKakaoNames(),
     supabase
       .from("events")
       .select(
         `${BASE_COLUMNS}, place_address, place_lat, place_lng, place_url, memo, created_by, groups(id, name, owner_id, invite_code),
-         event_participants(status, updated_at, profiles(id, nickname, kakao_name, avatar_url, avatar_color))`,
+         event_participants(status, updated_at, profiles(id, nickname, avatar_url, avatar_color))`,
       )
       .eq("id", id)
       .order("updated_at", { referencedTable: "event_participants" })
@@ -321,7 +328,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
     participants[status].push({
       id: profile.id,
       nickname: profile.nickname,
-      kakaoName: profile.kakao_name,
+      kakaoName: kakaoNames.get(profile.id) ?? null,
       avatarUrl: profile.avatar_url,
       avatarColor: profile.avatar_color,
     });
@@ -332,6 +339,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
       row,
       row.event_participants.map((p) => p.status),
       userId,
+      kakaoNames,
     ),
     place:
       row.place_lat !== null && row.place_lng !== null && row.place_url

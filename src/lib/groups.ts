@@ -2,6 +2,7 @@ import "server-only";
 import type { AvatarColor } from "@/lib/avatar-style";
 import type { GroupColor } from "@/lib/group-style";
 import { getUserId } from "@/lib/auth";
+import { getVisibleKakaoNames } from "@/lib/kakao-names";
 import { createClient } from "@/lib/supabase/server";
 
 // 그룹 꾸미기 (0009_group_profile.sql)
@@ -59,7 +60,7 @@ type GroupRow = {
   group_members: {
     role: string;
     joined_at: string;
-    profiles: { id: string; nickname: string; kakao_name: string | null; avatar_url: string | null; avatar_color: AvatarColor } | null;
+    profiles: { id: string; nickname: string; avatar_url: string | null; avatar_color: AvatarColor } | null;
   }[];
 };
 
@@ -139,15 +140,18 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
   if (!UUID.test(id)) return null;
 
   const supabase = await createClient();
-  const { data: group } = await supabase
-    .from("groups")
-    .select(
-      "id, name, invite_code, owner_id, emoji, color, description, group_members(role, joined_at, profiles(id, nickname, kakao_name, avatar_url, avatar_color))",
-    )
-    .eq("id", id)
-    .order("joined_at", { referencedTable: "group_members" })
-    .maybeSingle()
-    .overrideTypes<GroupRow, { merge: false }>();
+  const [kakaoNames, { data: group }] = await Promise.all([
+    getVisibleKakaoNames(),
+    supabase
+      .from("groups")
+      .select(
+        "id, name, invite_code, owner_id, emoji, color, description, group_members(role, joined_at, profiles(id, nickname, avatar_url, avatar_color))",
+      )
+      .eq("id", id)
+      .order("joined_at", { referencedTable: "group_members" })
+      .maybeSingle()
+      .overrideTypes<GroupRow, { merge: false }>(),
+  ]);
 
   if (!group) return null;
 
@@ -166,7 +170,7 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
             {
               id: profile.id,
               nickname: profile.nickname,
-              kakaoName: profile.kakao_name,
+              kakaoName: kakaoNames.get(profile.id) ?? null,
               avatarUrl: profile.avatar_url,
               avatarColor: profile.avatar_color,
               role: role as GroupMember["role"],
