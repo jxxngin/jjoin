@@ -7,10 +7,19 @@ import type { GroupMember } from "@/lib/groups";
 
 // 접힌 상태에서 보여 줄 프로필 사진 수
 const PREVIEW = 5;
+// 이보다 많으면 명단 위에 이름 검색칸을 둔다.
+const SEARCH_FROM = 10;
 
 // 평소엔 겹친 프로필 사진만 보이고, 누르면 이름까지 있는 전체 명단이 부드럽게 펼쳐진다.
+// 명단은 6명 높이까지만 보이고 그 안에서 스크롤한다. (인원이 많아도 그룹 화면이 길어지지 않게)
 export function MemberList({ members, userId }: { members: GroupMember[]; userId: string }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const keyword = query.trim().toLowerCase();
+  // 닉네임과 (방장에게만 보이는) 카톡 이름으로 찾는다.
+  const shown = keyword
+    ? members.filter((m) => `${m.nickname} ${m.kakaoName ?? ""}`.toLowerCase().includes(keyword))
+    : members;
 
   return (
     <div className="rounded-2xl bg-stone-100 dark:bg-stone-900">
@@ -56,8 +65,24 @@ export function MemberList({ members, userId }: { members: GroupMember[]; userId
         }`}
       >
         <div className="overflow-hidden" inert={!open}>
-          <ul className="flex flex-col gap-1 border-t border-stone-200 px-4 py-2 dark:border-stone-800">
-            {members.map((member) => (
+          {members.length > SEARCH_FROM && (
+            <div className="border-t border-stone-200 px-4 pt-3 dark:border-stone-800">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={`🔍 멤버 ${members.length}명 중 이름으로 찾기`}
+                className="h-10 w-full rounded-xl border border-stone-300 bg-background px-3 text-base outline-none focus:border-brand dark:border-stone-700"
+              />
+            </div>
+          )}
+          <ul
+            className={`flex max-h-[21rem] flex-col gap-1 overflow-y-auto overscroll-contain px-4 py-2 ${
+              members.length > SEARCH_FROM ? "" : "border-t border-stone-200 dark:border-stone-800"
+            }`}
+          >
+            {shown.length === 0 && <li className="py-3 text-center text-sm text-stone-500">찾는 멤버가 없어요.</li>}
+            {shown.map((member) => (
               <li key={member.id} className="flex items-center gap-3 py-2">
                 <Avatar src={member.avatarUrl} color={member.avatarColor} />
                 <PersonName nickname={member.nickname} kakaoName={member.kakaoName} className="font-medium" />
