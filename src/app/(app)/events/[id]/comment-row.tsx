@@ -105,13 +105,18 @@ function CommentRow({ comment, isMine, edit, remove, isReply, onReply }: Bound &
     <div className="flex gap-3">
       <Avatar src={comment.author?.avatarUrl ?? null} color={comment.author?.avatarColor} size={isReply ? "xs" : "sm"} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex items-center gap-2 text-sm">
+        {/* 좁은 화면에서는 이름·시각이 글자 중간에서 끊기지 않고 덩어리째 다음 줄로 넘어간다. */}
+        <div className="flex flex-wrap items-center gap-x-2 text-sm">
           {comment.author ? (
-            <PersonName nickname={comment.author.nickname} kakaoName={comment.author.kakaoName} className="font-medium" />
+            <PersonName
+              nickname={comment.author.nickname}
+              kakaoName={comment.author.kakaoName}
+              className="font-medium whitespace-nowrap"
+            />
           ) : (
             <span className="text-stone-500">알 수 없음</span>
           )}
-          <span className="text-xs text-stone-400">
+          <span className="text-xs whitespace-nowrap text-stone-400">
             {comment.timeLabel}
             {comment.edited && " · 수정됨"}
           </span>
