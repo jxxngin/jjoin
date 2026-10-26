@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { getUserId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -27,4 +28,10 @@ export async function markAllNotificationsRead() {
       supabase.rpc("mark_event_seen", { p_event_id: eventId, p_at: at }),
     ),
   );
+}
+
+// 알림 목록의 "모두 읽음" 버튼. 읽음으로 바꾸고 목록을 다시 그려 새 알림 표시를 끈다.
+export async function readAllNotifications() {
+  await markAllNotificationsRead();
+  refresh();
 }

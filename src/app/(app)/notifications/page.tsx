@@ -4,6 +4,7 @@ import { BackLink } from "@/components/back-link";
 import { Page } from "@/components/slide-view";
 import { getNotifications, type NotificationKind } from "@/lib/notifications";
 import { MarkRead } from "./mark-read";
+import { ReadAllButton } from "./read-all-button";
 
 const ICONS: Record<NotificationKind, string> = {
   new_event: "📅",
@@ -38,10 +39,19 @@ async function NotificationList() {
     );
   }
 
+  const latestId = Math.max(...items.map((item) => item.id));
+  const unread = items.filter((item) => item.unread).length;
+
   return (
     <>
+      {unread > 0 && (
+        <div className="-mt-3 flex items-center justify-between">
+          <span className="text-sm text-stone-500">새 알림 {unread}개</span>
+          <ReadAllButton latestId={latestId} unread={unread} />
+        </div>
+      )}
       <MarkRead
-        latestId={Math.max(...items.map((item) => item.id))}
+        latestId={latestId}
         comments={items.flatMap((item) => (item.comment ? [item.comment] : []))}
       />
       <ul className="reveal flex flex-col gap-1">
