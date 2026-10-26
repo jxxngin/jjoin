@@ -23,7 +23,9 @@ function mentionQuery(text: string, cursor: number) {
 export function CommentForm({
   post,
   members,
+  placeholder = "댓글 남기기 · @로 친구 부르기",
 }: {
+  placeholder?: string;
   post: (body: string, mentionIds: string[]) => Promise<{ error?: string }>;
   members: Mentionable[];
 }) {
@@ -195,7 +197,7 @@ export function CommentForm({
           enterKeyHint="send"
           rows={1}
           maxLength={500}
-          placeholder="댓글 남기기 · @로 친구 부르기"
+          placeholder={placeholder}
           className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-stone-300 bg-transparent px-3 py-2.5 text-base outline-none [field-sizing:content] focus:border-brand dark:border-stone-700"
         />
         <button

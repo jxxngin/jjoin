@@ -4,12 +4,16 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { endsAtFromLastDay, formatNights, fromKstInput } from "@/lib/datetime";
-import { flushNotifications } from "@/lib/push";
+import { getUserId } from "@/lib/auth";
+import { editCommentIn } from "@/lib/comment-edit";
+import { flushNotifications, sendToUser } from "@/lib/push";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type PollFormState = { error?: string };
 
 const KAKAO_PLACE_URL = /^https?:\/\/place\.map\.kakao\.com\/\d+$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // 후보 읽기. 당일 투표는 "2026-10-18T19:00", 기간 투표는 가는 날·오는 날 쌍 + 공통 출발 시간.
 // 돌려주는 값: 후보마다 [시작 시각, 끝나는 시각(기간 투표만)] 또는 오류 메시지
@@ -167,16 +171,36 @@ export async function deletePoll(pollId: string, groupId: string): Promise<{ err
   redirect(`/groups/${groupId}`);
 }
 
-// 날짜 투표에 댓글을 남긴다. 그룹 멤버가 아니면 RLS 때문에 실패한다.
-export async function postPollComment(pollId: string, body: string): Promise<{ error?: string }> {
+// 날짜 투표에 댓글을 남긴다. parentId가 있으면 그 댓글의 답글이다. 그룹 멤버가 아니면 RLS 때문에 실패한다.
+// @로 부른 사람에게는 응답을 보낸 뒤 바로 푸시를 보낸다. (알림 기록 표는 약속에만 붙어 있어 투표 언급은 푸시만)
+export async function postPollComment(
+  pollId: string,
+  parentId: string | null,
+  body: string,
+  mentionIds: string[],
+): Promise<{ error?: string }> {
   const text = body.trim();
   if (!text) return { error: "댓글을 입력해 주세요." };
   if (text.length > 500) return { error: "댓글은 500자까지 쓸 수 있어요." };
+  const mentions = [...new Set(mentionIds.filter((id) => UUID.test(id)))].slice(0, 20);
+
   const supabase = await createClient();
-  const { error } = await supabase.from("poll_comments").insert({ poll_id: pollId, body: text });
+  const { error } = await supabase.from("poll_comments").insert({
+    poll_id: pollId,
+    body: text,
+    mentions,
+    parent_id: parentId && UUID.test(parentId) ? parentId : null,
+  });
   if (error) return { error: "댓글을 남기지 못했어요." };
+
+  if (mentions.length > 0) after(() => notifyPollMentions(pollId, mentions));
   refresh();
   return {};
+}
+
+// 본인 댓글의 내용을 고친다. 앞의 언급(@이름)은 그대로 두고 그 뒤 내용만 바꾼다.
+export async function editPollComment(commentId: string, text: string): Promise<{ error?: string }> {
+  return editCommentIn("poll_comments", commentId, text);
 }
 
 // 본인 댓글이 아니면 RLS 때문에 지워지지 않는다.
@@ -184,4 +208,31 @@ export async function deletePollComment(commentId: string) {
   const supabase = await createClient();
   await supabase.from("poll_comments").delete().eq("id", commentId);
   refresh();
+}
+
+// 투표 댓글에서 @로 부른 그룹 멤버에게 푸시를 보낸다. 언급 알림을 꺼 둔 사람과 나 자신은 뺀다.
+async function notifyPollMentions(pollId: string, mentionIds: string[]) {
+  try {
+    const [authorId, admin] = [await getUserId(), createAdminClient()];
+    const [{ data: poll }, { data: author }] = await Promise.all([
+      admin.from("date_polls").select("title, group_id").eq("id", pollId).maybeSingle(),
+      admin.from("profiles").select("nickname").eq("id", authorId).maybeSingle(),
+    ]);
+    if (!poll) return;
+    const { data: targets } = await admin
+      .from("group_members")
+      .select("user_id, profiles(notify_mention)")
+      .eq("group_id", poll.group_id)
+      .in("user_id", mentionIds.filter((id) => id !== authorId));
+    for (const target of (targets ?? []) as unknown as { user_id: string; profiles: { notify_mention: boolean } | null }[]) {
+      if (target.profiles?.notify_mention === false) continue;
+      await sendToUser(target.user_id, {
+        title: `${author?.nickname ?? "누군가"}님이 투표 댓글에서 회원님을 언급했어요`,
+        body: poll.title,
+        url: `/polls/${pollId}`,
+      });
+    }
+  } catch (error) {
+    console.error("투표 댓글 언급 알림을 보내지 못했어요", error);
+  }
 }
