@@ -123,8 +123,8 @@ event_participants  event_id, user_id, status('going'|'maybe'|'not_going'|'waitl
 ### 기술 스택
 | 항목 | 선택 | 이유 |
 |---|---|---|
-| 언어·프레임워크 | Java 21, Spring Boot 3 | |
-| DB 접근 | Spring JDBC(JdbcClient) 또는 JPA, Supabase Postgres 직접 연결(커넥션 풀러) | SQL 함수·RLS를 그대로 활용 |
+| 언어·프레임워크 | Java 21, Spring Boot 4.1 (Gradle Kotlin DSL) | 2026-10 기준 Initializr 기본 |
+| DB 접근 | Spring JDBC(JdbcClient) + SQL, Supabase 커넥션 풀러(세션 모드) | SQL 함수·RLS·행 잠금을 그대로 활용 (B1에서 결정) |
 | 인증 | Spring Security OAuth2 Resource Server로 Supabase JWT(JWKS) 검증 | 로그인은 지금처럼 Supabase(카카오) |
 | RLS 유지 | 트랜잭션마다 `set_config('request.jwt.claims', …)` + `set local role authenticated` | PostgREST(Supabase API)와 같은 방식 |
 | 웹 푸시 | webpush-java (VAPID) | 지금 쓰는 VAPID 키 그대로 |
@@ -136,7 +136,7 @@ event_participants  event_id, user_id, status('going'|'maybe'|'not_going'|'waitl
 ### 단계
 | 단계 | 옮길 기능 | 지금 위치 | 바뀌는 점 |
 |---|---|---|---|
-| B1 | **알림 발송 워커**: notification_outbox를 읽어 웹 푸시 발송, 재시도·실패 기록·중복 발송 방지 | `src/lib/push.ts` (Next의 응답 후 처리) | `SELECT … FOR UPDATE SKIP LOCKED`로 대기열 처리, 실패는 횟수·다음 시도 시각을 남긴다 |
+| B1 ✅ 코드 | **알림 발송 워커** (`backend/`, 0032, 서버 배포 전): notification_outbox를 읽어 웹 푸시 발송, 재시도·실패 기록·중복 발송 방지 | `src/lib/push.ts` (Next의 응답 후 처리) | `SELECT … FOR UPDATE SKIP LOCKED`로 대기열 처리, 실패는 횟수·다음 시도 시각을 남긴다 |
 | B2 | **예약 작업**: 하루 전·1시간 전 알림, 문의 1시간 요약 | Vercel Cron, Supabase pg_cron → `/api/cron/*` | Spring `@Scheduled`로 옮기고 pg_cron·Vercel Cron을 끈다 |
 | B3 | **문의·관리자 API + 자동 수정 연동**: 문의 목록·상태·답변, GitHub 작업 깨우기·결과 받기 | `src/app/(app)/support/*`, `/api/autofix/*` | Next는 Spring API를 부르고, 관리자만 쓰는 기능이라 지연 영향이 적다 |
 | B4 (선택) | 약속·투표 읽기·쓰기 API | Next 서버 + Supabase | 서울 서버가 안정된 뒤 필요할 때만 |

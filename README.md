@@ -115,7 +115,7 @@ flowchart LR
 
 ## 앞으로
 
-- **Java Spring 백엔드 분리**: 화면 속도에 영향이 없는 알림 발송 워커 → 예약 작업 → 문의·관리자 API 순서로 옮겨요. 서울 지역 상시 서버(Oracle Cloud Always Free)를 쓰고, Supabase 인증과 RLS는 그대로 유지해요. ([PLAN.md 10장](PLAN.md#10-백엔드-분리-계획-java-spring))
+- **Java Spring 백엔드 분리** ([backend/](backend/README.md)): 화면 속도에 영향이 없는 알림 발송 워커 → 예약 작업 → 문의·관리자 API 순서로 옮겨요. 1단계 알림 발송 워커(대기열 잠금·재시도·전용 DB 계정, Testcontainers 통합 테스트)는 코드가 완성됐어요. 서울 지역 상시 서버(Oracle Cloud Always Free)를 쓰고, Supabase 인증과 RLS는 그대로 유지해요. ([PLAN.md 10장](PLAN.md#10-백엔드-분리-계획-java-spring))
 
 ## 폴더
 
