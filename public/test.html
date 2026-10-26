@@ -64,6 +64,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 #list li[data-s="ok"] { border-color: var(--ok); }
 #list li[data-s="bad"] { border-color: var(--bad); }
 .q { font-weight: 500; }
+.new { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 6px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .04em; vertical-align: 2px; }
+.update { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1.5px solid var(--brand); font-size: 14px; line-height: 1.55; }
 .intro dl { margin: 0; display: flex; flex-direction: column; gap: 8px; background: var(--surface); border-radius: 14px; padding: 14px; }
 .intro dl div { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 8px; }
 .intro dt { font-weight: 700; color: var(--brand-ink); }
@@ -98,7 +100,7 @@ textarea:focus, button:focus-visible { outline: 2px solid var(--brand); outline-
   <header>
     <div class="mark"><img src="/logo-512.png" alt="" width="32" height="32" style="border-radius:9px">jjoin</div>
     <h1>jjoin 테스트를 도와주세요</h1>
-    <p class="lead">약속 잡는 앱 jjoin을 먼저 써 보시고, 잘 되는지 알려 주세요. 15분 정도 걸려요.</p>
+    <p class="lead">약속 잡는 앱 jjoin을 먼저 써 보시고, 잘 되는지 알려 주세요. 처음이면 20분 정도 걸려요.</p>
     <div class="site">👉 <a href="https://jjoin.vercel.app" target="_blank" rel="noopener">jjoin.vercel.app</a></div>
     <ol class="how">
       <li>위 주소를 <b>휴대폰</b>으로 열고 1단계부터 순서대로 해 주세요. 이 페이지는 따로 열어 두고 오가면서 보시면 돼요.</li>
@@ -106,6 +108,7 @@ textarea:focus, button:focus-visible { outline: 2px solid var(--brand); outline-
       <li>이상한 점이 있으면 메모에 "무엇을 눌렀더니 어떻게 됐는지"만 적어 주세요.</li>
       <li>고르는 대로 <b>자동으로 저장</b>돼요. 따로 보내지 않으셔도 돼요.</li>
     </ol>
+    <p class="update">🆕 <b>10월 26일 새 기능 항목이 <span id="newCount">17</span>개 늘었어요.</b> 이미 해 주신 분은 지난 답이 그대로 남아 있으니, <span class="new">NEW</span> 표시된 항목만 해 주시면 돼요. 새 항목은 아직 고르지 않은 상태(미선택)로 보여요.</p>
   </header>
 
   <section class="intro">
@@ -168,27 +171,46 @@ const STEPS = [
     ["약속에 참여 / 취소가 된다", "약속을 눌러 들어가면 아래에 '참여 / 미정 / 불참' 버튼이 있어요. '참여'를 누르면 참여자 목록에 내 이름이 생기고, '불참'을 누르면 빠져요."],
     ["인원이 꽉 찬 약속에 누르면 대기로 들어간다", "최대 인원이 다 찬 약속(예: 최대 1명인데 이미 1명 참여)에서 '참여'를 누르면 '대기 1번째예요'가 떠야 해요. 누군가 불참으로 바꾸면 대기하던 사람이 자동으로 참여돼요. 혼자 하기 어려우면 '못 해봄'을 눌러 주세요."],
     ["목록 ↔ 캘린더, 주 ↔ 월 전환이 된다", "홈의 '내 약속' 오른쪽 '목록 / 캘린더' 버튼과 캘린더 위쪽 '주 / 월' 버튼을 눌러 주세요. 한 번에 바뀌는지가 중요해요."],
+    ["약속 링크를 카톡에 보내면 미리보기 카드가 뜨고, 친구가 눌러 들어올 수 있다", "약속 화면 제목 옆 링크(🔗) 아이콘을 누르면 약속 주소가 복사돼요. 카톡방에 붙여 넣으면 약속 카드가 뜨고, 그룹에 없는 친구가 누르면 그룹에 참여한 뒤 그 약속으로 바로 가져요.", "new"],
+    ["약속에서 장소 투표를 할 수 있다", "약속 화면의 '📍 장소 투표 시작하기'(장소가 이미 있으면 '+ 다른 장소 제안하기')를 눌러 장소를 검색해 후보로 올리고, 마음에 드는 후보에 '여기 좋아요'를 눌러 주세요.", "new"],
   ]],
   ["4단계", "댓글", [
     ["약속에 댓글을 달 수 있다", "약속 화면 맨 아래 댓글 칸에 아무 말이나 써서 보내 주세요. 입력칸을 눌렀을 때 화면이 확 확대되지 않는지도 봐 주세요."],
     ["@를 치면 멤버 이름이 뜨고 언급할 수 있다", "댓글 칸에 @를 치면 그룹 멤버 이름이 떠요. 하나 고르면 그 사람에게 '언급' 알림이 가요."],
     ["안 읽은 댓글이 있으면 약속 카드에 숫자가 뜬다", "다른 사람이 댓글을 달면 약속 목록의 그 약속 카드 오른쪽 아래에 주황색 말풍선과 숫자가 떠요. 약속을 열어 보면 사라져요."],
+    ["@로 부른 뒤에 쓴 글자가 사라지지 않는다", "댓글에 '@친구이름 오늘 몇 시?'처럼 쓰고 보내 주세요. 이름 바로 뒤 첫 단어('오늘')까지 그대로 보이면 성공이에요.", "new"],
+    ["댓글에 하트를 누를 수 있다", "댓글 오른쪽 하트를 누르면 빨갛게 바뀌고 숫자가 올라가요. 다시 누르면 취소돼요. 하트를 길게 누르면 누가 눌렀는지 보여요.", "new"],
+    ["댓글에 답글을 달 수 있다", "댓글 아래 '답글 달기'를 눌러 쓰고 보내면 그 댓글 밑에 살짝 들여서 달려요. 답글은 '── 답글 N개 보기'로 접혀 있다가 누르면 펼쳐져요.", "new"],
+    ["내 댓글을 고칠 수 있다", "내 댓글 이름 줄 오른쪽 '수정'을 누르고 고친 뒤 '저장'을 눌러 주세요. 시간 옆에 '· 수정됨'이 붙으면 성공이에요. @로 부른 이름은 그대로 남아요.", "new"],
   ]],
   ["5단계", "날짜 투표", [
     ["날짜 투표를 만들 수 있다", "날짜를 아직 못 정했을 때 쓰는 기능이에요. 그룹 화면 '+ 약속 만들기' → '🗳️ 날짜 투표' 탭에서 후보 날짜를 2개 이상 넣고 '투표 올리기'를 눌러 주세요."],
     ["여러 날짜에 투표하고 바꿀 수 있다", "그룹 화면에 생긴 투표를 눌러서 되는 날짜를 여러 개 골라 주세요. 다시 누르면 취소돼요."],
     ["투표를 확정하면 약속이 생긴다", "투표를 만든 사람만 할 수 있어요. 투표 화면에서 마감한 뒤 날짜 하나를 확정하면 그 날짜로 약속이 만들어져요."],
+    ["'여러 날 약속'(1박 이상) 투표를 만들 수 있다", "'🗳️ 날짜 투표' 탭에서 '🧳 여러 날 약속'을 고르고, 후보마다 가는 날·오는 날과 출발 시간을 넣어 주세요. 후보 옆에 '1박 2일'처럼 작게 보이면 성공이에요.", "new"],
+    ["투표에서도 장소 후보를 올리고 투표할 수 있다", "투표 화면의 '📍 장소 투표 시작하기'로 장소를 올리고 '여기 좋아요'를 눌러 주세요. 투표를 확정하면 장소 후보도 약속으로 그대로 넘어가요.", "new"],
+    ["투표 화면에도 댓글과 @부르기가 된다", "투표 화면 아래 댓글 칸에 써 주세요. @를 치면 멤버 이름이 뜨고, 부른 친구에게 알림이 가요.", "new"],
+    ["투표 링크를 보내면 친구가 바로 투표하러 들어올 수 있다", "투표 화면 제목 옆 링크(🔗) 아이콘을 누르면 주소가 복사돼요. 카톡에 붙여 넣으면 투표 카드가 뜨고, 그룹에 없는 친구는 그룹에 참여한 뒤 그 투표로 와요.", "new"],
   ]],
   ["6단계", "알림", [
     ["알림 켜기를 하면 허락 창이 뜬다", "오른쪽 위 종(🔔) → '⚙️ 알림 설정'을 펼쳐 '이 기기에서 알림 받기'를 누르면 휴대폰이 알림을 허용할지 물어봐요. 아이폰은 1단계에서 바탕화면에 추가한 jjoin 아이콘으로 열었을 때만 돼요."],
     ["새 약속·댓글·언급 알림이 휴대폰에 온다", "알림을 켠 뒤 다른 친구가 같은 그룹에 약속을 만들거나 내 약속에 댓글을 달면 휴대폰 알림이 와야 해요. 친구와 같이 해 보시면 좋아요."],
     ["오른쪽 위 종을 누르면 받은 알림 목록이 보인다", "화면 오른쪽 위 종 모양을 누르면 지금까지 받은 알림이 모여 있어요. 새 알림이 있으면 종에 주황색 점이 떠요."],
+    ["알림 목록에서 '모두 읽음'이 된다", "새 알림이 있을 때 알림 화면 위 '모두 읽음 (N)'을 누르면 새 알림 표시와 종의 점이 한 번에 꺼져요.", "new"],
+    ["알림 종류별로 켜고 끌 수 있다", "알림 화면 위 '⚙️ 알림 설정'을 펼치면 새 약속·대기 승격·하루 전·1시간 전·새 댓글·댓글 언급을 하나씩 켜고 끌 수 있어요.", "new"],
   ]],
   ["7단계", "그 밖에", [
     ["약속 제목 옆 달력 아이콘으로 내 캘린더에 추가된다", "약속 화면 제목 옆 작은 달력 아이콘을 누르면 '구글 캘린더' / '캘린더 파일'이 나와요. 눌러서 휴대폰 캘린더 앱에 그 일정이 들어가는지 봐 주세요."],
     ["마이페이지에서 닉네임·프로필 사진을 바꿀 수 있다", "오른쪽 위 내 프로필 사진을 누르면 마이페이지예요. 닉네임이나 사진을 바꾸고 저장해 주세요."],
     ["다크 모드로 바꿔도 글씨가 잘 보인다", "마이페이지 아래 '화면 테마'에서 '다크'를 골라 주세요. 글씨가 안 보이거나 하얗게 뜨는 곳이 있으면 '문제 있음'으로 알려 주세요."],
     ["스크롤해도 위쪽 헤더가 붙어 있다", "화면을 아래로 내려도 맨 위 jjoin 로고·종·프로필 줄이 계속 붙어 있으면 성공이에요. 맨 위에서 아래로 끌어당기면 새로고침도 돼요."],
+    ["아래 광고 배너를 손으로 넘길 수 있다", "화면 맨 아래 배너는 몇 초마다 저절로 넘어가요. 손가락으로 옆으로 밀어서도 넘어가는지 봐 주세요.", "new"],
+    ["멤버가 많아도 명단이 짧게 보인다", "그룹 화면 '멤버 N명' 줄의 '자세히'를 누르면 6명 높이까지만 보이고 그 안에서 스크롤돼요. 10명이 넘는 그룹이면 위에 이름 검색칸도 있어요. (PC에서는 펼칠 때 화면이 흔들리지 않는지도 봐 주세요)", "new"],
+  ]],
+  ["8단계", "문의하기", [
+    ["문의를 남길 수 있다 (스크린샷 포함)", "오른쪽 위 물음표(?) 아이콘 → 문의 유형 고르기 → 제목·내용 → '＋ 사진'으로 화면 캡처를 붙여 '문의 보내기'를 눌러 주세요. 테스트라고 적어 주시면 돼요.", "new"],
+    ["내 문의에 이어서 글을 남길 수 있다", "방금 남긴 문의를 열면 아래에 글 칸이 있어요. 더 알려 줄 내용을 써서 보내면 대화처럼 이어져요.", "new"],
+    ["답변이 오면 알림 목록에 📮로 뜬다", "관리자가 답하면 휴대폰 알림과 함께 알림 목록에 📮 '문의에 답변이 왔어요'가 떠요. 답을 기다려야 해서 바로 안 되면 '못 해봄'으로 두고 나중에 다시 봐 주세요.", "new"],
   ]],
 ];
 const LABELS = { ok: "잘 됨", bad: "문제 있음", skip: "못 해봄" };
@@ -203,12 +225,12 @@ STEPS.forEach(([no, name, items], si) => {
   const sec = document.createElement("section");
   sec.innerHTML = `<h2><small>${no}</small>${name}</h2><ul></ul>`;
   const ul = sec.querySelector("ul");
-  items.forEach(([q, hint], ii) => {
+  items.forEach(([q, hint, isNew], ii) => {
     total++;
     const id = `s${si}i${ii}`;
     const li = document.createElement("li");
     li.dataset.id = id;
-    li.innerHTML = `<div class="q">${q}${hint ? `<em>${hint}</em>` : ""}</div>
+    li.innerHTML = `<div class="q">${isNew ? '<span class="new">NEW</span>' : ""}${q}${hint ? `<em>${hint}</em>` : ""}</div>
       <div class="seg" role="group" aria-label="${q}">
         ${Object.entries(LABELS).map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="false">${l}</button>`).join("")}
       </div>
@@ -297,6 +319,7 @@ resetBtn.addEventListener("click", () => {
   if (!armed) { armed = true; resetBtn.textContent = "한 번 더 누르면 지워져요"; setTimeout(() => { armed = false; resetBtn.textContent = "처음부터"; }, 3000); return; }
   armed = false; state = { deviceId: state.deviceId }; save(); paint(); resetBtn.textContent = "처음부터";
 });
+document.getElementById("newCount").textContent = String(STEPS.reduce((n, [, , items]) => n + items.filter((item) => item[2] === "new").length, 0));
 paint();
 </script>
 </body>
