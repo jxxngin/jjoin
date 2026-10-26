@@ -170,7 +170,7 @@ export async function getGroup(id: string): Promise<GroupDetail | null> {
             {
               id: profile.id,
               nickname: profile.nickname,
-              kakaoName: kakaoNames.get(profile.id) ?? null,
+              kakaoName: kakaoNames.inGroup(group.id, profile.id),
               avatarUrl: profile.avatar_url,
               avatarColor: profile.avatar_color,
               role: role as GroupMember["role"],

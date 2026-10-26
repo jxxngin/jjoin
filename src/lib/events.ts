@@ -2,7 +2,7 @@ import "server-only";
 import type { AvatarColor } from "@/lib/avatar-style";
 import type { GroupColor } from "@/lib/group-style";
 import { getUserId } from "@/lib/auth";
-import { getVisibleKakaoNames } from "@/lib/kakao-names";
+import { getVisibleKakaoNames, type KakaoNames } from "@/lib/kakao-names";
 import { daysUntil } from "@/lib/datetime";
 import {
   getEndReason,
@@ -79,6 +79,7 @@ type EventRow = {
   ended_at: string | null;
   end_reason: EndReason | null;
   end_note: string | null;
+  group_id: string;
   creator: { id: string; nickname: string; avatar_url: string | null; avatar_color: AvatarColor } | null;
   event_comments: { user_id: string; created_at: string }[];
   // RLS로 내 기록만 온다.
@@ -104,14 +105,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // event_participants 때문에 events→profiles 경로가 둘이라 만든 사람은 created_by로 지정한다.
 const BASE_COLUMNS =
-  "id, title, starts_at, ends_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(id, nickname, avatar_url, avatar_color), event_comments(user_id, created_at), event_seen(seen_at)";
+  "id, group_id, title, starts_at, ends_at, place_name, max_people, ended_at, end_reason, end_note, creator:profiles!created_by(id, nickname, avatar_url, avatar_color), event_comments(user_id, created_at), event_seen(seen_at)";
 
 function toSummary(
   row: Omit<EventRow, "event_participants">,
   statuses: ParticipantStatus[],
   userId: string,
   // 내가 볼 수 있는 카톡 이름 (방장인 그룹의 멤버만, kakao-names.ts)
-  kakaoNames: Map<string, string>,
+  kakaoNames: KakaoNames,
 ): EventSummary {
   const goingCount = statuses.filter((status) => status === "going").length;
   const summary = {
@@ -135,7 +136,7 @@ function toSummary(
     creator: row.creator
       ? {
           nickname: row.creator.nickname,
-          kakaoName: kakaoNames.get(row.creator.id) ?? null,
+          kakaoName: kakaoNames.inGroup(row.group_id, row.creator.id),
           avatarUrl: row.creator.avatar_url,
           avatarColor: row.creator.avatar_color,
         }
@@ -328,7 +329,7 @@ export async function getEvent(id: string): Promise<EventDetail | null> {
     participants[status].push({
       id: profile.id,
       nickname: profile.nickname,
-      kakaoName: kakaoNames.get(profile.id) ?? null,
+      kakaoName: kakaoNames.inGroup(row.groups.id, profile.id),
       avatarUrl: profile.avatar_url,
       avatarColor: profile.avatar_color,
     });

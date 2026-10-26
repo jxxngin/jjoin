@@ -62,7 +62,7 @@ export async function getCurrentProfile(): Promise<Profile> {
   return {
     id: profile.id,
     nickname: profile.nickname,
-    kakaoName: (await getVisibleKakaoNames()).get(userId) ?? null,
+    kakaoName: (await getVisibleKakaoNames()).self,
     avatarUrl: profile.avatar_url,
     avatarColor: profile.avatar_color,
   };

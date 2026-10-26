@@ -42,7 +42,11 @@ type CommentRow = {
 // 약속 댓글. 오래된 순. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
 export async function getComments(eventId: string): Promise<Comment[]> {
   const supabase = await createClient();
-  const kakaoNames = await getVisibleKakaoNames();
+  const [kakaoNames, { data: event }] = await Promise.all([
+    getVisibleKakaoNames(),
+    supabase.from("events").select("group_id").eq("id", eventId).maybeSingle(),
+  ]);
+  const groupId = event?.group_id as string | undefined;
   const { data, error } = await supabase
     .from("event_comments")
     .select("id, body, mentions, created_at, parent_id, edited_at, comment_likes(user_id), profiles(id, nickname, avatar_url, avatar_color)")
@@ -65,7 +69,7 @@ export async function getComments(eventId: string): Promise<Comment[]> {
       ? {
           id: row.profiles.id,
           nickname: row.profiles.nickname,
-          kakaoName: kakaoNames.get(row.profiles.id) ?? null,
+          kakaoName: groupId ? kakaoNames.inGroup(groupId, row.profiles.id) : null,
           avatarUrl: row.profiles.avatar_url,
           avatarColor: row.profiles.avatar_color,
         }
@@ -76,7 +80,11 @@ export async function getComments(eventId: string): Promise<Comment[]> {
 // 날짜 투표 댓글. 오래된 순. 하트는 없다. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
 export async function getPollComments(pollId: string): Promise<Comment[]> {
   const supabase = await createClient();
-  const kakaoNames = await getVisibleKakaoNames();
+  const [kakaoNames, { data: poll }] = await Promise.all([
+    getVisibleKakaoNames(),
+    supabase.from("date_polls").select("group_id").eq("id", pollId).maybeSingle(),
+  ]);
+  const groupId = poll?.group_id as string | undefined;
   const { data, error } = await supabase
     .from("poll_comments")
     .select("id, body, mentions, created_at, parent_id, edited_at, profiles(id, nickname, avatar_url, avatar_color)")
@@ -98,7 +106,7 @@ export async function getPollComments(pollId: string): Promise<Comment[]> {
       ? {
           id: row.profiles.id,
           nickname: row.profiles.nickname,
-          kakaoName: kakaoNames.get(row.profiles.id) ?? null,
+          kakaoName: groupId ? kakaoNames.inGroup(groupId, row.profiles.id) : null,
           avatarUrl: row.profiles.avatar_url,
           avatarColor: row.profiles.avatar_color,
         }
