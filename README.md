@@ -50,7 +50,7 @@
 | 공유 | 약속·투표 **공유 링크**(그룹 밖 친구는 그룹에 참여한 뒤 그 화면으로 바로 돌아옴), 카카오톡 링크 미리보기, 구글 캘린더·.ics 내보내기 |
 | 알림 | 웹 푸시(새 약속, 대기 승격, 하루 전·1시간 전, 댓글, 언급), 종류별 켜고 끄기, 알림 기록, 약속을 열면 그 약속 알림 자동 읽음 |
 | 앱처럼 | PWA 설치, 카카오톡 인앱 브라우저 안내, 당겨서 새로고침, 다크 모드, 화면 전환 애니메이션(View Transitions) |
-| 운영 | **문의하기**(유형·화면·기기 정보 자동 첨부), 관리자 화면, 1시간 요약 푸시, **오류 신고 → Claude가 수정안(PR) 작성 → 승인 후 배포**, 회원 탈퇴(그룹·약속을 친구에게 넘기고 정리) |
+| 운영 | **문의하기**(스크린샷·대화·우선순위·중복 묶기), 오류 신고 즉시 푸시와 1시간 요약, **오류 신고 → Claude가 수정안(PR) 작성 → 승인 후 배포 → 문의 자동 처리 완료**, 화면 오류 자동 기록, 회원 탈퇴(그룹·약속을 친구에게 넘기고 정리) |
 
 ## 아키텍처
 
@@ -112,7 +112,6 @@ flowchart LR
 ## 앞으로
 
 - **Java Spring 백엔드 분리**: 화면 속도에 영향이 없는 알림 발송 워커 → 예약 작업 → 문의·관리자 API 순서로 옮겨요. 서울 지역 상시 서버(Oracle Cloud Always Free)를 쓰고, Supabase 인증과 RLS는 그대로 유지해요. ([PLAN.md 10장](PLAN.md#10-백엔드-분리-계획-java-spring))
-- **문의 기능 다듬기**: 오류 신고 즉시 알림, 우선순위·중복 묶기, 스크린샷 첨부, 답변 스레드. ([PLAN.md 9장](PLAN.md#9-문의-기능-후속-작업))
 
 ## 폴더
 
@@ -186,5 +185,10 @@ select cron.schedule(
 - GitHub Secrets: `CLAUDE_CODE_OAUTH_TOKEN`(`claude setup-token`으로 만든 구독 토큰), `AUTOFIX_SECRET`
 - Vercel 환경 변수: `GITHUB_DISPATCH_TOKEN`(jjoin 저장소 Contents 쓰기 권한 fine-grained 토큰), `AUTOFIX_SECRET`
 - 저장소 Settings → Actions → General → Workflow permissions: Read and write + "Allow GitHub Actions to create and approve pull requests"
+- 자동 수정은 24시간에 3건까지 돌고, 넘으면 관리자가 문의 화면에서 직접 다시 실행해요.
+
+### 고친 문의 자동 처리 완료
+
+커밋 메시지에 `Inquiry: <문의 번호>` 줄을 넣으면, Vercel 운영 배포가 끝날 때 `.github/workflows/inquiry-deployed.yml`이 그 문의(와 같은 문의로 묶인 문의)를 처리 완료로 바꾸고 문의한 사람에게 알려요. 자동 수정 PR에는 이 줄이 저절로 들어가요. (GitHub Secret `AUTOFIX_SECRET` 필요)
 
 </details>
