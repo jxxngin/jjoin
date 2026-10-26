@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+type WebpackUse = string | { loader?: string } | null | undefined;
+type WebpackRule = { oneOf?: WebpackRule[]; rules?: WebpackRule[]; use?: WebpackUse | WebpackUse[] } | null | undefined;
+
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
@@ -38,6 +41,26 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Turbopack(네이티브 SWC)이 막힌 Windows에서 webpack으로 개발할 때만 같은 Tailwind 로더를 붙인다.
+  // 사용: JJOIN_WEBPACK=1 npx next dev --webpack
+  // (webpack 설정이 있으면 Next 16의 Turbopack 빌드가 멈추므로, Vercel 빌드에는 넣지 않는다)
+  ...(process.env.JJOIN_WEBPACK && {
+    webpack(config: { module: { rules: WebpackRule[] } }) {
+      // Next가 CSS를 처리하는 규칙(css-loader를 쓰는 곳)마다 Tailwind를 가장 먼저 돌게 끝에 붙인다.
+      const visit = (rules: WebpackRule[] = []) => {
+        for (const rule of rules) {
+          if (!rule) continue;
+          visit(rule.oneOf);
+          visit(rule.rules);
+          const uses = Array.isArray(rule.use) ? rule.use : [];
+          const loaderOf = (use: WebpackUse) => (typeof use === "string" ? use : (use?.loader ?? ""));
+          if (uses.some((use) => /[\\/]css-loader[\\/]/.test(loaderOf(use)))) uses.push("@tailwindcss/turbopack");
+        }
+      };
+      visit(config.module.rules);
+      return config;
+    },
+  }),
 };
 
 export default nextConfig;
