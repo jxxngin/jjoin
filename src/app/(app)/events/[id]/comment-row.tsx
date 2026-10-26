@@ -89,29 +89,20 @@ function EditForm({
   );
 }
 
-// 댓글 한 줄: 작성자, 시각, 내용, 하트, 답글·수정·삭제. 답글이면 작게 들여 그린다.
-export function CommentRow({
-  comment,
-  isMine,
-  isReply,
-  edit,
-  remove,
-  reply,
-  mentionables,
-}: {
+type Bound = {
   comment: CommentView;
   isMine: boolean;
-  isReply: boolean;
   edit: (text: string) => Promise<{ error?: string }>;
   remove: () => Promise<void>;
-  // 답글 쓰기 (원 댓글에만 있다)
-  reply: ((body: string, mentionIds: string[]) => Promise<{ error?: string }>) | null;
-  mentionables: Mentionable[];
-}) {
-  const [mode, setMode] = useState<"view" | "edit" | "reply">("view");
+};
+
+// 댓글 한 줄: 작성자·시각·(본인이면) 수정·삭제가 한 줄, 그 아래 내용과 하트.
+// 원 댓글에는 내용 아래 '답글 달기'가 붙는다. 답글이면 작게 그린다.
+function CommentRow({ comment, isMine, edit, remove, isReply, onReply }: Bound & { isReply: boolean; onReply?: () => void }) {
+  const [editing, setEditing] = useState(false);
 
   return (
-    <div className={`flex gap-3 ${isReply ? "ml-11" : ""}`}>
+    <div className="flex gap-3">
       <Avatar src={comment.author?.avatarUrl ?? null} color={comment.author?.avatarColor} size={isReply ? "xs" : "sm"} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2 text-sm">
@@ -124,10 +115,19 @@ export function CommentRow({
             {comment.timeLabel}
             {comment.edited && " · 수정됨"}
           </span>
+          {isMine && !editing && (
+            <span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs text-stone-400">
+              <button type="button" onClick={() => setEditing(true)}>
+                수정
+              </button>
+              <span aria-hidden>·</span>
+              <DeleteCommentButton remove={remove} />
+            </span>
+          )}
         </div>
 
-        {mode === "edit" ? (
-          <EditForm comment={comment} edit={edit} done={() => setMode("view")} />
+        {editing ? (
+          <EditForm comment={comment} edit={edit} done={() => setEditing(false)} />
         ) : (
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
@@ -146,28 +146,62 @@ export function CommentRow({
           </div>
         )}
 
-        {mode !== "edit" && (
-          <div className="flex items-center gap-3 text-xs text-stone-400">
-            {reply && (
-              <button type="button" onClick={() => setMode(mode === "reply" ? "view" : "reply")} className="font-medium">
-                {mode === "reply" ? "답글 닫기" : "답글"}
-              </button>
-            )}
-            {isMine && (
-              <>
-                <button type="button" onClick={() => setMode("edit")}>
-                  수정
-                </button>
-                <DeleteCommentButton remove={remove} />
-              </>
-            )}
-          </div>
+        {onReply && !editing && (
+          <button type="button" onClick={onReply} className="self-start text-xs font-medium text-stone-400">
+            답글 달기
+          </button>
         )}
+      </div>
+    </div>
+  );
+}
 
-        {mode === "reply" && reply && (
-          <div className="mt-1">
-            <CommentForm post={reply} members={mentionables} placeholder={comment.author ? `${comment.author.nickname}님에게 답글` : "답글 남기기"} />
-          </div>
+// 원 댓글과 그 답글들. 답글은 '── 답글 N개 보기'로 접혀 있다가 펼친다. (인스타그램처럼)
+// 답글을 달면 바로 펼쳐서 내가 쓴 답글이 보이게 한다.
+export function CommentThread({
+  root,
+  replies,
+  reply,
+  mentionables,
+}: {
+  root: Bound;
+  replies: Bound[];
+  reply: (body: string, mentionIds: string[]) => Promise<{ error?: string }>;
+  mentionables: Mentionable[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [replying, setReplying] = useState(false);
+  const author = root.comment.author;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <CommentRow {...root} isReply={false} onReply={() => setReplying(!replying)} />
+
+      <div className="ml-11 flex flex-col gap-3">
+        {replies.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="flex items-center gap-2 self-start text-xs font-medium text-stone-400"
+          >
+            <span aria-hidden className="h-px w-6 bg-stone-300 dark:bg-stone-700" />
+            {open ? "답글 숨기기" : `답글 ${replies.length}개 보기`}
+          </button>
+        )}
+        {open && replies.map((r) => <CommentRow key={r.comment.id} {...r} isReply />)}
+        {replying && (
+          <CommentForm
+            post={async (body, mentionIds) => {
+              const result = await reply(body, mentionIds);
+              if (!result.error) {
+                setReplying(false);
+                setOpen(true);
+              }
+              return result;
+            }}
+            members={mentionables}
+            placeholder={author ? `${author.nickname}님에게 답글` : "답글 남기기"}
+          />
         )}
       </div>
     </div>

@@ -4,12 +4,12 @@ import { formatEventDate } from "@/lib/datetime";
 import { getGroup } from "@/lib/groups";
 import { deleteComment, editComment, postComment } from "../comment-actions";
 import { CommentForm, type Mentionable } from "./comment-form";
-import { CommentRow, type CommentView } from "./comment-row";
+import { CommentThread, type CommentView } from "./comment-row";
 
 type Post = (parentId: string | null, body: string, mentionIds: string[]) => Promise<{ error?: string }>;
 
 // 댓글 목록 + 입력칸. 약속 댓글과 날짜 투표 댓글이 같이 쓴다.
-// 원 댓글 아래에 답글을 한 단계로 모아 보여 준다. 본인 댓글은 고치고 지울 수 있다.
+// 원 댓글 아래에 답글을 한 단계로 모아 접어 둔다. 본인 댓글은 고치고 지울 수 있다.
 // withLikes: 하트를 보여 줄지 (약속 댓글만), mentionables: @로 부를 수 있는 사람
 export function CommentSection({
   comments,
@@ -56,6 +56,12 @@ export function CommentSection({
 
   const roots = comments.filter((c) => c.parentId === null);
   const repliesOf = (id: string) => comments.filter((c) => c.parentId === id);
+  const bound = (comment: Comment) => ({
+    comment: view(comment),
+    isMine: comment.author?.id === userId,
+    edit: edit.bind(null, comment.id),
+    remove: remove.bind(null, comment.id),
+  });
 
   return (
     <section className="flex flex-col gap-3">
@@ -64,28 +70,13 @@ export function CommentSection({
       {roots.length > 0 && (
         <ul className="flex flex-col gap-4">
           {roots.map((root) => (
-            <li key={root.id} className="flex flex-col gap-3">
-              <CommentRow
-                comment={view(root)}
-                isMine={root.author?.id === userId}
-                isReply={false}
-                edit={edit.bind(null, root.id)}
-                remove={remove.bind(null, root.id)}
+            <li key={root.id}>
+              <CommentThread
+                root={bound(root)}
+                replies={repliesOf(root.id).map(bound)}
                 reply={post.bind(null, root.id)}
                 mentionables={mentionables}
               />
-              {repliesOf(root.id).map((reply) => (
-                <CommentRow
-                  key={reply.id}
-                  comment={view(reply)}
-                  isMine={reply.author?.id === userId}
-                  isReply
-                  edit={edit.bind(null, reply.id)}
-                  remove={remove.bind(null, reply.id)}
-                  reply={null}
-                  mentionables={mentionables}
-                />
-              ))}
             </li>
           ))}
         </ul>
