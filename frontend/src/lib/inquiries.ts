@@ -1,4 +1,5 @@
 import "server-only";
+import { backendError, backendFetch, inquiriesOnSpring } from "@/lib/backend-api";
 import { formatRelative } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 
@@ -84,6 +85,52 @@ type Row = {
   }[];
 };
 
+// Spring 문의 API의 응답 (backend/.../InquiryService.Inquiry)
+type ApiPerson = { id: string; nickname: string } | null;
+type ApiInquiry = {
+  id: string;
+  category: InquiryCategory;
+  title: string;
+  body: string;
+  pagePath: string | null;
+  userAgent: string | null;
+  status: InquiryStatus;
+  priority: InquiryPriority;
+  createdAt: string;
+  autoFixStatus: AutoFixStatus | null;
+  autoFixUrl: string | null;
+  duplicateOf: string | null;
+  images: string[];
+  author: ApiPerson;
+  messages: { id: string; body: string; isAdmin: boolean; createdAt: string; author: ApiPerson }[];
+};
+
+function fromApi(a: ApiInquiry): Row {
+  return {
+    id: a.id,
+    category: a.category,
+    title: a.title,
+    body: a.body,
+    page_path: a.pagePath,
+    user_agent: a.userAgent,
+    status: a.status,
+    priority: a.priority,
+    created_at: a.createdAt,
+    auto_fix_status: a.autoFixStatus,
+    auto_fix_url: a.autoFixUrl,
+    duplicate_of: a.duplicateOf,
+    images: a.images,
+    profiles: a.author,
+    inquiry_messages: a.messages.map((m) => ({
+      id: m.id,
+      body: m.body,
+      is_admin: m.isAdmin,
+      created_at: m.createdAt,
+      profiles: m.author,
+    })),
+  };
+}
+
 const COLUMNS =
   "id, category, title, body, page_path, user_agent, status, priority, created_at, auto_fix_status, auto_fix_url, duplicate_of, images, profiles(id, nickname), inquiry_messages(id, body, is_admin, created_at, profiles(id, nickname))";
 
@@ -142,18 +189,10 @@ export async function getInquiries({
   mine: boolean;
   status?: InquiryStatus;
 }): Promise<(Inquiry & { duplicates: number })[]> {
-  const supabase = await createClient();
-  let query = supabase.from("inquiries").select(COLUMNS).order("created_at", { ascending: false }).limit(200);
-  if (mine) {
-    const { data: auth } = await supabase.auth.getUser();
-    query = query.eq("user_id", auth.user?.id ?? "");
-  }
-  if (status) query = query.eq("status", status);
-  const { data, error } = await query.overrideTypes<Row[], { merge: false }>();
-  if (error) throw new Error(`문의를 불러오지 못했어요. (${error.message})`);
+  const rows = inquiriesOnSpring() ? await listFromSpring(mine, status) : await listFromSupabase(mine, status);
   // 현재 시각이 필요하므로 렌더링이 아니라 데이터를 불러올 때 계산한다.
   const now = Date.now();
-  const all = data.map((row) => toInquiry(row, now));
+  const all = rows.map((row) => toInquiry(row, now));
   if (mine) return all.map((inquiry) => ({ ...inquiry, duplicates: 0 }));
 
   const counts = new Map<string, number>();
@@ -168,9 +207,36 @@ export async function getInquiries({
     .sort((a, b) => adminRank(a) - adminRank(b));
 }
 
+async function listFromSupabase(mine: boolean, status?: InquiryStatus): Promise<Row[]> {
+  const supabase = await createClient();
+  let query = supabase.from("inquiries").select(COLUMNS).order("created_at", { ascending: false }).limit(200);
+  if (mine) {
+    const { data: auth } = await supabase.auth.getUser();
+    query = query.eq("user_id", auth.user?.id ?? "");
+  }
+  if (status) query = query.eq("status", status);
+  const { data, error } = await query.overrideTypes<Row[], { merge: false }>();
+  if (error) throw new Error(`문의를 불러오지 못했어요. (${error.message})`);
+  return data;
+}
+
+async function listFromSpring(mine: boolean, status?: InquiryStatus): Promise<Row[]> {
+  const params = new URLSearchParams({ mine: String(mine) });
+  if (status) params.set("status", status);
+  const response = await backendFetch(`/api/inquiries?${params}`);
+  if (!response.ok) throw new Error(`문의를 불러오지 못했어요. (${await backendError(response, String(response.status))})`);
+  return ((await response.json()) as ApiInquiry[]).map(fromApi);
+}
+
 // 문의 하나. 본인이나 관리자가 아니면 RLS 때문에 null.
 export async function getInquiry(id: string): Promise<Inquiry | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  if (inquiriesOnSpring()) {
+    const response = await backendFetch(`/api/inquiries/${id}`);
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`문의를 불러오지 못했어요. (${await backendError(response, String(response.status))})`);
+    return toInquiry(fromApi((await response.json()) as ApiInquiry), Date.now());
+  }
   const supabase = await createClient();
   const { data } = await supabase
     .from("inquiries")

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getUserId } from "@/lib/auth";
 import { dispatchAutofix } from "@/lib/autofix";
+import { backendError, backendFetch, inquiriesOnSpring } from "@/lib/backend-api";
 import { afterInquiryCreated, pushAdmins } from "@/lib/inquiry-intake";
 import { isAppAdmin } from "@/lib/inquiries";
 import { sendToUser } from "@/lib/push";
@@ -63,6 +64,12 @@ export async function updateInquiry(id: string, status: string, priority: string
   if (!UUID.test(id) || !STATUSES.has(status) || !["urgent", "normal"].includes(priority)) {
     return { error: "상태를 다시 골라 주세요." };
   }
+  if (inquiriesOnSpring()) {
+    const response = await backendFetch(`/api/inquiries/${id}`, { method: "PATCH", body: JSON.stringify({ status, priority }) });
+    if (!response.ok) return { error: await backendError(response, "저장하지 못했어요.") };
+    refresh();
+    return {};
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.from("inquiries").update({ status, priority }).eq("id", id).select("id");
   // 관리자가 아니면 RLS 때문에 바뀐 행이 없다.
@@ -79,6 +86,14 @@ export async function postInquiryMessage(inquiryId: string, body: string): Promi
   if (!UUID.test(inquiryId)) return { error: "문의를 찾지 못했어요." };
   if (!text) return { error: "내용을 입력해 주세요." };
   if (text.length > 2000) return { error: "2000자까지 쓸 수 있어요." };
+
+  // Spring이 글을 남기고 상대에게 푸시까지 보낸다.
+  if (inquiriesOnSpring()) {
+    const response = await backendFetch(`/api/inquiries/${inquiryId}/messages`, { method: "POST", body: JSON.stringify({ body: text }) });
+    if (!response.ok) return { error: await backendError(response, "남기지 못했어요. 다시 시도해 주세요.") };
+    refresh();
+    return {};
+  }
 
   const [supabase, admin, userId] = [await createClient(), await isAppAdmin(), await getUserId()];
   const { data: inquiry } = await supabase.from("inquiries").select("id, title, user_id").eq("id", inquiryId).maybeSingle();
