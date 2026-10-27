@@ -6,7 +6,7 @@ plugins {
 
 group = "app.jjoin"
 version = "0.0.1-SNAPSHOT"
-description = "jjoin backend (push worker)"
+description = "jjoin backend (push worker, scheduled jobs, inquiry API)"
 
 java {
 	toolchain {
@@ -30,6 +30,9 @@ dependencies {
 		exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
 	}
 	implementation("org.bouncycastle:bcprov-jdk18on:1.80")
+
+	// B3 API: Supabase 로그인 토큰(ES256, 공개 JWKS) 검증
+	implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
 
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")

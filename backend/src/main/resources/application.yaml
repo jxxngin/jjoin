@@ -29,6 +29,9 @@ jjoin:
     day-before-cron: "0 0 10 * * *"
     hour-before-cron: "0 */5 * * * *"
     inquiry-digest-cron: "0 0 * * * *"
+  # 사용자 API (B3). Supabase 프로젝트 주소로 로그인 토큰을 검증한다. 비어 있으면 /api는 모두 401.
+  api:
+    supabase-url: ${SUPABASE_URL:}
 
 server:
   port: ${PORT:8080}
