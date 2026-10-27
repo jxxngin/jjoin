@@ -3,14 +3,14 @@ package app.jjoin.backend.push;
 import java.util.Optional;
 
 /**
- * 휴대폰에 뜨는 알림 한 장. 서비스 워커(public/sw.js)가 title·body를 보여 주고, 누르면 url로 간다.
+ * 휴대폰에 뜨는 알림 한 장. 서비스 워커(frontend/public/sw.js)가 title·body를 보여 주고, 누르면 url로 간다.
  */
 public record PushMessage(String title, String body, String url) {
 
 	private static final int SNIPPET = 80;
 
 	/**
-	 * 대기열 한 건을 알림 문구로 바꾼다. (src/lib/push.ts의 payloadFor와 같은 문구)
+	 * 대기열 한 건을 알림 문구로 바꾼다. (frontend/src/lib/push.ts의 payloadFor와 같은 문구)
 	 * 받는 사람이 그 종류의 알림을 꺼 두었거나 약속이 지워졌으면 비어 있다.
 	 */
 	public static Optional<PushMessage> from(OutboxItem item) {

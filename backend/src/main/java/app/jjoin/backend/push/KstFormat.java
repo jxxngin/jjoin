@@ -8,7 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
 /**
- * 알림 문구에 쓰는 한국 시간 표기. 화면(src/lib/datetime.ts)과 같은 모양으로 만든다.
+ * 알림 문구에 쓰는 한국 시간 표기. 화면(frontend/src/lib/datetime.ts)과 같은 모양으로 만든다.
  * 예) "10월 18일 (일) 오후 7:00", 여러 날 약속은 "10월 24일 (금) 오전 10:00 ~ 10월 26일 (일) · 2박 3일"
  */
 public final class KstFormat {

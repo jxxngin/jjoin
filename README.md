@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="public/logo-512.png" width="96" alt="" />
+  <img src="frontend/public/logo-512.png" width="96" alt="" />
   <br />
-  <img src="public/logo-letter.png" height="56" alt="jjoin" />
+  <img src="frontend/public/logo-letter.png" height="56" alt="jjoin" />
 </p>
 
 <p align="center">
@@ -120,14 +120,16 @@ flowchart LR
 ## 폴더
 
 ```
-src/
-  app/            화면(홈, 그룹, 약속, 투표, 알림, 마이페이지, 문의, 공유)과 Server Actions, API(cron·autofix)
-  components/     카드·캘린더·아바타 등 공용 UI
-  lib/            데이터 조회, 날짜 계산, 알림 발송, Supabase 클라이언트
-supabase/migrations/   DB 스키마·RLS·SQL 함수 (번호 순서대로 실행)
-.github/workflows/     오류 신고 자동 수정 (GitHub Actions)
-public/           로고, 아이콘, 기본 프로필, 서비스 워커(sw.js), 테스트 체크리스트(test.html)
-docs/screenshots/ README 스크린샷
+frontend/              Next.js 웹앱 (Vercel)
+  src/app/             화면(홈, 그룹, 약속, 투표, 알림, 마이페이지, 문의, 공유)과 Server Actions, API(cron·autofix)
+  src/components/      카드·캘린더·아바타 등 공용 UI
+  src/lib/             데이터 조회, 날짜 계산, 알림 발송, Supabase 클라이언트
+  public/              로고, 아이콘, 기본 프로필, 서비스 워커(sw.js), 테스트 체크리스트(test.html)
+backend/               Java Spring 백엔드 (알림 발송 워커) → backend/README.md
+supabase/migrations/   DB 스키마·RLS·SQL 함수 (번호 순서대로 실행, 프론트·백엔드 공용)
+.github/workflows/     오류 신고 자동 수정, 고친 문의 배포 처리, 백엔드 테스트 (GitHub Actions)
+design/                로고·기본 프로필 원본
+docs/screenshots/      README 스크린샷
 ```
 
 <details>
@@ -135,23 +137,26 @@ docs/screenshots/ README 스크린샷
 
 ### 로컬 실행
 
-1. `.env.example`을 복사해 `.env.local`을 만들고 값을 채워요.
+1. `frontend/.env.example`을 복사해 `frontend/.env.local`을 만들고 값을 채워요.
    - Supabase URL·publishable key·secret key, 카카오 JavaScript 키
    - 알림: `npx web-push generate-vapid-keys`로 만든 VAPID 키, 임의의 `CRON_SECRET`
 2. Supabase SQL Editor에서 `supabase/migrations`의 SQL을 번호 순서대로 실행해요.
 3. 개발 서버를 띄워요.
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
+
+> Windows 보안 정책(Application Control)이 Next의 기본 빌드 도구(SWC)를 막는 PC에서는 `JJOIN_WEBPACK=1 npx next dev --webpack`으로 띄워요.
 
 http://localhost:3000 에서 확인할 수 있어요. 기획과 진행 단계는 [PLAN.md](PLAN.md)에 있어요.
 
 ### 1시간 전 알림 예약 (Supabase pg_cron)
 
 Vercel 무료 플랜의 Cron은 하루 한 번만 돌아서, 1시간 전 알림은 Supabase가 10분마다 서버를 부르게 해요.
-Supabase SQL Editor에서 한 번만 실행해요. `<CRON_SECRET>`은 `.env.local`의 값으로 바꿔요. (이 SQL은 비밀 값이 들어가므로 저장소에 넣지 않아요)
+Supabase SQL Editor에서 한 번만 실행해요. `<CRON_SECRET>`은 `frontend/.env.local`의 값으로 바꿔요. (이 SQL은 비밀 값이 들어가므로 저장소에 넣지 않아요)
 
 ```sql
 create extension if not exists pg_cron;

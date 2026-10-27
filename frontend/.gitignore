@@ -1,0 +1,37 @@
+# Next.js 프론트엔드 (frontend/) 전용
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# 광고 배너 원본 이미지 (내용과 함께 GitHub에 올리지 않는다. 앱은 Supabase Storage의 ads 저장소를 쓴다)
+/public/ad/

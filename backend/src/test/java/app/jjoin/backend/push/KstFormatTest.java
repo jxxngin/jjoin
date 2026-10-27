@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
-// 화면(src/lib/datetime.ts)과 같은 문구가 나오는지
+// 화면(frontend/src/lib/datetime.ts)과 같은 문구가 나오는지
 class KstFormatTest {
 
 	@Test

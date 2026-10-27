@@ -1,46 +1,12 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
+# 저장소 전체 공통. 폴더별 규칙은 frontend/.gitignore, backend/.gitignore
 
 # misc
 .DS_Store
 *.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
+# env files (비밀값. 각 폴더의 .env.example만 올린다)
 .env*
 !.env.example
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
 # 광고 배너 원본 이미지 (내용과 함께 GitHub에 올리지 않는다. 앱은 Supabase Storage의 ads 저장소를 쓴다)
 /design/ad/
-/public/ad/

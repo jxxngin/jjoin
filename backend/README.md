@@ -18,7 +18,7 @@ jjoin의 "뒤에서 도는 일"을 Next.js에서 떼어 내는 Java Spring 백�
 - **대기열에서 꺼내기**: 3초마다 `FOR UPDATE SKIP LOCKED`로 보낼 차례인 행을 잡아 `sending`으로 바꿔요. 워커를 여러 개 띄우거나 Next와 같이 돌아도 같은 알림을 두 번 잡지 않아요. ([OutboxRepository](src/main/java/app/jjoin/backend/push/OutboxRepository.java))
 - **다시 보내기**: 모든 기기가 일시적으로 실패(429·5xx·네트워크)하면 30초 → 1분 → 2분 … 간격으로 5번까지 다시 보내요. 한 기기라도 받았으면 다시 보내지 않아요. (이미 받은 기기에 또 가지 않게) ([PushWorker](src/main/java/app/jjoin/backend/push/PushWorker.java))
 - **정리**: 만료된 기기 구독(404·410)은 지우고, 5분 넘게 `sending`에 멈춘 행은 다시 대기로 돌리고, 끝난 기록은 7일(실패는 30일) 뒤 지워요.
-- **문구**: Next(`src/lib/push.ts`)와 같은 문구를 한국 시간으로 만들어요. ([PushMessage](src/main/java/app/jjoin/backend/push/PushMessage.java), [KstFormat](src/main/java/app/jjoin/backend/push/KstFormat.java))
+- **문구**: Next(`frontend/src/lib/push.ts`)와 같은 문구를 한국 시간으로 만들어요. ([PushMessage](src/main/java/app/jjoin/backend/push/PushMessage.java), [KstFormat](src/main/java/app/jjoin/backend/push/KstFormat.java))
 - **권한**: 관리자 키 대신 워커 전용 DB 계정 `jjoin_worker`로 접속해요. 알림 발송에 필요한 표·열만 읽고 쓸 수 있어요. ([0032](../supabase/migrations/0032_push_worker_queue.sql))
 - **지표**: `/actuator/health`, `/actuator/metrics/jjoin.push.notifications` (결과별 건수)
 

@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-// 알림 문구가 Next(src/lib/push.ts)와 같은지, 꺼 둔 알림은 만들지 않는지
+// 알림 문구가 Next(frontend/src/lib/push.ts)와 같은지, 꺼 둔 알림은 만들지 않는지
 class PushMessageTest {
 
 	private static final UUID EVENT = UUID.fromString("11111111-1111-1111-1111-111111111111");
