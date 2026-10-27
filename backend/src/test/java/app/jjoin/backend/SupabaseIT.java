@@ -11,6 +11,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
@@ -46,7 +47,8 @@ public abstract class SupabaseIT {
 			}
 		}
 		owner.sql("alter role jjoin_worker password 'worker'").update();
-		var worker = new DriverManagerDataSource(postgres.getJdbcUrl(), "jjoin_worker", "worker");
+		// 커넥션 풀처럼 같은 연결을 계속 다시 쓴다. (앞 요청이 남긴 설정이 다음 요청에 영향을 주는지까지 확인)
+		var worker = new SingleConnectionDataSource(postgres.getJdbcUrl(), "jjoin_worker", "worker", true);
 		jdbc = JdbcClient.create(worker);
 		transaction = new TransactionTemplate(new DataSourceTransactionManager(worker));
 	}
