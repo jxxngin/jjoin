@@ -14,7 +14,7 @@ Oracle Cloud VM (서울)
 ## 1. 서버 만들기 (처음 한 번)
 
 1. https://www.oracle.com/cloud/free/ 에서 가입해요. 카드는 본인 확인용이고, Always Free 범위는 과금되지 않아요.
-   - **홈 리전**을 `South Korea Central (Seoul)` 또는 `South Korea North (Chuncheon)`으로 골라요. 가입 뒤에는 바꿀 수 없어요.
+   - **홈 리전**은 가입 뒤에 바꿀 수 없어요. 목록에 `South Korea Central (Seoul)`·`South Korea North (Chuncheon)`이 있으면 그걸, 없으면(무료 가입은 자리가 없는 리전을 숨겨요) `Japan Central (Osaka)`를 골라요. 워커는 화면 응답과 상관없이 뒤에서 도는 일이라 오사카여도 차이가 거의 없어요.
 2. 콘솔 → **Compute → Instances → Create instance**
    - Image: **Ubuntu 24.04**
    - Shape: **VM.Standard.A1.Flex** (ARM, 1 OCPU · 6GB, 무료) — 자리가 없다고 나오면 **VM.Standard.E2.1.Micro** (x86, 1GB, 무료)
