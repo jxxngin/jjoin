@@ -125,10 +125,10 @@ event_participants  event_id, user_id, status('going'|'maybe'|'not_going'|'waitl
 |---|---|---|
 | 언어·프레임워크 | Java 21, Spring Boot 4.1 (Gradle Kotlin DSL) | 2026-10 기준 Initializr 기본 |
 | DB 접근 | Spring JDBC(JdbcClient) + SQL, Supabase 커넥션 풀러(세션 모드) | SQL 함수·RLS·행 잠금을 그대로 활용 (B1에서 결정) |
-| 인증 | Spring Security OAuth2 Resource Server로 Supabase JWT(JWKS) 검증 | 로그인은 지금처럼 Supabase(카카오) |
+| 인증 | Spring Security OAuth2 Resource Server로 Supabase JWT(JWKS) 검증 | 로그인은 지금처럼 Supabase(카카오). 이 프로젝트는 비대칭 서명 키(ES256)라 공개 JWKS(`/auth/v1/.well-known/jwks.json`)만으로 검증되고 비밀값이 필요 없다 (2026-10-27 확인) |
 | RLS 유지 | 트랜잭션마다 `set_config('request.jwt.claims', …)` + `set local role authenticated` | PostgREST(Supabase API)와 같은 방식 |
 | 웹 푸시 | webpush-java (VAPID) | 지금 쓰는 VAPID 키 그대로 |
-| 스케줄 | `@Scheduled` + ShedLock (중복 실행 방지) | pg_cron·Vercel Cron 대체 |
+| 스케줄 | `@Scheduled` + Postgres advisory lock (중복 실행 방지) | pg_cron·Vercel Cron 대체. ShedLock 대신 잠금 표가 필요 없는 `pg_try_advisory_xact_lock` (B2에서 결정) |
 | 테스트 | JUnit 5, Testcontainers(Postgres) | 마이그레이션을 올린 실제 DB로 시험 |
 | 서버 | **Oracle Cloud Always Free** (춘천·서울 지역 VM, 무료·상시 실행) | 서울 가까이, 잠들지 않음 |
 | 배포 | Docker + GitHub Actions → VM, Caddy로 HTTPS | 무료 |
@@ -137,8 +137,19 @@ event_participants  event_id, user_id, status('going'|'maybe'|'not_going'|'waitl
 | 단계 | 옮길 기능 | 지금 위치 | 바뀌는 점 |
 |---|---|---|---|
 | B1 ✅ 코드 | **알림 발송 워커** (`backend/`, 0032, 서버 배포 전): notification_outbox를 읽어 웹 푸시 발송, 재시도·실패 기록·중복 발송 방지 | `frontend/src/lib/push.ts` (Next의 응답 후 처리) | `SELECT … FOR UPDATE SKIP LOCKED`로 대기열 처리, 실패는 횟수·다음 시도 시각을 남긴다 |
-| B2 | **예약 작업**: 하루 전·1시간 전 알림, 문의 1시간 요약 | Vercel Cron, Supabase pg_cron → `/api/cron/*` | Spring `@Scheduled`로 옮기고 pg_cron·Vercel Cron을 끈다 |
+| B2 ✅ 코드 | **예약 작업**: 하루 전·1시간 전 알림, 문의 1시간 요약 (0033, 서버 배포 전) | Vercel Cron, Supabase pg_cron → `/api/cron/*` | Spring `@Scheduled`로 옮기고, Next의 Cron 주소는 `CRON_WORKER=spring`이면 쉰다 |
 | B3 | **문의·관리자 API + 자동 수정 연동**: 문의 목록·상태·답변, GitHub 작업 깨우기·결과 받기 | `frontend/src/app/(app)/support/*`, `/api/autofix/*` | Next는 Spring API를 부르고, 관리자만 쓰는 기능이라 지연 영향이 적다 |
+
+### 배포 (준비 완료, 서버 만들기 전)
+- GitHub Actions "백엔드 배포": 테스트 → x86·ARM 이미지를 GHCR에 → 서버 Secrets가 있으면 SSH로 `docker compose pull && up` 후 상태 확인
+- 서버: `backend/deploy/docker-compose.yml` (메모리 512MB, 8080은 서버 안에서만), B3부터 Caddy로 HTTPS
+- 순서와 되돌리기: [backend/DEPLOY.md](backend/DEPLOY.md)
+
+### B3 설계 메모
+- **토큰**: 브라우저가 아니라 Next 서버가 사용자의 Supabase access token을 붙여 Spring API를 부른다. Spring은 JWKS(ES256)로 서명·만료·`iss`(`https://<ref>.supabase.co/auth/v1`)·`aud`(`authenticated`)를 검증한다.
+- **권한은 그대로 RLS**: 요청마다 트랜잭션 안에서 `set_config('request.jwt.claims', <토큰 claims>, true)` + `set local role authenticated`. 그러면 `auth.uid()`와 기존 RLS 정책이 Supabase API와 똑같이 적용된다. 이를 위해 워커 계정에 `grant authenticated to jjoin_worker` (noinherit라 평소엔 그 권한이 없고, `set role` 했을 때만 생긴다).
+- **첫 API**: 내 문의 목록·문의 하나·대화 글 쓰기 → 관리자 상태·우선순위 변경 → 자동 수정 깨우기·결과 받기(`/api/autofix/*`) 순서.
+- **위험**: Supabase에서 `postgres`가 `authenticated` 역할을 다른 계정에 줄 수 있는지 SQL로 먼저 확인한다. 안 되면 API 전용 계정을 따로 두지 않고 `service_role`처럼 권한 규칙을 Spring에 다시 짜야 하므로, 그 경우 B3는 관리자 전용 API로 범위를 줄인다.
 | B4 (선택) | 약속·투표 읽기·쓰기 API | Next 서버 + Supabase | 서울 서버가 안정된 뒤 필요할 때만 |
 
 ### 준비할 것
