@@ -20,16 +20,11 @@ export function SupportLink() {
       }}
       className="flex size-8 items-center justify-center text-stone-600 dark:text-stone-300"
     >
+      {/* 동그라미 속 물음표: 댓글 수의 말풍선과 헷갈리지 않게 */}
       <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6">
+        <circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" strokeWidth="1.8" />
         <path
-          d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H10l-4 3.5V17h-.5A1.5 1.5 0 0 1 4 15.5v-10Z"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M10 9a2 2 0 1 1 2.8 1.83c-.48.21-.8.68-.8 1.2V12.5M12 14.75v.25"
+          d="M9.75 9.75a2.25 2.25 0 1 1 3.15 2.06c-.54.24-.9.77-.9 1.36v.33M12 16.25v.25"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.8"
