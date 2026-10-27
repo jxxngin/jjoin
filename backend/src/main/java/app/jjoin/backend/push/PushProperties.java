@@ -26,4 +26,12 @@ public record PushProperties(
 		int maxAttempts,
 		Duration firstRetryDelay,
 		Duration staleAfter) {
+
+	/** 설정이 빠졌으면 조용히 0건씩 도는 대신 시작할 때 멈춘다. */
+	public PushProperties {
+		if (batchSize < 1 || maxAttempts < 1 || firstRetryDelay == null || staleAfter == null) {
+			throw new IllegalArgumentException(
+					"jjoin.push.batch-size·max-attempts·first-retry-delay·stale-after 설정이 필요해요");
+		}
+	}
 }
