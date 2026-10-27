@@ -48,13 +48,19 @@ public class WebPushClient {
 		if (pushService == null) {
 			return new Result(Outcome.REJECTED, "발송이 꺼져 있음 (jjoin.push.enabled=false)");
 		}
+		Notification notification;
 		try {
-			var notification = new Notification(
+			notification = new Notification(
 					subscription.endpoint(),
 					subscription.p256dh(),
 					subscription.auth(),
 					message.toJson().getBytes(StandardCharsets.UTF_8),
 					TTL_SECONDS);
+		} catch (Exception e) {
+			// 기기 키가 망가졌으면 다시 보내도 안 된다
+			return new Result(Outcome.REJECTED, "기기 키 오류 " + e.getClass().getSimpleName() + ": " + e.getMessage());
+		}
+		try {
 			HttpResponse response = pushService.send(notification);
 			return classify(response.getStatusLine().getStatusCode());
 		} catch (Exception e) {
