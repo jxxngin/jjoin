@@ -1,0 +1,89 @@
+# 백엔드 이미지를 만들어 GHCR(ghcr.io/jxxngin/jjoin-backend)에 올리고, 서버가 설정돼 있으면 SSH로 새 이미지를 띄운다.
+# - 이미지는 x86(E2.1.Micro)·ARM(A1.Flex) 서버 모두에서 돌도록 두 가지로 만든다.
+# - 서버 배포는 GitHub Secrets에 DEPLOY_HOST·DEPLOY_USER·DEPLOY_SSH_KEY가 있을 때만 한다. (backend/DEPLOY.md)
+name: 백엔드 배포
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: backend-deploy
+  cancel-in-progress: false
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: 테스트 (단위 + Postgres 통합)
+        working-directory: backend
+        run: ./gradlew test --console=plain
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: 이미지 만들고 올리기
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/jxxngin/jjoin-backend:latest
+            ghcr.io/jxxngin/jjoin-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+    steps:
+      - name: 서버 설정이 없으면 건너뜀
+        if: env.DEPLOY_HOST == ''
+        run: echo "DEPLOY_HOST가 없어 서버 배포를 건너뜁니다. (이미지는 GHCR에 올라갔어요)"
+
+      - name: 서버에서 새 이미지 띄우기
+        if: env.DEPLOY_HOST != ''
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/jjoin
+            docker compose pull backend
+            docker compose up -d backend
+            docker image prune -f
+            for i in $(seq 1 30); do
+              if curl -fsS localhost:8080/actuator/health | grep -q '"UP"'; then echo "백엔드 정상"; exit 0; fi
+              sleep 2
+            done
+            echo "백엔드가 60초 안에 정상(UP)이 되지 않았어요"; docker compose logs --tail 50 backend; exit 1

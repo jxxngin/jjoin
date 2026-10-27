@@ -1,0 +1,8 @@
+# B3부터 쓰는 HTTPS 입구. API_DOMAIN(예: api.example.com)을 서버 IP로 연결해 두면 Caddy가 인증서를 자동으로 받는다.
+{$API_DOMAIN} {
+	encode gzip
+	# 상태 확인은 바깥에 보이지 않게 막는다. (서버 안에서 localhost:8080으로 본다)
+	@actuator path /actuator/*
+	respond @actuator 404
+	reverse_proxy backend:8080
+}

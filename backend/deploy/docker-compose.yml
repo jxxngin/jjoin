@@ -1,0 +1,40 @@
+# 서버(Oracle Cloud VM)에서 jjoin 백엔드를 띄운다. 이 파일과 .env를 서버의 ~/jjoin/에 두고:
+#   docker compose pull && docker compose up -d
+# 이미지는 GitHub Actions(백엔드 배포)가 만들어 GHCR에 올린다. (backend/DEPLOY.md)
+services:
+  backend:
+    image: ghcr.io/jxxngin/jjoin-backend:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "8080"
+    # 워커는 바깥에서 들어올 일이 없어 서버 안에서만 연다. (상태 확인: curl localhost:8080/actuator/health)
+    ports:
+      - "127.0.0.1:8080:8080"
+    # 1GB 서버(E2.1.Micro)에서도 돌도록 묶어 둔다. JVM은 이 안에서 70%를 힙으로 쓴다. (Dockerfile)
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # B3(문의·관리자 API)부터 바깥에서 HTTPS로 부를 때 켠다: docker compose --profile api up -d
+  caddy:
+    image: caddy:2
+    profiles: ["api"]
+    restart: unless-stopped
+    depends_on: [backend]
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -1,5 +1,6 @@
 # jjoin 백엔드 이미지. 빌드는 JDK, 실행은 JRE만 담는다.
-FROM eclipse-temurin:21-jdk AS build
+# jar는 CPU와 상관없으므로 빌드는 이미지를 만드는 컴퓨터에서 그대로 하고(BUILDPLATFORM), 실행 이미지만 x86·ARM 각각 만든다.
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle gradle
