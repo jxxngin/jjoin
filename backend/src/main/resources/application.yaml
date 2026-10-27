@@ -32,6 +32,9 @@ jjoin:
   # 사용자 API (B3). Supabase 프로젝트 주소로 로그인 토큰을 검증한다. 비어 있으면 /api는 모두 401.
   api:
     supabase-url: ${SUPABASE_URL:}
+  # 자동 수정 연동(/api/autofix). GitHub Secrets의 AUTOFIX_SECRET과 같은 값. 비어 있으면 모두 401.
+  autofix:
+    secret: ${AUTOFIX_SECRET:}
 
 server:
   port: ${PORT:8080}

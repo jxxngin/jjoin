@@ -10,6 +10,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -30,7 +31,19 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class ApiSecurity {
 
+	/** GitHub 자동 수정 작업은 로그인 토큰 대신 AUTOFIX_SECRET을 보낸다. 확인은 AutofixController가 한다. */
 	@Bean
+	@Order(1)
+	SecurityFilterChain autofixChain(HttpSecurity http) throws Exception {
+		http.securityMatcher("/api/autofix/**")
+				.csrf(csrf -> csrf.disable())
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.authorizeHttpRequests(requests -> requests.anyRequest().permitAll());
+		return http.build();
+	}
+
+	@Bean
+	@Order(2)
 	SecurityFilterChain apiChain(HttpSecurity http, ObjectProvider<JwtDecoder> decoder) throws Exception {
 		http.csrf(csrf -> csrf.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

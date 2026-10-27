@@ -27,7 +27,8 @@ jobs:
     timeout-minutes: 30
     env:
       INQUIRY_ID: ${{ github.event.client_payload.inquiry_id }}
-      APP_URL: https://jjoin.vercel.app
+      # 저장소 변수 AUTOFIX_API_URL이 있으면 Spring 백엔드(B3)로, 없으면 Next로 보낸다.
+      APP_URL: ${{ vars.AUTOFIX_API_URL || 'https://jjoin.vercel.app' }}
     steps:
       - name: 문의 번호 확인
         run: '[[ "$INQUIRY_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "잘못된 문의 번호"; exit 1; }'
