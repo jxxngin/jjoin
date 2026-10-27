@@ -10,3 +10,6 @@
 
 # 광고 배너 원본 이미지 (내용과 함께 GitHub에 올리지 않는다. 앱은 Supabase Storage의 ads 저장소를 쓴다)
 /design/ad/
+
+# Claude Code 개인 설정 (커밋하지 않음)
+.claude/settings.local.json
