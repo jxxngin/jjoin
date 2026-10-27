@@ -19,6 +19,12 @@ jjoin:
     vapid-private-key: ${VAPID_PRIVATE_KEY:}
     vapid-subject: ${VAPID_SUBJECT:}
     poll-interval: ${PUSH_POLL_INTERVAL:3s}
+  # 예약 작업 (한국 시간). Next의 Cron이 맡고 있는 동안에는 JOBS_ENABLED=false로 둔다.
+  jobs:
+    enabled: ${JOBS_ENABLED:true}
+    day-before-cron: "0 0 10 * * *"
+    hour-before-cron: "0 */5 * * * *"
+    inquiry-digest-cron: "0 0 * * * *"
     batch-size: 50
     max-attempts: 5
     first-retry-delay: 30s

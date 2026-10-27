@@ -2,7 +2,6 @@ package app.jjoin.backend.push;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -15,21 +14,12 @@ import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import app.jjoin.backend.PostgresIT;
 
 // 실제 Postgres(Docker)로 대기열 잠금·상태 변화를 확인한다. Docker가 없으면 건너뛴다.
-@Testcontainers(disabledWithoutDocker = true)
-class OutboxRepositoryIT {
+class OutboxRepositoryIT extends PostgresIT {
 
-	@Container
-	static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17-alpine");
-
-	static JdbcClient jdbc;
 	static OutboxRepository outbox;
 	static SubscriptionRepository subscriptions;
 
@@ -40,17 +30,14 @@ class OutboxRepositoryIT {
 	final UUID comment = UUID.randomUUID();
 
 	@BeforeAll
-	static void schema() throws Exception {
-		var dataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-		jdbc = JdbcClient.create(dataSource);
-		jdbc.sql(new ClassPathResource("outbox-schema.sql").getContentAsString(StandardCharsets.UTF_8)).update();
+	static void repositories() {
 		outbox = new OutboxRepository(jdbc);
 		subscriptions = new SubscriptionRepository(jdbc);
 	}
 
 	@BeforeEach
 	void data() {
-		jdbc.sql("truncate public.notification_outbox, public.push_subscriptions, public.event_comments, public.events, public.groups, public.profiles cascade").update();
+		truncateAll();
 		jdbc.sql("insert into public.profiles (id, nickname) values (:a, '민수'), (:b, '지원')").param("a", minsu).param("b", jiwon).update();
 		jdbc.sql("insert into public.groups (id, name) values (:id, '대학 동기')").param("id", group).update();
 		jdbc.sql("insert into public.events (id, group_id, title, starts_at, place_name) values (:id, :g, '연말 송년회', :at, '을지로')")

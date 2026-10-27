@@ -14,6 +14,8 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
+  // Java Spring 워커(backend/)가 예약 작업을 맡으면 CRON_WORKER=spring으로 두고 여기서는 쉰다. (PLAN.md §10 B2)
+  if (process.env.CRON_WORKER === "spring") return Response.json({ ok: true, skipped: "spring" });
 
   const admin = createAdminClient();
   await Promise.all([
