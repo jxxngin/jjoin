@@ -1,12 +1,12 @@
 # 백엔드 서버 배포 (Oracle Cloud Always Free)
 
-jjoin 백엔드를 서울(또는 춘천) 지역의 무료 상시 서버에 띄우는 방법이에요. 명령은 모두 Git Bash 기준이에요.
+jjoin 백엔드를 Oracle Cloud 무료 상시 서버(지금은 오사카 리전)에 띄우는 방법이에요. 명령은 모두 Git Bash 기준이에요.
 
 ```
 GitHub (main에 backend/ 변경 push)
   └─ Actions "백엔드 배포": 테스트 → 이미지(x86·ARM) → ghcr.io/jxxngin/jjoin-backend
                                    └─ SSH로 서버에서 docker compose pull && up
-Oracle Cloud VM (서울)
+Oracle Cloud VM (오사카)
   └─ docker compose: backend (워커·예약 작업) [+ caddy: B3 API부터 HTTPS]
         └─ Supabase Postgres (커넥션 풀러, jjoin_worker 계정)
 ```
