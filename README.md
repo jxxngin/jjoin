@@ -24,7 +24,7 @@
 **jjoin**은 그룹마다 약속을 올리고, 참여·대기 인원을 바로 보여 주고, 날짜와 장소는 투표로 정하고, 약속이 다가오면 휴대폰으로 알려 줘요.
 
 - **기간**: 2026.10.14 ~ 진행 중 (1인 기획·디자인·개발·운영)
-- **사용**: 지인 대상 클로즈드 베타 (가입 15명, 베타 테스터 7명)
+- **사용**: 지인 대상 클로즈드 베타 (가입 22명, 베타 테스터 7명)
 - **역할**: 기획, UI, 프론트엔드, DB 설계(RLS·SQL 함수), 서버 기능, 배포·운영, 사용자 테스트
 
 ## 화면
@@ -74,6 +74,19 @@ flowchart LR
 - **알림은 outbox 패턴**이에요. 이벤트가 생기면 DB 트리거가 대기열에 쌓고, 서버가 응답을 보낸 뒤(`after()`) 꺼내 보내요. 예약 알림은 pg_cron이 10분마다 깨워요.
 - **상태는 저장하지 않고 계산해요.** 모집중·마감·종료, 남은 날은 참여 인원과 시각으로 그때그때 구해요.
 
+## Java Spring 백엔드
+
+화면 응답과 상관없는 "뒤에서 도는 일"을 Next.js에서 떼어 Spring 백엔드로 옮겼어요. 자세한 설계와 테스트는 [backend/README.md](backend/README.md)에 있어요.
+
+| 무엇 | 어떻게 | 확인 |
+| --- | --- | --- |
+| 알림 중복 발송 방지 | DB 트리거가 쌓은 대기열(outbox)을 `FOR UPDATE SKIP LOCKED`로 꺼냄 | 워커 4개가 동시에 200건을 꺼내도 중복 0건 (통합 테스트) |
+| 일시 실패 재시도 | 429·5xx·네트워크 실패는 30초부터 두 배씩 늘려 최대 5번, 한 기기라도 받으면 재발송 안 함 | 운영 대기열 기록상 실패 0건 |
+| 예약 작업 한 번만 | `@Scheduled` + Postgres advisory lock, 여러 서버에서도 한 곳만 실행 | 다른 워커가 잡고 있으면 건너뜀 (통합 테스트) |
+| 설정 누락 방지 | 설정이 빠지면 조용히 0건씩 돌지 않고 시작할 때 멈춤 | 실제 `application.yaml`을 묶어 보는 테스트 |
+| 자동 배포 | 테스트 58개 통과 → x86·ARM 이미지(GHCR) → SSH로 서버 반영 | GitHub Actions "백엔드 배포" |
+| 되돌리기 | Vercel 환경 변수(`PUSH_WORKER`, `CRON_WORKER`)만 지우면 Next가 다시 맡음 | 둘이 같이 돌아도 중복 발송 없음 |
+
 ## 기술적 도전과 해결
 
 | 문제 | 원인 | 해결 | 결과 |
@@ -90,7 +103,7 @@ flowchart LR
 
 - **RLS 침투 시험**: 그룹 밖 계정을 만들어 다른 그룹의 조회·수정·삭제·참여를 모두 시도하고 차단을 확인했어요.
 - **자동화 브라우저 시나리오 테스트**: 임시 계정과 데이터를 만들어 실제 화면을 눌러 보고(Chrome DevTools Protocol), 끝나면 모두 지우는 스크립트로 기능마다 검증했어요. 버그는 **수정 전 재현 → 수정 후 통과**로 비교했어요.
-- **사용자 테스트**: 베타 테스터 7명이 체크리스트로 152개 항목을 응답, **통과율 98.4%**. 응답은 자동 저장되고, 피드백으로 10여 건을 개선했어요.
+- **사용자 테스트**: 베타 테스터 7명이 단계별 체크리스트에 177건을 응답했고, 판정할 수 있었던 142건 중 140건이 통과해 **통과율 98.6%**예요. 응답은 자동 저장되고, 피드백으로 10여 건을 개선했어요. ("못 해봄" 35건은 혼자 확인하기 어려운 알림·대기열·투표 확정에 몰려, 여러 계정을 쓰는 시나리오 테스트로 보완해요)
 - **배포 전 확인**: 타입 검사, ESLint, 프로덕션 빌드 통과 후 배포.
 
 ## 기술 스택
@@ -102,20 +115,23 @@ flowchart LR
 | 데이터·인증 | Supabase (Postgres, Row Level Security, SQL 함수·트리거, Auth with Kakao, Storage, pg_cron) |
 | 지도 | Kakao Maps JavaScript SDK |
 | 알림 | Web Push (VAPID), PWA 서비스 워커 |
-| 배포·자동화 | Vercel (서울 지역), GitHub Actions + Claude Code (오류 신고 자동 수정) |
+| 백엔드 | Java 21, Spring Boot 4.1, JdbcClient, JUnit 5 · Testcontainers, Docker (알림 발송 워커 · 예약 작업 · 문의 API) |
+| 배포·자동화 | Vercel (서울 지역), Oracle Cloud + GHCR (백엔드), GitHub Actions + Claude Code (오류 신고 자동 수정) |
 
 ## 규모
 
 | 항목 | 값 |
 | --- | --- |
-| 커밋 | 87개 (기능 39 · 버그 수정 22), 기능 단위로 나눠 커밋 |
+| 커밋 | 130개 (기능 57 · 수정 33), 기능 단위로 나눠 커밋 |
+| 백엔드 테스트 | 58개 (단위 + PostgreSQL 통합), 통과해야 배포 |
+| 운영 배포 | Vercel 58회 중 57회 성공 (2026-10-14 ~ 10-27) |
 | 화면 | 20개 |
 | TypeScript | 약 10,000줄 |
-| DB | 마이그레이션 26개 (SQL 약 2,200줄), SQL 함수 40여 개, RLS 정책 40여 개 |
+| DB | 마이그레이션 35개 (SQL 약 2,800줄), SQL 함수 40여 개, RLS 정책 40여 개 |
 
 ## 앞으로
 
-- **Java Spring 백엔드 분리** ([backend/](backend/README.md)): 화면 속도에 영향이 없는 알림 발송 워커 → 예약 작업 → 문의·관리자 API 순서로 옮겨요. 1단계 알림 발송 워커(대기열 잠금·재시도·전용 DB 계정, Testcontainers 통합 테스트)는 코드가 완성됐어요. 서울 지역 상시 서버(Oracle Cloud Always Free)를 쓰고, Supabase 인증과 RLS는 그대로 유지해요. ([PLAN.md 10장](PLAN.md#10-백엔드-분리-계획-java-spring))
+- **Java Spring 백엔드 분리** ([backend/](backend/README.md)): 알림 발송 워커(B1)와 예약 작업(B2)은 Oracle Cloud 상시 서버에서 운영 중이고, 문의·관리자 API(B3)를 옮기고 있어요. Supabase 인증과 RLS는 그대로 유지해요. ([PLAN.md 10장](PLAN.md#10-백엔드-분리-계획-java-spring))
 
 ## 폴더
 
@@ -125,7 +141,7 @@ frontend/              Next.js 웹앱 (Vercel)
   src/components/      카드·캘린더·아바타 등 공용 UI
   src/lib/             데이터 조회, 날짜 계산, 알림 발송, Supabase 클라이언트
   public/              로고, 아이콘, 기본 프로필, 서비스 워커(sw.js), 테스트 체크리스트(test.html)
-backend/               Java Spring 백엔드 (알림 발송 워커) → backend/README.md
+backend/               Java Spring 백엔드 (알림 발송 워커 · 예약 작업 · 문의 API) → backend/README.md
 supabase/migrations/   DB 스키마·RLS·SQL 함수 (번호 순서대로 실행, 프론트·백엔드 공용)
 .github/workflows/     오류 신고 자동 수정, 고친 문의 배포 처리, 백엔드 테스트 (GitHub Actions)
 design/                로고·기본 프로필 원본
