@@ -136,13 +136,13 @@ event_participants  event_id, user_id, status('going'|'maybe'|'not_going'|'waitl
 ### 단계
 | 단계 | 옮길 기능 | 지금 위치 | 바뀌는 점 |
 |---|---|---|---|
-| B1 ✅ 코드 | **알림 발송 워커** (`backend/`, 0032, 서버 배포 전): notification_outbox를 읽어 웹 푸시 발송, 재시도·실패 기록·중복 발송 방지 | `frontend/src/lib/push.ts` (Next의 응답 후 처리) | `SELECT … FOR UPDATE SKIP LOCKED`로 대기열 처리, 실패는 횟수·다음 시도 시각을 남긴다 |
-| B2 ✅ 코드 | **예약 작업**: 하루 전·1시간 전 알림, 문의 1시간 요약 (0033, 서버 배포 전) | Vercel Cron, Supabase pg_cron → `/api/cron/*` | Spring `@Scheduled`로 옮기고, Next의 Cron 주소는 `CRON_WORKER=spring`이면 쉰다 |
-| B3 | **문의·관리자 API + 자동 수정 연동**: 문의 목록·상태·답변, GitHub 작업 깨우기·결과 받기 | `frontend/src/app/(app)/support/*`, `/api/autofix/*` | Next는 Spring API를 부르고, 관리자만 쓰는 기능이라 지연 영향이 적다 |
+| B1 ✅ 운영 | **알림 발송 워커** (`backend/`, 0032, `PUSH_WORKER=spring`): notification_outbox를 읽어 웹 푸시 발송, 재시도·실패 기록·중복 발송 방지 | `frontend/src/lib/push.ts` (Next의 응답 후 처리) | `SELECT … FOR UPDATE SKIP LOCKED`로 대기열 처리, 실패는 횟수·다음 시도 시각을 남긴다 |
+| B2 ✅ 운영 | **예약 작업**: 하루 전·1시간 전 알림, 문의 1시간 요약 (0033, `CRON_WORKER=spring`) | Vercel Cron, Supabase pg_cron → `/api/cron/*` | Spring `@Scheduled`로 옮기고, Next의 Cron 주소는 `CRON_WORKER=spring`이면 쉰다 |
+| B3 ✅ 운영 | **문의·관리자 API + 자동 수정 연동**: 문의 목록·상태·답변, GitHub 작업 깨우기·결과 받기 | `frontend/src/app/(app)/support/*`, `/api/autofix/*` | Next는 Spring API를 부르고(`INQUIRY_API=spring`), 자동 수정 워크플로도 Spring으로(Secret `AUTOFIX_API_URL`). 서버 앞 Caddy HTTPS(`<IP>.sslip.io`), 2026-11-07 전환 |
 
-### 배포 (준비 완료, 서버 만들기 전)
+### 배포 (오사카 서버 운영 중)
 - GitHub Actions "백엔드 배포": 테스트 → x86·ARM 이미지를 GHCR에 → 서버 Secrets가 있으면 SSH로 `docker compose pull && up` 후 상태 확인
-- 서버: `backend/deploy/docker-compose.yml` (메모리 512MB, 8080은 서버 안에서만), B3부터 Caddy로 HTTPS
+- 서버: `backend/deploy/docker-compose.yml` (메모리 512MB, 8080은 서버 안에서만), Caddy로 HTTPS(sslip.io, 배포 워크플로가 설정·방화벽까지 맞춤)
 - 순서와 되돌리기: [backend/DEPLOY.md](backend/DEPLOY.md)
 
 ### B3 설계 메모
