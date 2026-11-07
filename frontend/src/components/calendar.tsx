@@ -8,6 +8,7 @@ import { statusStyles } from "@/components/status-badge";
 import { addDays, kstDateKey, lastDayKey, shiftMonth, weekStart } from "@/lib/datetime";
 import type { EventSummary } from "@/lib/events";
 import { GROUP_COLORS, type GroupColor } from "@/lib/group-style";
+import { holidayName } from "@/lib/holidays";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -152,13 +153,16 @@ export function Calendar({
           const isSelected = key === selected;
           const isToday = key === today;
           const weekday = new Date(`${key}T00:00:00Z`).getUTCDay();
+          // 공휴일은 일요일처럼 빨간날. (토요일과 겹쳐도 빨간색이 우선)
+          const holiday = holidayName(key);
 
           return (
             <button
               key={key}
               type="button"
               onClick={() => setSelected(key)}
-              aria-label={`${md(key)}, 약속 ${dayItems.length}개`}
+              title={holiday ?? undefined}
+              aria-label={`${md(key)}${holiday ? ` ${holiday}` : ""}, 약속 ${dayItems.length}개`}
               className={`flex min-w-0 flex-col gap-0.5 border-r border-b border-stone-200 p-0.5 text-left dark:border-stone-800 ${
                 range === "week" ? "min-h-32" : "min-h-20"
               } ${isSelected ? "bg-brand/10" : ""}`}
@@ -167,7 +171,7 @@ export function Calendar({
                 className={`flex size-6 items-center justify-center self-center rounded-full text-xs ${
                   isToday
                     ? "bg-brand font-semibold text-white"
-                    : weekday === 0
+                    : weekday === 0 || holiday
                       ? "text-red-500"
                       : weekday === 6
                         ? "text-sky-600"
@@ -176,6 +180,10 @@ export function Calendar({
               >
                 {Number(key.slice(8))}
               </span>
+              {/* 주 보기는 칸이 넓어서 공휴일 이름을 숫자 아래에 쓴다. 월 보기는 날짜를 누르면 아래 제목에 나온다. */}
+              {holiday && range === "week" && (
+                <span className="truncate text-center text-[10px] leading-4 text-red-500">{holiday}</span>
+              )}
               {dayItems.slice(0, maxChips).map((item) => (
                 <span
                   key={item.event.id}
@@ -215,6 +223,7 @@ export function Calendar({
       <div className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">
           {md(selected)} ({WEEKDAYS[new Date(`${selected}T00:00:00Z`).getUTCDay()]})
+          {holidayName(selected) && <span className="ml-1.5 font-medium text-red-500">{holidayName(selected)}</span>}
         </h3>
         {selectedItems.length === 0 ? (
           <p className="py-4 text-center text-sm text-stone-500">이날은 약속이 없어요.</p>

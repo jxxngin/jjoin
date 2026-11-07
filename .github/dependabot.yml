@@ -1,0 +1,21 @@
+# 공휴일 데이터(@hyunbinseo/holidays-kr)만 새 버전이 나오면 PR을 올린다. (frontend/src/lib/holidays.ts)
+# 다른 의존성은 건드리지 않아서 PR이 쌓이지 않는다. 새 버전이 없으면 아무 일도 하지 않는다.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Seoul
+    allow:
+      - dependency-name: "@hyunbinseo/holidays-kr"
+    open-pull-requests-limit: 1
+    labels:
+      - chore
+      - "area: frontend"
+    assignees:
+      - jxxngin
+    commit-message:
+      prefix: "chore"
