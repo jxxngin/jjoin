@@ -16,7 +16,7 @@ class PushMessageTest {
 	private static OutboxItem item(String kind, OutboxItem.Preferences preferences, String comment) {
 		return new OutboxItem(1, UUID.randomUUID(), kind, 1, EVENT, "연말 송년회",
 				Instant.parse("2026-10-30T10:00:00Z"), null, "을지로", null, null, "대학 동기",
-				comment, comment == null ? null : "민수", preferences);
+				comment, comment == null ? null : "민수", true, preferences);
 	}
 
 	@Test
@@ -52,7 +52,7 @@ class PushMessageTest {
 
 	static OutboxItem pollItem(String kind, UUID poll) {
 		return new OutboxItem(1, UUID.randomUUID(), kind, 1, null, null, null, null, null,
-				poll, poll == null ? null : "다음 모임 날짜", "대학 동기", "토요일 어때?", "민수", ALL_ON);
+				poll, poll == null ? null : "다음 모임 날짜", "대학 동기", "토요일 어때?", "민수", true, ALL_ON);
 	}
 
 	@Test
@@ -76,7 +76,7 @@ class PushMessageTest {
 
 	@Test
 	void 약속이_지워졌거나_프로필이_없으면_보내지_않는다() {
-		var deleted = new OutboxItem(1, UUID.randomUUID(), "new_event", 1, null, null, null, null, null, null, null, null, null, null, ALL_ON);
+		var deleted = new OutboxItem(1, UUID.randomUUID(), "new_event", 1, null, null, null, null, null, null, null, null, null, null, true, ALL_ON);
 		assertThat(PushMessage.from(deleted)).isEmpty();
 		assertThat(PushMessage.from(item("new_event", null, null))).isEmpty();
 	}

@@ -37,7 +37,7 @@ public abstract class PostgresIT {
 	/** 모든 표를 비운다. */
 	protected static void truncateAll() {
 		jdbc.sql("""
-				truncate public.notification_outbox, public.push_subscriptions, public.comments, public.date_polls, public.event_participants,
+				truncate public.notification_outbox, public.push_subscriptions, public.comments, public.date_polls, public.event_participants, public.group_members,
 				  public.events, public.groups, public.app_admins, public.inquiries, public.client_errors, public.profiles cascade
 				""").update();
 	}

@@ -85,16 +85,33 @@ public class PushWorker {
 				var devices = devicesByUser.getOrDefault(item.userId(), List.of());
 				if (message.isEmpty()) {
 					decision = new Decision.Skipped("알림을 꺼 두었거나 약속이 없어짐");
+				} else if (!item.recipientInGroup()) {
+					// 알림이 쌓인 뒤에 그룹을 나갔거나 내보내졌다. (쌓기와 나가기가 동시에 일어난 경우, 0037 전에 쌓인 알림 포함)
+					decision = new Decision.Skipped("그룹을 나간 사람");
 				} else if (devices.isEmpty()) {
 					decision = new Decision.Skipped("알림을 켠 기기 없음");
 				} else {
-					var results = devices.stream().map(device -> {
+					// 기기마다 보내기 직전에 이 알림이 아직 보내는 중인지 다시 본다.
+					// 묶음을 꺼낸 뒤(또는 앞 기기의 응답을 기다리는 동안) 받는 사람이 그룹을 나가면
+					// 트리거가 그 사람의 sending 행을 지우므로(0037), 남은 기기로는 보내지 않는다.
+					var results = new ArrayList<WebPushClient.Result>();
+					var cancelled = false;
+					for (var device : devices) {
+						if (!outbox.stillSending(item.id())) {
+							cancelled = true;
+							break;
+						}
 						var result = client.send(device, message.get());
 						if (result.outcome() == WebPushClient.Outcome.EXPIRED) {
 							expired.add(device.endpoint());
 						}
-						return result;
-					}).toList();
+						results.add(result);
+					}
+					if (cancelled) {
+						// 행이 지워졌으니 기록할 곳도 없다.
+						log.info("알림 {}은 보내는 도중 취소됨 (받는 사람이 그룹을 나감, {}대 중 {}대 보냄)", item.id(), devices.size(), results.size());
+						continue;
+					}
 					decision = decide(results, item.attempts(), properties.maxAttempts(), properties.firstRetryDelay());
 				}
 			} catch (RuntimeException e) {

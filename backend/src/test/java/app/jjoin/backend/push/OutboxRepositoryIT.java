@@ -40,6 +40,8 @@ class OutboxRepositoryIT extends PostgresIT {
 		truncateAll();
 		jdbc.sql("insert into public.profiles (id, nickname) values (:a, '민수'), (:b, '지원')").param("a", minsu).param("b", jiwon).update();
 		jdbc.sql("insert into public.groups (id, name) values (:id, '대학 동기')").param("id", group).update();
+		// 지원만 그룹 멤버 (민수는 나간 사람)
+		jdbc.sql("insert into public.group_members (group_id, user_id) values (:g, :u)").param("g", group).param("u", jiwon).update();
 		jdbc.sql("insert into public.events (id, group_id, title, starts_at, place_name) values (:id, :g, '연말 송년회', :at, '을지로')")
 				.param("id", event).param("g", group).param("at", java.sql.Timestamp.from(Instant.parse("2026-10-30T10:00:00Z"))).update();
 		jdbc.sql("insert into public.comments (id, event_id, user_id, body) values (:id, :e, :u, '몇 시까지 가능해?')")
@@ -72,6 +74,17 @@ class OutboxRepositoryIT extends PostgresIT {
 		assertThat(item.preferences().comment()).isTrue();
 		assertThat(status(id)).isEqualTo("sending");
 		assertThat(outbox.claim(10)).isEmpty();
+	}
+
+	@Test
+	void 보내는_순간_그룹을_나간_사람인지_함께_온다() {
+		queue(jiwon, "new_event", null);
+		queue(minsu, "new_event", null);
+
+		var items = outbox.claim(10);
+
+		assertThat(items).extracting(OutboxItem::userId, OutboxItem::recipientInGroup)
+				.containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(jiwon, true), org.assertj.core.groups.Tuple.tuple(minsu, false));
 	}
 
 	@Test
