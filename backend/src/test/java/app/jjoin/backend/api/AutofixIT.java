@@ -55,6 +55,33 @@ class AutofixIT extends SupabaseIT {
 	}
 
 	@Test
+	void Next의_배포_처리_함수는_완료_안내_알림을_한_번에_처리한다() {
+		var duplicate = inquiry(other, "bug", "저장 버튼 먹통", bug);
+
+		var done = owner.sql("select id from public.mark_inquiries_deployed(:ids, '배포됐어요')")
+				.param("ids", new UUID[] { bug }).query(UUID.class).list();
+
+		assertThat(done).containsExactlyInAnyOrder(bug, duplicate);
+		var states = owner.sql("select count(*) from public.inquiries where id in (:a, :b) and status = 'done' and deployed_at is not null")
+				.param("a", bug).param("b", duplicate).query(Integer.class).single();
+		var notices = owner.sql("select count(*) from public.inquiry_messages where inquiry_id in (:a, :b) and is_admin and body = '배포됐어요'")
+				.param("a", bug).param("b", duplicate).query(Integer.class).single();
+		var alerts = owner.sql("select count(*) from public.notifications where inquiry_id in (:a, :b) and kind = 'inquiry_reply'")
+				.param("a", bug).param("b", duplicate).query(Integer.class).single();
+		assertThat(states).isEqualTo(2);
+		assertThat(notices).isEqualTo(2);
+		assertThat(alerts).isEqualTo(2);
+
+		// 다시 불러도 이미 처리된 문의는 건너뛰어 안내 글·알림이 겹치지 않는다.
+		var again = owner.sql("select id from public.mark_inquiries_deployed(:ids, '배포됐어요')")
+				.param("ids", new UUID[] { bug }).query(UUID.class).list();
+		assertThat(again).isEmpty();
+		var alertsAfter = owner.sql("select count(*) from public.notifications where inquiry_id in (:a, :b) and kind = 'inquiry_reply'")
+				.param("a", bug).param("b", duplicate).query(Integer.class).single();
+		assertThat(alertsAfter).isEqualTo(2);
+	}
+
+	@Test
 	void 오류_신고_내용만_넘기고_작성자는_빼다() {
 		var report = service.bugReport(bug).orElseThrow();
 		assertThat(report).containsOnlyKeys("id", "category", "title", "body", "page_path", "user_agent", "created_at");
