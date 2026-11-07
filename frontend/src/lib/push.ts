@@ -1,6 +1,7 @@
 import "server-only";
 import webpush from "web-push";
 import { formatEventPeriod } from "@/lib/datetime";
+import { isAllowedPushEndpoint } from "@/lib/push-endpoint";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Kind = "new_event" | "promoted" | "day_before" | "mention" | "hour_before" | "comment";
@@ -100,19 +101,26 @@ function pollCommentPayload(row: OutboxRow): PushPayload | null {
     : { title: `${poll.title}에 새 댓글`, body: `${author}: ${body}`, url };
 }
 
-// 구독한 기기들에 보낸다. 만료된 구독(404/410)은 지운다.
-async function deliver(subscriptions: Subscription[], payload: PushPayload) {
+// 구독한 기기들에 보내고, 실제로 받은 기기 수를 돌려준다. 만료된 구독(404/410)은 지운다.
+// 브라우저 푸시 서버가 아닌 주소(예전에 저장된 잘못된 구독)는 보내지 않고 만료로 보고 지운다.
+async function deliver(subscriptions: Subscription[], payload: PushPayload): Promise<number> {
   configure();
   const expired: string[] = [];
+  let delivered = 0;
 
   await Promise.all(
     subscriptions.map(async (sub) => {
+      if (!isAllowedPushEndpoint(sub.endpoint)) {
+        expired.push(sub.endpoint);
+        return;
+      }
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           JSON.stringify(payload),
           { TTL: 60 * 60 * 24 },
         );
+        delivered++;
       } catch (error) {
         const status = (error as { statusCode?: number }).statusCode;
         if (status === 404 || status === 410) expired.push(sub.endpoint);
@@ -124,6 +132,7 @@ async function deliver(subscriptions: Subscription[], payload: PushPayload) {
   if (expired.length > 0) {
     await createAdminClient().from("push_subscriptions").delete().in("endpoint", expired);
   }
+  return delivered;
 }
 
 // 쌓인 알림을 보낸다. 서버 액션의 after()와 Cron에서 부른다.
@@ -176,14 +185,14 @@ export async function flushNotifications() {
   );
 }
 
-// 알림 설정의 "테스트 알림" 용
-export async function sendToUser(userId: string, payload: PushPayload) {
+// 한 사람의 모든 기기로 바로 보내고, 실제로 받은 기기 수를 돌려준다.
+// (테스트 알림, 문의 답변·요약 알림. 0이면 아무 기기도 받지 못한 것이라 부르는 쪽이 '보냄'으로 기록하지 않는다)
+export async function sendToUser(userId: string, payload: PushPayload): Promise<number> {
   const { data: subscriptions } = await createAdminClient()
     .from("push_subscriptions")
     .select("endpoint, user_id, p256dh, auth")
     .eq("user_id", userId)
     .overrideTypes<Subscription[], { merge: false }>();
   if (!subscriptions || subscriptions.length === 0) return 0;
-  await deliver(subscriptions, payload);
-  return subscriptions.length;
+  return deliver(subscriptions, payload);
 }

@@ -2,6 +2,7 @@
 
 import { getUserId } from "@/lib/auth";
 import { sendToUser } from "@/lib/push";
+import { isAllowedPushEndpoint } from "@/lib/push-endpoint";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,7 +15,8 @@ type BrowserSubscription = {
 export async function savePushSubscription(subscription: BrowserSubscription) {
   const userId = await getUserId();
   const { endpoint, keys } = subscription;
-  if (!endpoint?.startsWith("https://") || !keys?.p256dh || !keys.auth) {
+  // 브라우저 푸시 서버 주소만 받는다. (아무 주소나 받으면 서버가 그 주소로 요청을 보내게 된다, lib/push-endpoint.ts)
+  if (!isAllowedPushEndpoint(endpoint) || !keys?.p256dh || !keys.auth) {
     return { error: "알림 구독 정보가 올바르지 않아요." };
   }
 
