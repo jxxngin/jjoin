@@ -3,7 +3,7 @@
 -- 1. [P1] 투표·장소 확정: 만든 사람이라도 지금 그 그룹 멤버가 아니면 거절한다.
 --    (나가거나 내보내지면 group_members 행만 지워지고 created_by는 남아서, 알고 있는 id로 직접 부를 수 있었다)
 -- 2. [P1] 하루 전·1시간 전 알림: 참여 기록이 남아 있어도 지금 멤버인 사람에게만 쌓는다.
---    멤버가 나가면 그 그룹의 약속·투표에 대해 아직 보내지 않은 알림을 지운다.
+--    멤버가 나가면 그 그룹의 약속·투표에 대해 아직 끝나지 않은(대기·보내는 중) 알림을 지운다.
 -- 3. [P2] 방장 넘기기: 그룹 행을 먼저 잠그고 확인해서, 동시에 두 사람에게 넘겨도 방장이 둘이 되지 않게 한다.
 -- 4. [P2] 탈퇴 준비: 방장을 넘길 때 내 역할도 member로 내리고, 대기자 승격은 약속 행을 잠근 뒤에 한다.
 
@@ -194,8 +194,12 @@ begin
 end;
 $$;
 
--- 멤버가 그룹을 나가거나 내보내지면, 그 그룹의 약속·투표에 대해 아직 보내지 않은 알림을 지운다.
--- (보내는 중인 'sending'은 워커가 이미 꺼낸 것이라 그대로 둔다. 알림 기록(종)은 볼 수 없는 화면으로 가므로 남겨도 새지 않는다)
+-- 멤버가 그룹을 나가거나 내보내지면, 그 그룹의 약속·투표에 대해 아직 끝나지 않은 알림을 지운다.
+-- - pending: 아직 꺼내지 않은 알림
+-- - sending: 워커가 꺼낸 알림. 일시 실패·워커 재시작이면 다시 pending으로 돌아와 재시도되므로 같이 지운다.
+--   (워커의 완료·재시도 처리는 `where id = ? and status = 'sending'`이라 지워진 행에는 아무것도 하지 않는다.
+--    이미 기기로 나가는 중인 한 건은 막을 수 없다)
+-- 알림 기록(종)은 볼 수 없는 화면으로 가므로 남겨도 새지 않는다.
 create function public.drop_pending_notifications_of_leaver()
 returns trigger
 language plpgsql
@@ -205,7 +209,7 @@ as $$
 begin
   delete from public.notification_outbox o
   where o.user_id = old.user_id
-    and o.status = 'pending'
+    and o.status in ('pending', 'sending')
     and (
       exists (select 1 from public.events e where e.id = o.event_id and e.group_id = old.group_id)
       or exists (select 1 from public.date_polls d where d.id = o.poll_id and d.group_id = old.group_id)

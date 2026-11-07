@@ -88,15 +88,24 @@ class MembershipChecksIT extends SupabaseIT {
 	}
 
 	@Test
-	void 그룹을_나가면_그_그룹의_보내기_전_알림이_지워진다() {
+	void 그룹을_나가면_그_그룹의_끝나지_않은_알림이_지워진다() {
 		var id = event(host, Instant.now().plus(10, ChronoUnit.DAYS));
 		owner.sql("insert into public.notification_outbox (user_id, event_id, kind) values (:u, :e, 'promoted')").param("u", friend).param("e", id).update();
+		// 워커가 꺼내 보내는 중인 알림 (일시 실패하면 다시 pending으로 돌아와 재시도된다)
+		var sending = owner.sql("""
+				insert into public.notification_outbox (user_id, event_id, kind, status, attempts, locked_at)
+				values (:u, :e, 'hour_before', 'sending', 1, now()) returning id
+				""").param("u", friend).param("e", id).query(Long.class).single();
 
 		kick(friend);
 
-		var count = owner.sql("select count(*) from public.notification_outbox where user_id = :u and status = 'pending'")
+		var left = owner.sql("select count(*) from public.notification_outbox where user_id = :u and status in ('pending', 'sending')")
 				.param("u", friend).query(Integer.class).single();
-		assertThat(count).isZero();
+		assertThat(left).isZero();
+		// 그 뒤 워커가 재시도로 돌리려 해도 되살아나지 않는다.
+		new app.jjoin.backend.push.OutboxRepository(owner).retryLater(sending, java.time.Duration.ofSeconds(30), "일시 실패");
+		var revived = owner.sql("select count(*) from public.notification_outbox where id = :id").param("id", sending).query(Integer.class).single();
+		assertThat(revived).isZero();
 	}
 
 	@Test
