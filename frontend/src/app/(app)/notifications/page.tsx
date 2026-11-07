@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { BackLink } from "@/components/back-link";
 import { Page } from "@/components/slide-view";
 import { getNotificationPrefs } from "@/lib/auth";
-import { getNotifications, type NotificationKind } from "@/lib/notifications";
+import { getNotifications, getUnreadNotificationCount, type NotificationKind } from "@/lib/notifications";
 import { MarkRead } from "./mark-read";
 import { NotificationSettings } from "./notification-settings";
 import { ReadAllButton } from "./read-all-button";
@@ -35,7 +35,9 @@ export default function NotificationsPage() {
 }
 
 async function NotificationList() {
-  const items = await getNotifications();
+  // 안 읽은 수는 목록 밖 오래된 알림까지 센다. 화면을 연 뒤 보여 준 알림만 읽음이 되므로,
+  // 오래된 미확인 알림이 남아 있으면 "모두 읽음" 버튼으로 정리할 수 있어야 한다. (#32 리뷰)
+  const [items, unread] = await Promise.all([getNotifications(), getUnreadNotificationCount()]);
 
   if (items.length === 0) {
     return (
@@ -46,7 +48,6 @@ async function NotificationList() {
   }
 
   const latestId = Math.max(...items.map((item) => item.id));
-  const unread = items.filter((item) => item.unread).length;
 
   return (
     <>
