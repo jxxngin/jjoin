@@ -237,7 +237,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   confirmed uuid;
 begin
@@ -250,7 +250,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 create trigger comments_redirect_confirmed_poll
   before insert on public.comments
