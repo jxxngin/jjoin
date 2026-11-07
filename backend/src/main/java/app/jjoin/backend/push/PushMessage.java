@@ -14,8 +14,11 @@ public record PushMessage(String title, String body, String url) {
 	 * 받는 사람이 그 종류의 알림을 꺼 두었거나 약속이 지워졌으면 비어 있다.
 	 */
 	public static Optional<PushMessage> from(OutboxItem item) {
-		if (item.eventId() == null || item.preferences() == null || !wants(item)) {
+		if (item.preferences() == null || !wants(item)) {
 			return Optional.empty();
+		}
+		if (item.eventId() == null) {
+			return pollComment(item);
 		}
 		var when = KstFormat.eventPeriod(item.startsAt(), item.endsAt());
 		var where = item.placeName() == null ? "" : " · " + item.placeName();
@@ -32,6 +35,22 @@ public record PushMessage(String title, String body, String url) {
 			case "hour_before" -> new PushMessage("1시간 뒤 약속이 있어요", title + " · " + when + where, url);
 			default -> new PushMessage("내일 약속이 있어요", title + " · " + when + where, url);
 		});
+	}
+
+	/** 투표 댓글의 언급·새 댓글 알림. 누르면 투표 화면으로 간다. 투표가 지워졌거나 다른 종류면 비어 있다. (0036) */
+	private static Optional<PushMessage> pollComment(OutboxItem item) {
+		if (item.pollId() == null) {
+			return Optional.empty();
+		}
+		var url = "/polls/" + item.pollId();
+		var title = item.pollTitle();
+		var author = item.commentAuthor() == null ? "누군가" : item.commentAuthor();
+		var comment = snippet(item.commentBody());
+		return switch (item.kind()) {
+			case "mention" -> Optional.of(new PushMessage(author + "님이 회원님을 언급했어요", title + " · " + comment, url));
+			case "comment" -> Optional.of(new PushMessage(title + "에 새 댓글", author + ": " + comment, url));
+			default -> Optional.empty();
+		};
 	}
 
 	private static boolean wants(OutboxItem item) {

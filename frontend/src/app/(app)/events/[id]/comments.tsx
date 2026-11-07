@@ -1,5 +1,5 @@
 import { getUserId } from "@/lib/auth";
-import { getComments, type Comment } from "@/lib/comments";
+import { getComments, type Comment, type CommentTarget } from "@/lib/comments";
 import { formatEventDate } from "@/lib/datetime";
 import { getGroup } from "@/lib/groups";
 import { deleteComment, editComment, postComment } from "../comment-actions";
@@ -8,9 +8,9 @@ import { CommentThread, type CommentView } from "./comment-row";
 
 type Post = (parentId: string | null, body: string, mentionIds: string[]) => Promise<{ error?: string }>;
 
-// 댓글 목록 + 입력칸. 약속 댓글과 날짜 투표 댓글이 같이 쓴다.
+// 댓글 목록 + 입력칸. 약속 댓글과 날짜 투표 댓글이 같이 쓴다. (기능이 같다: @언급·하트·답글·수정)
 // 원 댓글 아래에 답글을 한 단계로 모아 접어 둔다. 본인 댓글은 고치고 지울 수 있다.
-// withLikes: 하트를 보여 줄지 (약속 댓글만), mentionables: @로 부를 수 있는 사람
+// mentionables: @로 부를 수 있는 사람
 export function CommentSection({
   comments,
   userId,
@@ -18,7 +18,6 @@ export function CommentSection({
   post,
   edit,
   remove,
-  withLikes,
   mentionables,
 }: {
   comments: Comment[];
@@ -27,7 +26,6 @@ export function CommentSection({
   post: Post;
   edit: (commentId: string, text: string) => Promise<{ error?: string }>;
   remove: (commentId: string) => Promise<void>;
-  withLikes: boolean;
   mentionables: Mentionable[];
 }) {
   const view = (comment: Comment): CommentView => ({
@@ -45,13 +43,11 @@ export function CommentSection({
           avatarColor: comment.author.avatarColor,
         }
       : null,
-    likes: withLikes
-      ? {
-          count: comment.likes.length,
-          mine: comment.likes.includes(userId),
-          names: comment.likes.map((id) => nicknameById.get(id) ?? "알 수 없음"),
-        }
-      : null,
+    likes: {
+      count: comment.likes.length,
+      mine: comment.likes.includes(userId),
+      names: comment.likes.map((id) => nicknameById.get(id) ?? "알 수 없음"),
+    },
   });
 
   const roots = comments.filter((c) => c.parentId === null);
@@ -94,9 +90,9 @@ export function mentionablesFrom(members: Mentionable[], userId: string) {
     .map(({ id, nickname, kakaoName, avatarUrl, avatarColor }) => ({ id, nickname, kakaoName, avatarUrl, avatarColor }));
 }
 
-// 약속 댓글. 오래된 순으로 보여 주고, 아래에서 새 댓글을 쓴다. @언급·하트·답글·수정이 된다.
-export async function Comments({ eventId, groupId }: { eventId: string; groupId: string }) {
-  const [comments, userId, group] = await Promise.all([getComments(eventId), getUserId(), getGroup(groupId)]);
+// 약속·투표 댓글. 오래된 순으로 보여 주고, 아래에서 새 댓글을 쓴다. @언급·하트·답글·수정이 된다.
+export async function Comments({ target, groupId }: { target: CommentTarget; groupId: string }) {
+  const [comments, userId, group] = await Promise.all([getComments(target), getUserId(), getGroup(groupId)]);
   const members = group?.members ?? [];
 
   return (
@@ -104,10 +100,9 @@ export async function Comments({ eventId, groupId }: { eventId: string; groupId:
       comments={comments}
       userId={userId}
       nicknameById={new Map(members.map((m) => [m.id, m.nickname]))}
-      post={postComment.bind(null, eventId)}
+      post={postComment.bind(null, target)}
       edit={editComment}
       remove={deleteComment}
-      withLikes
       mentionables={mentionablesFrom(members, userId)}
     />
   );

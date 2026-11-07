@@ -4,8 +4,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * 보낼 알림 한 건과 문구를 만드는 데 필요한 정보. (notification_outbox + 약속·그룹·댓글·받는 사람 설정)
- * 약속이나 댓글이 그사이 지워졌으면 해당 칸이 null이다.
+ * 보낼 알림 한 건과 문구를 만드는 데 필요한 정보. (notification_outbox + 약속·투표·그룹·댓글·받는 사람 설정)
+ * 약속 알림이면 event 칸이, 투표 댓글 알림(언급·새 댓글)이면 poll 칸이 차 있다. (0036)
+ * 약속·투표나 댓글이 그사이 지워졌으면 해당 칸이 null이다.
  */
 public record OutboxItem(
 		long id,
@@ -17,6 +18,8 @@ public record OutboxItem(
 		Instant startsAt,
 		Instant endsAt,
 		String placeName,
+		UUID pollId,
+		String pollTitle,
 		String groupName,
 		String commentBody,
 		String commentAuthor,

@@ -81,7 +81,7 @@ type ActivityRow = {
   id: string;
   created_by: string;
   created_at: string;
-  event_comments: { user_id: string; created_at: string }[];
+  comments: { user_id: string; created_at: string }[];
   event_seen: { seen_at: string }[];
 };
 
@@ -94,7 +94,7 @@ function activityBy(others: (userId: string) => boolean, events: ActivityRow[]):
   return events.flatMap((event) => {
     const times = [
       ...(others(event.created_by) ? [event.created_at] : []),
-      ...event.event_comments.filter((c) => others(c.user_id)).map((c) => c.created_at),
+      ...event.comments.filter((c) => others(c.user_id)).map((c) => c.created_at),
     ];
     if (times.length === 0) return [];
     return [
@@ -113,11 +113,11 @@ export async function getMyGroups(): Promise<GroupSummary[]> {
   const { data, error } = await supabase
     .from("groups")
     .select(
-      "id, name, emoji, color, description, group_members(count), group_seen(seen_at), activity:events(id, created_by, created_at, event_comments(user_id, created_at), event_seen(seen_at))",
+      "id, name, emoji, color, description, group_members(count), group_seen(seen_at), activity:events(id, created_by, created_at, comments(user_id, created_at), event_seen(seen_at))",
     )
     // 약속마다 최근 댓글 몇 개만 보면 충분하다.
-    .order("created_at", { referencedTable: "activity.event_comments", ascending: false })
-    .limit(5, { referencedTable: "activity.event_comments" })
+    .order("created_at", { referencedTable: "activity.comments", ascending: false })
+    .limit(5, { referencedTable: "activity.comments" })
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`그룹을 불러오지 못했어요. (${error.message})`);

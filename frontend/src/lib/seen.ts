@@ -1,12 +1,14 @@
 // "마지막으로 본 시각" 기록. 기기마다 브라우저(localStorage)에 저장한다. 브라우저에서만 쓴다.
 // - group-seen:{그룹 id}  그룹 화면을 연 시각 (홈 그룹 동그라미의 새 소식 테두리)
 // - event-seen:{약속 id}  약속 화면을 연 시각 (약속 카드의 안 읽은 댓글 배지, 그룹 새 소식)
+// - poll-seen:{투표 id}   투표 화면을 연 시각 (투표 카드의 안 읽은 댓글 배지)
 //
 // 기록이 바뀌면 화면에 떠 있는 배지·테두리도 바로 다시 계산하도록 구독을 제공한다.
 // (뒤로 가기로 돌아온 화면은 다시 그려지지 않아서, 구독이 없으면 읽은 배지가 그대로 남았다)
 
 export const groupSeenKey = (groupId: string) => `group-seen:${groupId}`;
 export const eventSeenKey = (eventId: string) => `event-seen:${eventId}`;
+export const pollSeenKey = (pollId: string) => `poll-seen:${pollId}`;
 
 const listeners = new Set<() => void>();
 

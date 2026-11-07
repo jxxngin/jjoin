@@ -42,7 +42,7 @@ class OutboxRepositoryIT extends PostgresIT {
 		jdbc.sql("insert into public.groups (id, name) values (:id, '대학 동기')").param("id", group).update();
 		jdbc.sql("insert into public.events (id, group_id, title, starts_at, place_name) values (:id, :g, '연말 송년회', :at, '을지로')")
 				.param("id", event).param("g", group).param("at", java.sql.Timestamp.from(Instant.parse("2026-10-30T10:00:00Z"))).update();
-		jdbc.sql("insert into public.event_comments (id, event_id, user_id, body) values (:id, :e, :u, '몇 시까지 가능해?')")
+		jdbc.sql("insert into public.comments (id, event_id, user_id, body) values (:id, :e, :u, '몇 시까지 가능해?')")
 				.param("id", comment).param("e", event).param("u", minsu).update();
 	}
 
@@ -72,6 +72,26 @@ class OutboxRepositoryIT extends PostgresIT {
 		assertThat(item.preferences().comment()).isTrue();
 		assertThat(status(id)).isEqualTo("sending");
 		assertThat(outbox.claim(10)).isEmpty();
+	}
+
+	@Test
+	void 투표_댓글_알림은_투표_제목과_그룹이_함께_온다() {
+		var poll = UUID.randomUUID();
+		var pollComment = UUID.randomUUID();
+		jdbc.sql("insert into public.date_polls (id, group_id, title) values (:id, :g, '다음 모임 날짜')").param("id", poll).param("g", group).update();
+		jdbc.sql("insert into public.comments (id, poll_id, user_id, body) values (:id, :p, :u, '토요일 어때?')")
+				.param("id", pollComment).param("p", poll).param("u", minsu).update();
+		jdbc.sql("insert into public.notification_outbox (user_id, poll_id, comment_id, kind) values (:u, :p, :c, 'mention')")
+				.param("u", jiwon).param("p", poll).param("c", pollComment).update();
+
+		var item = outbox.claim(10).getFirst();
+
+		assertThat(item.eventId()).isNull();
+		assertThat(item.pollId()).isEqualTo(poll);
+		assertThat(item.pollTitle()).isEqualTo("다음 모임 날짜");
+		assertThat(item.groupName()).isEqualTo("대학 동기");
+		assertThat(item.commentBody()).isEqualTo("토요일 어때?");
+		assertThat(item.commentAuthor()).isEqualTo("민수");
 	}
 
 	@Test

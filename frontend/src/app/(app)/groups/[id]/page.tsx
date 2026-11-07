@@ -14,6 +14,8 @@ import { parseCalendarQuery, type CalendarQuery } from "@/lib/calendar-query";
 import { getEventsBetween, getPastEvents, getUpcomingEvents } from "@/lib/events";
 import { getGroup } from "@/lib/groups";
 import { getGroupPolls } from "@/lib/polls";
+import { UnreadCommentsBadge } from "@/components/unread-comments";
+import { pollSeenKey } from "@/lib/seen";
 import { leaveGroup } from "../actions";
 import { Calendar } from "@/components/calendar";
 import { InviteButton } from "./invite-button";
@@ -195,6 +197,7 @@ async function GroupPolls({ groupId }: { groupId: string }) {
               >
                 {poll.closed ? "마감 · 확정 대기" : "투표 중"}
               </span>
+              <UnreadCommentsBadge seenKey={pollSeenKey(poll.id)} commentTimes={poll.otherCommentTimes} serverSeenAt={poll.seenAt} />
             </Link>
           </li>
         ))}

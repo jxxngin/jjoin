@@ -15,7 +15,7 @@ class PushMessageTest {
 
 	private static OutboxItem item(String kind, OutboxItem.Preferences preferences, String comment) {
 		return new OutboxItem(1, UUID.randomUUID(), kind, 1, EVENT, "연말 송년회",
-				Instant.parse("2026-10-30T10:00:00Z"), null, "을지로", "대학 동기",
+				Instant.parse("2026-10-30T10:00:00Z"), null, "을지로", null, null, "대학 동기",
 				comment, comment == null ? null : "민수", preferences);
 	}
 
@@ -50,9 +50,33 @@ class PushMessageTest {
 		assertThat(PushMessage.from(item("new_event", commentOff, null))).isPresent();
 	}
 
+	static OutboxItem pollItem(String kind, UUID poll) {
+		return new OutboxItem(1, UUID.randomUUID(), kind, 1, null, null, null, null, null,
+				poll, poll == null ? null : "다음 모임 날짜", "대학 동기", "토요일 어때?", "민수", ALL_ON);
+	}
+
+	@Test
+	void 투표_댓글_알림은_투표_화면으로_간다() {
+		var poll = UUID.fromString("22222222-2222-2222-2222-222222222222");
+		var mention = PushMessage.from(pollItem("mention", poll)).orElseThrow();
+		assertThat(mention.title()).isEqualTo("민수님이 회원님을 언급했어요");
+		assertThat(mention.body()).isEqualTo("다음 모임 날짜 · 토요일 어때?");
+		assertThat(mention.url()).isEqualTo("/polls/" + poll);
+
+		var comment = PushMessage.from(pollItem("comment", poll)).orElseThrow();
+		assertThat(comment.title()).isEqualTo("다음 모임 날짜에 새 댓글");
+		assertThat(comment.body()).isEqualTo("민수: 토요일 어때?");
+	}
+
+	@Test
+	void 투표가_지워졌거나_댓글이_아닌_종류면_보내지_않는다() {
+		assertThat(PushMessage.from(pollItem("comment", null))).isEmpty();
+		assertThat(PushMessage.from(pollItem("new_event", UUID.randomUUID()))).isEmpty();
+	}
+
 	@Test
 	void 약속이_지워졌거나_프로필이_없으면_보내지_않는다() {
-		var deleted = new OutboxItem(1, UUID.randomUUID(), "new_event", 1, null, null, null, null, null, null, null, null, ALL_ON);
+		var deleted = new OutboxItem(1, UUID.randomUUID(), "new_event", 1, null, null, null, null, null, null, null, null, null, null, ALL_ON);
 		assertThat(PushMessage.from(deleted)).isEmpty();
 		assertThat(PushMessage.from(item("new_event", null, null))).isEmpty();
 	}

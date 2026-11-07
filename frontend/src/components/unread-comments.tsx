@@ -1,24 +1,25 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { markEventSeen } from "@/app/(app)/seen-actions";
+import { markEventSeen, markPollSeen } from "@/app/(app)/seen-actions";
 import { closeSystemNotifications } from "@/lib/close-notifications";
-import { eventSeenKey, markSeen, readSeen, subscribeSeen } from "@/lib/seen";
+import { eventSeenKey, markSeen, pollSeenKey, readSeen, subscribeSeen } from "@/lib/seen";
 
-// 약속 카드 오른쪽 아래: 다른 사람이 쓴 댓글 중 내가 아직 안 본 개수. 0이면 안 보인다.
+// 약속·투표 카드 오른쪽: 다른 사람이 쓴 댓글 중 내가 아직 안 본 개수. 0이면 안 보인다.
+// seenKey: 이 기기의 본 기록 이름 (eventSeenKey / pollSeenKey)
 // 본 시각은 서버 기록(모든 기기 공통)과 이 기기의 기록 중 늦은 쪽을 쓴다.
 // 서버 기록은 화면을 다시 불러와야 바뀌므로, 방금 읽은 것은 이 기기 기록으로 바로 끈다.
 export function UnreadCommentsBadge({
-  eventId,
+  seenKey,
   commentTimes,
   serverSeenAt,
 }: {
-  eventId: string;
+  seenKey: string;
   commentTimes: string[];
   serverSeenAt: string | null;
 }) {
   // 서버는 본 기록을 모르므로 브라우저에서만 센다.
-  const seen = useSyncExternalStore(subscribeSeen, () => readSeen(eventSeenKey(eventId)), () => null);
+  const seen = useSyncExternalStore(subscribeSeen, () => readSeen(seenKey), () => null);
   if (seen === null || commentTimes.length === 0) return null;
 
   const seenAt = Math.max(seen ? Date.parse(seen) : 0, serverSeenAt ? Date.parse(serverSeenAt) : 0);
@@ -51,5 +52,16 @@ export function MarkEventSeen({ eventId, commentTimes }: { eventId: string; comm
     markEventSeen(eventId);
     closeSystemNotifications(`/events/${eventId}`);
   }, [eventId, latest]);
+  return null;
+}
+
+// 투표 화면을 열면 "지금 봤음"을 기록해서 투표 카드의 안 읽은 댓글 배지를 끈다. (MarkEventSeen과 같다)
+export function MarkPollSeen({ pollId, commentTimes }: { pollId: string; commentTimes: string[] }) {
+  const latest = commentTimes.reduce((a, b) => (a > b ? a : b), "");
+  useEffect(() => {
+    markSeen(pollSeenKey(pollId), latest ? [latest] : []);
+    markPollSeen(pollId);
+    closeSystemNotifications(`/polls/${pollId}`);
+  }, [pollId, latest]);
   return null;
 }

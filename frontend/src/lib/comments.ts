@@ -39,18 +39,22 @@ type CommentRow = {
   } | null;
 };
 
-// 약속 댓글. 오래된 순. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
-export async function getComments(eventId: string): Promise<Comment[]> {
+// 댓글이 달린 곳. 약속 댓글과 투표 댓글은 표(comments) 하나에 있고 기능도 같다. (0036)
+export type CommentTarget = { kind: "event" | "poll"; id: string };
+
+// 약속·투표 댓글. 오래된 순. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
+export async function getComments(target: CommentTarget): Promise<Comment[]> {
   const supabase = await createClient();
-  const [kakaoNames, { data: event }] = await Promise.all([
+  const column = target.kind === "event" ? "event_id" : "poll_id";
+  const [kakaoNames, { data: parent }] = await Promise.all([
     getVisibleKakaoNames(),
-    supabase.from("events").select("group_id").eq("id", eventId).maybeSingle(),
+    supabase.from(target.kind === "event" ? "events" : "date_polls").select("group_id").eq("id", target.id).maybeSingle(),
   ]);
-  const groupId = event?.group_id as string | undefined;
+  const groupId = parent?.group_id as string | undefined;
   const { data, error } = await supabase
-    .from("event_comments")
+    .from("comments")
     .select("id, body, mentions, created_at, parent_id, edited_at, comment_likes(user_id), profiles(id, nickname, avatar_url, avatar_color)")
-    .eq("event_id", eventId)
+    .eq(column, target.id)
     .order("created_at")
     .order("created_at", { referencedTable: "comment_likes" })
     .overrideTypes<CommentRow[], { merge: false }>();
@@ -65,43 +69,6 @@ export async function getComments(eventId: string): Promise<Comment[]> {
     parentId: row.parent_id,
     editedAt: row.edited_at,
     likes: row.comment_likes.map((like) => like.user_id),
-    author: row.profiles
-      ? {
-          id: row.profiles.id,
-          nickname: row.profiles.nickname,
-          kakaoName: groupId ? kakaoNames.inGroup(groupId, row.profiles.id) : null,
-          avatarUrl: row.profiles.avatar_url,
-          avatarColor: row.profiles.avatar_color,
-        }
-      : null,
-  }));
-}
-
-// 날짜 투표 댓글. 오래된 순. 하트는 없다. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
-export async function getPollComments(pollId: string): Promise<Comment[]> {
-  const supabase = await createClient();
-  const [kakaoNames, { data: poll }] = await Promise.all([
-    getVisibleKakaoNames(),
-    supabase.from("date_polls").select("group_id").eq("id", pollId).maybeSingle(),
-  ]);
-  const groupId = poll?.group_id as string | undefined;
-  const { data, error } = await supabase
-    .from("poll_comments")
-    .select("id, body, mentions, created_at, parent_id, edited_at, profiles(id, nickname, avatar_url, avatar_color)")
-    .eq("poll_id", pollId)
-    .order("created_at")
-    .overrideTypes<Omit<CommentRow, "comment_likes">[], { merge: false }>();
-
-  if (error) throw new Error(`댓글을 불러오지 못했어요. (${error.message})`);
-
-  return data.map((row) => ({
-    id: row.id,
-    body: row.body,
-    mentions: row.mentions,
-    createdAt: row.created_at,
-    parentId: row.parent_id,
-    editedAt: row.edited_at,
-    likes: [],
     author: row.profiles
       ? {
           id: row.profiles.id,

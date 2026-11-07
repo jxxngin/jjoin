@@ -8,17 +8,14 @@ import { VoterCard } from "@/components/voter-card";
 import { eventPeriodParts } from "@/lib/datetime";
 import { getPoll, topOptions, type PollOption } from "@/lib/polls";
 import { ConfirmButton, PollManage, VoteButton } from "./poll-controls";
-import { CommentSection, mentionablesFrom } from "@/app/(app)/events/[id]/comments";
+import { Comments } from "@/app/(app)/events/[id]/comments";
+import { MarkPollSeen } from "@/components/unread-comments";
 import { CopyLinkButton } from "@/app/(app)/events/[id]/copy-link-button";
 import { joinGroup } from "@/app/(app)/groups/actions";
 import { GroupAvatar } from "@/components/group-avatar";
 import { getPollInvite } from "@/lib/event-invite";
 import { headers } from "next/headers";
 import { PlaceVote } from "@/app/(app)/events/[id]/place-vote-section";
-import { getUserId } from "@/lib/auth";
-import { getPollComments } from "@/lib/comments";
-import { getGroup } from "@/lib/groups";
-import { deletePollComment, editPollComment, postPollComment } from "../actions";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -154,9 +151,23 @@ async function PollContent({ id, invite }: { id: string; invite: string | null }
         </Suspense>
       )}
 
-      <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
-        <PollComments pollId={poll.id} groupId={poll.group.id} />
-      </Suspense>
+      {/* 약속으로 확정되면 댓글은 약속으로 옮겨 가서 거기서 이어진다. (0036) */}
+      {poll.eventId ? (
+        <p className="text-center text-sm text-stone-500">
+          투표 때 나눈 댓글은{" "}
+          <Link href={`/events/${poll.eventId}`} className="font-medium text-brand-ink underline underline-offset-4">
+            약속
+          </Link>
+          으로 옮겨졌어요.
+        </p>
+      ) : (
+        <>
+          <MarkPollSeen pollId={poll.id} commentTimes={poll.otherCommentTimes} />
+          <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+            <Comments target={{ kind: "poll", id: poll.id }} groupId={poll.group.id} />
+          </Suspense>
+        </>
+      )}
 
       {poll.canManage && !poll.eventId && (
         <div className="mt-auto">
@@ -164,24 +175,6 @@ async function PollContent({ id, invite }: { id: string; invite: string | null }
         </div>
       )}
     </Reveal>
-  );
-}
-
-// 투표 아래 댓글. "이 날은 안 돼요" 같은 이야기를 나눈다. @언급·답글·수정이 된다. (하트는 약속 댓글만)
-async function PollComments({ pollId, groupId }: { pollId: string; groupId: string }) {
-  const [comments, userId, group] = await Promise.all([getPollComments(pollId), getUserId(), getGroup(groupId)]);
-  const members = group?.members ?? [];
-  return (
-    <CommentSection
-      comments={comments}
-      userId={userId}
-      nicknameById={new Map(members.map((m) => [m.id, m.nickname]))}
-      post={postPollComment.bind(null, pollId)}
-      edit={editPollComment}
-      remove={deletePollComment}
-      withLikes={false}
-      mentionables={mentionablesFrom(members, userId)}
-    />
   );
 }
 

@@ -17,7 +17,9 @@ type OutboxRow = {
     place_name: string | null;
     groups: { name: string };
   } | null;
-  event_comments: { body: string; profiles: { nickname: string } | null } | null;
+  // 투표 댓글의 언급·새 댓글 알림이면 (0036)
+  date_polls: { id: string; title: string } | null;
+  comments: { body: string; profiles: { nickname: string } | null } | null;
   profiles: {
     notify_new_event: boolean;
     notify_promoted: boolean;
@@ -59,7 +61,7 @@ function wants(row: OutboxRow) {
 
 function payloadFor(row: OutboxRow): PushPayload | null {
   const event = row.events;
-  if (!event) return null;
+  if (!event) return pollCommentPayload(row);
   const when = formatEventPeriod(event.starts_at, event.ends_at);
   const where = event.place_name ? ` · ${event.place_name}` : "";
   const url = `/events/${event.id}`;
@@ -71,19 +73,31 @@ function payloadFor(row: OutboxRow): PushPayload | null {
     return { title: "대기에서 참여로 바뀌었어요", body: `${event.title} · ${when}`, url };
   }
   if (row.kind === "mention") {
-    const author = row.event_comments?.profiles?.nickname ?? "누군가";
-    const body = row.event_comments?.body ?? "";
+    const author = row.comments?.profiles?.nickname ?? "누군가";
+    const body = row.comments?.body ?? "";
     return { title: `${author}님이 회원님을 언급했어요`, body: `${event.title} · ${body.slice(0, 80)}`, url };
   }
   if (row.kind === "comment") {
-    const author = row.event_comments?.profiles?.nickname ?? "누군가";
-    const body = row.event_comments?.body ?? "";
+    const author = row.comments?.profiles?.nickname ?? "누군가";
+    const body = row.comments?.body ?? "";
     return { title: `${event.title}에 새 댓글`, body: `${author}: ${body.slice(0, 80)}`, url };
   }
   if (row.kind === "hour_before") {
     return { title: "1시간 뒤 약속이 있어요", body: `${event.title} · ${when}${where}`, url };
   }
   return { title: "내일 약속이 있어요", body: `${event.title} · ${when}${where}`, url };
+}
+
+// 투표 댓글의 언급·새 댓글 알림. 누르면 투표 화면으로 간다. (Spring PushMessage와 같은 문구)
+function pollCommentPayload(row: OutboxRow): PushPayload | null {
+  const poll = row.date_polls;
+  if (!poll || (row.kind !== "mention" && row.kind !== "comment")) return null;
+  const author = row.comments?.profiles?.nickname ?? "누군가";
+  const body = (row.comments?.body ?? "").slice(0, 80);
+  const url = `/polls/${poll.id}`;
+  return row.kind === "mention"
+    ? { title: `${author}님이 회원님을 언급했어요`, body: `${poll.title} · ${body}`, url }
+    : { title: `${poll.title}에 새 댓글`, body: `${author}: ${body}`, url };
 }
 
 // 구독한 기기들에 보낸다. 만료된 구독(404/410)은 지운다.
@@ -137,7 +151,7 @@ export async function flushNotifications() {
       pending.map((row) => row.id),
     )
     .select(
-      "id, user_id, kind, events(id, title, starts_at, ends_at, place_name, groups(name)), event_comments(body, profiles(nickname)), profiles(notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment)",
+      "id, user_id, kind, events(id, title, starts_at, ends_at, place_name, groups(name)), date_polls(id, title), comments(body, profiles(nickname)), profiles(notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment)",
     )
     .overrideTypes<OutboxRow[], { merge: false }>();
   if (!claimed || claimed.length === 0) return;

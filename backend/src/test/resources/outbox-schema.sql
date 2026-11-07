@@ -1,4 +1,4 @@
--- 통합 테스트용 최소 스키마. 실제 구조는 supabase/migrations/ (0011·0013·0014·0024·0028·0032)가 기준이고,
+-- 통합 테스트용 최소 스키마. 실제 구조는 supabase/migrations/ (0011·0013·0014·0024·0028·0032·0036)가 기준이고,
 -- 워커가 쓰는 표·열·함수만 같은 모양으로 만든다. (Supabase 전용 auth·RLS는 뺐다)
 create table public.profiles (
   id uuid primary key,
@@ -35,9 +35,17 @@ create table public.event_participants (
   primary key (event_id, user_id)
 );
 
-create table public.event_comments (
+create table public.date_polls (
   id uuid primary key,
-  event_id uuid not null references public.events (id) on delete cascade,
+  group_id uuid not null references public.groups (id) on delete cascade,
+  title text not null
+);
+
+-- 약속 댓글과 투표 댓글을 합친 표 (0036)
+create table public.comments (
+  id uuid primary key,
+  event_id uuid references public.events (id) on delete cascade,
+  poll_id uuid references public.date_polls (id) on delete cascade,
   user_id uuid references public.profiles (id),
   body text not null
 );
@@ -53,7 +61,8 @@ create table public.notification_outbox (
   id bigint generated always as identity primary key,
   user_id uuid not null references public.profiles (id) on delete cascade,
   event_id uuid references public.events (id) on delete cascade,
-  comment_id uuid references public.event_comments (id) on delete cascade,
+  poll_id uuid references public.date_polls (id) on delete cascade,
+  comment_id uuid references public.comments (id) on delete cascade,
   kind text not null,
   created_at timestamptz not null default now(),
   status text not null default 'pending' check (status in ('pending', 'sending', 'sent', 'skipped', 'failed')),

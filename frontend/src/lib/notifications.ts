@@ -13,8 +13,8 @@ export type NotificationItem = {
   href: string;
   timeLabel: string;
   unread: boolean;
-  // 댓글·언급 알림이면 그 댓글이 달린 약속과 시각. 알림 목록에서 댓글 내용을 읽으면 약속 카드의 안 읽은 댓글 배지도 끈다.
-  comment: { eventId: string; at: string } | null;
+  // 댓글·언급 알림이면 그 댓글이 달린 약속·투표와 시각. 알림 목록에서 댓글 내용을 읽으면 카드의 안 읽은 댓글 배지도 끈다.
+  comment: { kind: "event" | "poll"; id: string; at: string } | null;
 };
 
 type NotificationRow = {
@@ -23,14 +23,17 @@ type NotificationRow = {
   created_at: string;
   read_at: string | null;
   events: { id: string; title: string; groups: { name: string; emoji: string } } | null;
-  event_comments: { body: string; profiles: { nickname: string } | null } | null;
+  // 투표 댓글의 알림이면 (0036)
+  date_polls: { id: string; title: string } | null;
+  comments: { body: string; profiles: { nickname: string } | null } | null;
   inquiries: { id: string; title: string } | null;
 };
 
 function describe(row: NotificationRow): { title: string; body: string } {
   if (row.kind === "inquiry_reply") return { title: "문의에 답변이 왔어요", body: row.inquiries?.title ?? "삭제된 문의" };
   const event = row.events;
-  const eventTitle = event?.title ?? "삭제된 약속";
+  // 투표 댓글 알림이면 투표 제목을 쓴다.
+  const eventTitle = event?.title ?? row.date_polls?.title ?? "삭제된 약속";
   if (row.kind === "new_event") {
     return { title: `${event?.groups.emoji ?? ""} ${event?.groups.name ?? ""}에 새 약속`.trim(), body: eventTitle };
   }
@@ -38,13 +41,13 @@ function describe(row: NotificationRow): { title: string; body: string } {
   if (row.kind === "day_before") return { title: "내일 약속이 있어요", body: eventTitle };
   if (row.kind === "hour_before") return { title: "1시간 뒤 약속이 있어요", body: eventTitle };
   if (row.kind === "comment") {
-    const author = row.event_comments?.profiles?.nickname ?? "누군가";
-    return { title: `${eventTitle}에 새 댓글`, body: `${author}: ${row.event_comments?.body ?? ""}` };
+    const author = row.comments?.profiles?.nickname ?? "누군가";
+    return { title: `${eventTitle}에 새 댓글`, body: `${author}: ${row.comments?.body ?? ""}` };
   }
-  const author = row.event_comments?.profiles?.nickname ?? "누군가";
+  const author = row.comments?.profiles?.nickname ?? "누군가";
   return {
     title: `${author}님이 회원님을 언급했어요`,
-    body: `${eventTitle} · ${row.event_comments?.body ?? ""}`,
+    body: `${eventTitle} · ${row.comments?.body ?? ""}`,
   };
 }
 
@@ -54,7 +57,7 @@ export async function getNotifications(): Promise<NotificationItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notifications")
-    .select("id, kind, created_at, read_at, events(id, title, groups(name, emoji)), event_comments(body, profiles(nickname)), inquiries(id, title)")
+    .select("id, kind, created_at, read_at, events(id, title, groups(name, emoji)), date_polls(id, title), comments(body, profiles(nickname)), inquiries(id, title)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50)
@@ -68,12 +71,22 @@ export async function getNotifications(): Promise<NotificationItem[]> {
     id: row.id,
     kind: row.kind,
     ...describe(row),
-    href: row.inquiries ? `/support/${row.inquiries.id}` : row.events ? `/events/${row.events.id}` : "/",
+    href: row.inquiries
+      ? `/support/${row.inquiries.id}`
+      : row.events
+        ? `/events/${row.events.id}`
+        : row.date_polls
+          ? `/polls/${row.date_polls.id}`
+          : "/",
     timeLabel: formatRelative(row.created_at, now),
     unread: row.read_at === null,
     comment:
-      (row.kind === "comment" || row.kind === "mention") && row.events
-        ? { eventId: row.events.id, at: row.created_at }
+      row.kind === "comment" || row.kind === "mention"
+        ? row.events
+          ? { kind: "event", id: row.events.id, at: row.created_at }
+          : row.date_polls
+            ? { kind: "poll", id: row.date_polls.id, at: row.created_at }
+            : null
         : null,
   }));
 }
