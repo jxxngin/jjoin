@@ -41,19 +41,21 @@ public class OutboxRepository {
 				  set status = 'sending', attempts = o.attempts + 1, locked_at = now()
 				  from picked
 				  where o.id = picked.id
-				  returning o.id, o.user_id, o.event_id, o.comment_id, o.kind, o.attempts
+				  returning o.id, o.user_id, o.event_id, o.poll_id, o.comment_id, o.kind, o.attempts
 				)
 				select c.id, c.user_id, c.kind, c.attempts,
 				       e.id as event_id, e.title, e.starts_at, e.ends_at, e.place_name,
+				       d.id as poll_id, d.title as poll_title,
 				       g.name as group_name,
-				       ec.body as comment_body, author.nickname as comment_author,
+				       cm.body as comment_body, author.nickname as comment_author,
 				       p.id as profile_id, p.notify_new_event, p.notify_promoted, p.notify_day_before,
 				       p.notify_mention, p.notify_hour_before, p.notify_comment
 				from claimed c
 				left join public.events e on e.id = c.event_id
-				left join public.groups g on g.id = e.group_id
-				left join public.event_comments ec on ec.id = c.comment_id
-				left join public.profiles author on author.id = ec.user_id
+				left join public.date_polls d on d.id = c.poll_id
+				left join public.groups g on g.id = coalesce(e.group_id, d.group_id)
+				left join public.comments cm on cm.id = c.comment_id
+				left join public.profiles author on author.id = cm.user_id
 				left join public.profiles p on p.id = c.user_id
 				order by c.id
 				""")
@@ -148,6 +150,8 @@ public class OutboxRepository {
 				instant(rs.getTimestamp("starts_at")),
 				instant(rs.getTimestamp("ends_at")),
 				rs.getString("place_name"),
+				rs.getObject("poll_id", UUID.class),
+				rs.getString("poll_title"),
 				rs.getString("group_name"),
 				rs.getString("comment_body"),
 				rs.getString("comment_author"),

@@ -26,6 +26,24 @@ export async function markEventSeen(eventId: string) {
   if (data && data.length > 0) refresh();
 }
 
+// 투표 화면을 열면 부른다. 투표 카드의 안 읽은 댓글 숫자를 끄고, 이 투표의 댓글·언급 알림을 읽음으로 바꾼다.
+export async function markPollSeen(pollId: string) {
+  if (!UUID.test(pollId)) return;
+  const userId = await getUserId();
+  const supabase = await createClient();
+  const [, { data }] = await Promise.all([
+    supabase.rpc("mark_poll_seen", { p_poll_id: pollId }),
+    supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("poll_id", pollId)
+      .is("read_at", null)
+      .select("id"),
+  ]);
+  if (data && data.length > 0) refresh();
+}
+
 // 그룹 화면을 열면 부른다. 홈 그룹 동그라미의 새 소식 테두리를 모든 기기에서 끈다.
 export async function markGroupSeen(groupId: string) {
   if (!UUID.test(groupId)) return;

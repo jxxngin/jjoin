@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { StatusBadge } from "@/components/status-badge";
 import { UnreadCommentsBadge } from "@/components/unread-comments";
+import { eventSeenKey } from "@/lib/seen";
 import { eventPeriodParts, formatDaysLeft, formatEventDate } from "@/lib/datetime";
 import { formatGoing } from "@/lib/event-status";
 import type { EventSummary } from "@/lib/events";
@@ -81,7 +82,7 @@ export function EventCard({
           )}
           {place && ` · ${place}`}
         </span>
-        <UnreadCommentsBadge eventId={event.id} commentTimes={event.otherCommentTimes} serverSeenAt={event.seenAt} />
+        <UnreadCommentsBadge seenKey={eventSeenKey(event.id)} commentTimes={event.otherCommentTimes} serverSeenAt={event.seenAt} />
       </div>
     </Link>
   );

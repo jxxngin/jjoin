@@ -189,7 +189,7 @@ async function EventContent({ id, invite }: { id: string; invite: string | null 
       )}
 
       <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
-        <Comments eventId={event.id} groupId={event.group.id} />
+        <Comments target={{ kind: "event", id: event.id }} groupId={event.group.id} />
       </Suspense>
 
       {event.canEdit && (

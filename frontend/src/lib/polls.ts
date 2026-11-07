@@ -35,6 +35,8 @@ export type PollDetail = {
   options: PollOption[];
   // 한 번이라도 투표한 사람 수
   voterCount: number;
+  // 다른 사람이 쓴 댓글 시각 (투표를 열면 이 시각까지 본 것으로 남긴다)
+  otherCommentTimes: string[];
 };
 
 export type PollSummary = {
@@ -44,6 +46,9 @@ export type PollSummary = {
   closed: boolean;
   optionCount: number;
   voterCount: number;
+  // 안 읽은 댓글 숫자용: 다른 사람이 쓴 댓글 시각, 내가 이 투표를 마지막으로 본 시각(서버 기록)
+  otherCommentTimes: string[];
+  seenAt: string | null;
 };
 
 type PollRow = {
@@ -57,6 +62,7 @@ type PollRow = {
   closed_at: string | null;
   event_id: string | null;
   groups: { id: string; name: string; owner_id: string; invite_code: string };
+  comments: { user_id: string; created_at: string }[];
   date_poll_options: {
     id: string;
     starts_at: string;
@@ -71,9 +77,9 @@ type PollRow = {
 // 그룹 화면에 보여 줄 투표: 아직 약속으로 확정되지 않은 것만. 최신 순.
 export async function getGroupPolls(groupId: string): Promise<PollSummary[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const [userId, { data, error }] = await Promise.all([getUserId(), supabase
     .from("date_polls")
-    .select("id, kind, title, closed_at, date_poll_options(id, date_poll_votes(user_id))")
+    .select("id, kind, title, closed_at, date_poll_options(id, date_poll_votes(user_id)), comments(user_id, created_at), poll_seen(seen_at)")
     .eq("group_id", groupId)
     .is("event_id", null)
     .order("created_at", { ascending: false })
@@ -84,9 +90,11 @@ export async function getGroupPolls(groupId: string): Promise<PollSummary[]> {
         title: string;
         closed_at: string | null;
         date_poll_options: { id: string; date_poll_votes: { user_id: string }[] }[];
+        comments: { user_id: string; created_at: string }[];
+        poll_seen: { seen_at: string }[];
       }[],
       { merge: false }
-    >();
+    >()]);
 
   if (error) throw new Error(`날짜 투표를 불러오지 못했어요. (${error.message})`);
 
@@ -97,6 +105,8 @@ export async function getGroupPolls(groupId: string): Promise<PollSummary[]> {
     closed: poll.closed_at !== null,
     optionCount: poll.date_poll_options.length,
     voterCount: new Set(poll.date_poll_options.flatMap((o) => o.date_poll_votes.map((v) => v.user_id))).size,
+    otherCommentTimes: poll.comments.filter((c) => c.user_id !== userId).map((c) => c.created_at),
+    seenAt: poll.poll_seen[0]?.seen_at ?? null,
   }));
 }
 
@@ -110,7 +120,7 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
     supabase
       .from("date_polls")
       .select(
-        `id, kind, title, place_name, max_people, memo, created_by, closed_at, event_id, groups(id, name, owner_id, invite_code),
+        `id, kind, title, place_name, max_people, memo, created_by, closed_at, event_id, groups(id, name, owner_id, invite_code), comments(user_id, created_at),
          date_poll_options(id, starts_at, ends_at, date_poll_votes(user_id, profiles(nickname, avatar_url, avatar_color)))`,
       )
       .eq("id", id)
@@ -153,6 +163,7 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
     canManage: row.created_by === userId || row.groups.owner_id === userId,
     options,
     voterCount: new Set(options.flatMap((o) => o.voters.map((v) => v.id))).size,
+    otherCommentTimes: row.comments.filter((c) => c.user_id !== userId).map((c) => c.created_at),
   };
 }
 
