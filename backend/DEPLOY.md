@@ -7,7 +7,7 @@ GitHub (main에 backend/ 변경 push)
   └─ Actions "백엔드 배포": 테스트 → 이미지(x86·ARM) → ghcr.io/jxxngin/jjoin-backend
                                    └─ SSH로 서버에서 docker compose pull && up
 Oracle Cloud VM (오사카)
-  └─ docker compose: backend (워커·예약 작업) [+ caddy: B3 API부터 HTTPS]
+  └─ docker compose: backend (워커·예약 작업·문의 API) + caddy (HTTPS, <IP>.sslip.io)
         └─ Supabase Postgres (커넥션 풀러, jjoin_worker 계정)
 ```
 
@@ -85,6 +85,28 @@ GitHub 저장소 → **Settings → Secrets and variables → Actions → New re
 ### 되돌리기
 
 Vercel에서 `PUSH_WORKER`·`CRON_WORKER`를 지우고 Redeploy하면 바로 예전처럼 Next가 맡아요. 둘이 같이 돌아도 알림이 두 번 가지 않아요. (대기열 잠금, 예약 함수의 보낸 표시)
+
+## 6. 문의 API 켜기 (B3, HTTPS)
+
+Next(Vercel 서울)가 서버의 문의 API를 HTTPS로 부르도록 Caddy를 켜요. 주소는 가입이 필요 없는 sslip.io를 써요. (`<IP의 점을 -로>.sslip.io`, 예: `152-70-1-2.sslip.io`)
+
+1. **Oracle 콘솔 → Networking → Virtual cloud networks → (VCN) → Security Lists → Default → Add Ingress Rules**
+   - Source CIDR `0.0.0.0/0`, IP Protocol TCP, Destination Port Range `80,443`
+   - 서버 안 방화벽(iptables)은 배포 워크플로가 열어요.
+2. **GitHub Secret** `API_DOMAIN` = `152-70-1-2.sslip.io` (자기 IP로)
+3. Actions → **백엔드 배포 → Run workflow**. 워크플로가 compose·Caddyfile을 올리고, 서버 `.env`에 `SUPABASE_URL`·`AUTOFIX_SECRET`·`API_DOMAIN`을 맞추고, Caddy를 켜요. 로그에 `HTTPS 입구 정상 (인증 없이 401)`이 보이면 성공.
+4. **Vercel → Environment Variables** (Production) 후 Redeploy
+
+   | 이름 | 값 |
+   |---|---|
+   | `BACKEND_API_URL` | `https://152-70-1-2.sslip.io` |
+   | `INQUIRY_API` | `spring` |
+
+5. **GitHub Secret** `AUTOFIX_API_URL` = `https://152-70-1-2.sslip.io` (자동 수정 워크플로가 Spring으로. 공개 저장소라 로그에 주소가 안 보이게 Secret으로 둬요)
+
+### 되돌리기
+
+Vercel의 `INQUIRY_API`를 지우고 Redeploy, GitHub Secret `AUTOFIX_API_URL`을 지우면 바로 Next가 맡아요. Caddy는 켜 둬도 상관없어요. (`docker compose stop caddy`로 끌 수 있어요)
 
 ## 운영
 

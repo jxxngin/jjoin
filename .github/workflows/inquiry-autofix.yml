@@ -27,8 +27,11 @@ jobs:
     timeout-minutes: 30
     env:
       INQUIRY_ID: ${{ github.event.client_payload.inquiry_id }}
-      # 저장소 변수 AUTOFIX_API_URL이 있으면 Spring 백엔드(B3)로, 없으면 Next로 보낸다.
-      APP_URL: ${{ vars.AUTOFIX_API_URL || 'https://jjoin.vercel.app' }}
+      # 저장소 Secret AUTOFIX_API_URL이 있으면 Spring 백엔드(B3)로, 없으면 Next로 보낸다.
+      # (공개 저장소라 Actions 로그에 서버 주소가 보이지 않도록 변수가 아니라 Secret으로 둔다)
+      APP_URL: ${{ secrets.AUTOFIX_API_URL || 'https://jjoin.vercel.app' }}
+      # PR 본문의 관리자 화면 링크는 API 주소와 상관없이 웹앱 주소로 건다.
+      SITE_URL: https://jjoin.vercel.app
     steps:
       - name: 문의 번호 확인
         run: '[[ "$INQUIRY_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "잘못된 문의 번호"; exit 1; }'
@@ -161,7 +164,7 @@ jobs:
             echo "**확인 방법**"
             echo "$(cat "$RUNNER_TEMP/verify.txt")"
             echo
-            echo "- 관리자 화면: $APP_URL/support/$INQUIRY_ID"
+            echo "- 관리자 화면: $SITE_URL/support/$INQUIRY_ID"
             echo "- Vercel 미리보기에서 확인한 뒤 **Merge**하면 운영에 배포되고, 배포가 끝나면 문의가 자동으로 처리 완료돼요. 이상하면 Close하세요."
             echo
             echo "Inquiry: $INQUIRY_ID"

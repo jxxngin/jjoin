@@ -17,8 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      # 저장소 변수 AUTOFIX_API_URL이 있으면 Spring 백엔드(B3)로, 없으면 Next로 보낸다.
-      APP_URL: ${{ vars.AUTOFIX_API_URL || 'https://jjoin.vercel.app' }}
+      # 저장소 Secret AUTOFIX_API_URL이 있으면 Spring 백엔드(B3)로, 없으면 Next로 보낸다.
+      # (공개 저장소라 Actions 로그에 서버 주소가 보이지 않도록 변수가 아니라 Secret으로 둔다)
+      APP_URL: ${{ secrets.AUTOFIX_API_URL || 'https://jjoin.vercel.app' }}
     steps:
       - uses: actions/checkout@v5
         with:
