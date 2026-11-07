@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { Page, Reveal } from "@/components/slide-view";
 import { Period } from "@/components/period";
+import { VoterCard } from "@/components/voter-card";
 import { eventPeriodParts } from "@/lib/datetime";
 import { getPoll, topOptions, type PollOption } from "@/lib/polls";
 import { ConfirmButton, PollManage, VoteButton } from "./poll-controls";
@@ -45,22 +45,6 @@ export default function PollPage({ params, searchParams }: PageProps<"/polls/[id
         ))}
       </Suspense>
     </Page>
-  );
-}
-
-function Voters({ option }: { option: PollOption }) {
-  if (option.voters.length === 0) return <span className="text-xs text-stone-400">아직 없어요</span>;
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="flex -space-x-1.5">
-        {option.voters.slice(0, 5).map((voter) => (
-          <span key={voter.id} className="rounded-full ring-2 ring-background" title={voter.nickname}>
-            <Avatar src={voter.avatarUrl} color={voter.avatarColor} size="xs" />
-          </span>
-        ))}
-      </span>
-      <span className="text-xs text-stone-500">{option.voters.length}명</span>
-    </span>
   );
 }
 
@@ -120,18 +104,21 @@ async function PollContent({ id, invite }: { id: string; invite: string | null }
           ) : (
             <ol className="flex flex-col gap-2">
               {top.map((option, i) => (
-                <li key={option.id} className="flex items-center gap-3 rounded-2xl bg-stone-100 px-4 py-3 dark:bg-stone-900">
-                  <span className="text-2xl" aria-label={`${i + 1}위`}>
-                    {MEDALS[i]}
+                <VoterCard
+                  key={option.id}
+                  voters={option.voters}
+                  className="rounded-2xl bg-stone-100 dark:bg-stone-900"
+                  action={
+                    poll.canManage && <ConfirmButton pollId={poll.id} optionId={option.id} label={labelText(option)} />
+                  }
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <span className="text-xl" aria-label={`${i + 1}위`}>
+                      {MEDALS[i]}
+                    </span>
+                    <OptionLabel option={option} />
                   </span>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="font-medium"><OptionLabel option={option} /></span>
-                    <Voters option={option} />
-                  </div>
-                  {poll.canManage && (
-                    <ConfirmButton pollId={poll.id} optionId={option.id} label={labelText(option)} />
-                  )}
-                </li>
+                </VoterCard>
               ))}
             </ol>
           )}
@@ -146,22 +133,16 @@ async function PollContent({ id, invite }: { id: string; invite: string | null }
           {poll.closed ? "전체 결과" : poll.kind === "trip" ? "되는 기간을 모두 골라 주세요" : "되는 날짜를 모두 골라 주세요"}
         </h2>
         <ul className="flex flex-col gap-2">
+          {/* 표 수만큼 배경 막대가 차고, 카드를 누르면 고른 사람 이름이 펼쳐진다. */}
           {poll.options.map((option) => (
-            <li key={option.id} className="relative overflow-hidden rounded-2xl border border-stone-200 px-4 py-3 dark:border-stone-800">
-              {/* 표 수만큼 배경 막대가 찬다. */}
-              <span
-                aria-hidden="true"
-                className="absolute inset-y-0 left-0 bg-brand/10 transition-[width] duration-500"
-                style={{ width: `${(option.voters.length / maxVotes) * 100}%` }}
-              />
-              <div className="relative flex items-center gap-3">
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="font-medium"><OptionLabel option={option} /></span>
-                  <Voters option={option} />
-                </div>
-                {!poll.closed && <VoteButton optionId={option.id} voted={option.votedByMe} />}
-              </div>
-            </li>
+            <VoterCard
+              key={option.id}
+              voters={option.voters}
+              barWidth={(option.voters.length / maxVotes) * 100}
+              action={!poll.closed && <VoteButton optionId={option.id} voted={option.votedByMe} />}
+            >
+              <span className="font-medium"><OptionLabel option={option} /></span>
+            </VoterCard>
           ))}
         </ul>
       </section>
