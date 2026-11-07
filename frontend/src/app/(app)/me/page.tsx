@@ -6,6 +6,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { ProfileForm } from "./profile-form";
 import { ThemePicker } from "./theme-picker";
 import { Page, Reveal } from "@/components/slide-view";
+import { GhostLoading } from "@/components/ghost-loading";
 
 export default function MyPage() {
   return (
@@ -13,7 +14,7 @@ export default function MyPage() {
       <BackLink href="/" label="홈" />
       <h1 className="text-2xl font-bold tracking-tight">마이페이지</h1>
 
-      <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+      <Suspense fallback={<GhostLoading><div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
         <ProfileSection />
       </Suspense>
 

@@ -4,6 +4,7 @@ import { Page, Reveal } from "@/components/slide-view";
 import { getUserId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteAccountForm } from "./delete-form";
+import { GhostLoading } from "@/components/ghost-loading";
 
 // 회원 탈퇴. 무엇이 지워지고 무엇이 친구들에게 남는지 먼저 보여 준다.
 export default function DeleteAccountPage() {
@@ -11,7 +12,7 @@ export default function DeleteAccountPage() {
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/me" label="마이페이지" />
       <h1 className="text-2xl font-bold tracking-tight">회원 탈퇴</h1>
-      <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+      <Suspense fallback={<GhostLoading><div className="h-64 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
         <DeleteAccountContent />
       </Suspense>
     </Page>

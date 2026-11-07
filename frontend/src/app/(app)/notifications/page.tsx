@@ -7,6 +7,7 @@ import { getNotifications, type NotificationKind } from "@/lib/notifications";
 import { MarkRead } from "./mark-read";
 import { NotificationSettings } from "./notification-settings";
 import { ReadAllButton } from "./read-all-button";
+import { GhostLoading } from "@/components/ghost-loading";
 
 const ICONS: Record<NotificationKind, string> = {
   new_event: "📅",
@@ -26,7 +27,7 @@ export default function NotificationsPage() {
       <Suspense fallback={<div className="h-12 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         <SettingsSection />
       </Suspense>
-      <Suspense fallback={<NotificationsSkeleton />}>
+      <Suspense fallback={<GhostLoading><NotificationsSkeleton /></GhostLoading>}>
         <NotificationList />
       </Suspense>
     </Page>
