@@ -45,23 +45,24 @@ export function UnreadCommentsBadge({
 // 약속 화면을 열면 "지금 봤음"을 기록해서 목록의 안 읽은 댓글 배지와 그룹 새 소식 테두리를 끈다.
 // 이 약속에 대한 알림도 읽음으로 바꾸고, 휴대폰 알림 센터에 남은 알림도 닫는다.
 // 보는 동안 새 댓글이 와서 화면이 다시 그려지면 그때도 다시 기록한다.
-export function MarkEventSeen({ eventId, commentTimes }: { eventId: string; commentTimes: string[] }) {
+// loadedAt: 화면 데이터를 불러온 시각. 서버에는 이 시각까지만 본 것으로 남긴다. (그 뒤에 온 댓글은 아직 안 봤다)
+export function MarkEventSeen({ eventId, commentTimes, loadedAt }: { eventId: string; commentTimes: string[]; loadedAt: string }) {
   const latest = commentTimes.reduce((a, b) => (a > b ? a : b), "");
   useEffect(() => {
     markSeen(eventSeenKey(eventId), latest ? [latest] : []);
-    markEventSeen(eventId);
+    markEventSeen(eventId, loadedAt);
     closeSystemNotifications(`/events/${eventId}`);
-  }, [eventId, latest]);
+  }, [eventId, latest, loadedAt]);
   return null;
 }
 
 // 투표 화면을 열면 "지금 봤음"을 기록해서 투표 카드의 안 읽은 댓글 배지를 끈다. (MarkEventSeen과 같다)
-export function MarkPollSeen({ pollId, commentTimes }: { pollId: string; commentTimes: string[] }) {
+export function MarkPollSeen({ pollId, commentTimes, loadedAt }: { pollId: string; commentTimes: string[]; loadedAt: string }) {
   const latest = commentTimes.reduce((a, b) => (a > b ? a : b), "");
   useEffect(() => {
     markSeen(pollSeenKey(pollId), latest ? [latest] : []);
-    markPollSeen(pollId);
+    markPollSeen(pollId, loadedAt);
     closeSystemNotifications(`/polls/${pollId}`);
-  }, [pollId, latest]);
+  }, [pollId, latest, loadedAt]);
   return null;
 }

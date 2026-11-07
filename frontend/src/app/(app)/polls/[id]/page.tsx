@@ -163,7 +163,7 @@ async function PollContent({ id, invite }: { id: string; invite: string | null }
         </p>
       ) : (
         <>
-          <MarkPollSeen pollId={poll.id} commentTimes={poll.otherCommentTimes} />
+          <MarkPollSeen pollId={poll.id} commentTimes={poll.otherCommentTimes} loadedAt={poll.loadedAt} />
           <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
             <Comments target={{ kind: "poll", id: poll.id }} groupId={poll.group.id} />
           </Suspense>

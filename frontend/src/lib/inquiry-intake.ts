@@ -66,21 +66,26 @@ export async function afterInquiryCreated(inquiryId: string) {
     const admin = createAdminClient();
     const { data: inquiry } = await admin
       .from("inquiries")
-      .select("id, category, title, page_path")
+      .select("id, category, title, page_path, created_at")
       .eq("id", inquiryId)
       .maybeSingle();
     if (!inquiry) return;
 
+    // 원본 후보는 이 문의보다 먼저 들어온 문의만 본다.
+    // 비슷한 문의 두 건의 후처리가 동시에 돌아도 서로를 원본으로 지정할 수 없다(먼저 들어온 쪽만 원본이 된다). (#27 리뷰)
     const { data: recent } = await admin
       .from("inquiries")
       .select("id, category, title, page_path")
       .is("duplicate_of", null)
       .neq("status", "done")
       .gt("created_at", new Date(Date.now() - 864e5).toISOString())
+      .lt("created_at", inquiry.created_at)
       .order("created_at")
       .limit(100);
     const original = findDuplicate(inquiry, recent ?? []);
-    if (original) await admin.from("inquiries").update({ duplicate_of: original.id }).eq("id", inquiryId);
+    if (original) {
+      await admin.from("inquiries").update({ duplicate_of: original.id }).eq("id", inquiryId).is("duplicate_of", null);
+    }
 
     if (inquiry.category !== "bug") return;
     const delivered = await pushAdmins({

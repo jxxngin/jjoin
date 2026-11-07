@@ -55,7 +55,7 @@ async function EventContent({ id, invite }: { id: string; invite: string | null 
 
   return (
     <Reveal className="flex flex-1 flex-col gap-6">
-      <MarkEventSeen eventId={event.id} commentTimes={event.otherCommentTimes} />
+      <MarkEventSeen eventId={event.id} commentTimes={event.otherCommentTimes} loadedAt={event.loadedAt} />
       <BackLink href={`/groups/${event.group.id}`} label={event.group.name} />
 
       <div className="flex flex-col gap-2">
