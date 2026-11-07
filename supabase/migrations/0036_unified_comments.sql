@@ -327,6 +327,9 @@ begin
   update public.comments set event_id = new.event_id, poll_id = null where poll_id = new.id;
   update public.notifications set event_id = new.event_id, poll_id = null
   where poll_id = new.id and comment_id is not null;
+  -- 아직 보내지 않았거나 다시 보낼 알림도 약속으로 (누르면 약속 화면으로 가게)
+  update public.notification_outbox set event_id = new.event_id, poll_id = null
+  where poll_id = new.id;
   -- 투표 때 댓글을 본 사람은 약속에서도 본 것으로 친다.
   insert into public.event_seen (user_id, event_id, seen_at)
   select s.user_id, new.event_id, s.seen_at from public.poll_seen s where s.poll_id = new.id
@@ -356,5 +359,9 @@ create policy "알림 워커: 투표 읽기" on public.date_polls for select to 
 ------------------------------------------------------------
 drop trigger event_comments_queue_mentions on public.event_comments;
 drop trigger event_comments_queue_comments on public.event_comments;
+-- 표 단위 회수는 열 단위 권한도 함께 회수하지만(PostgreSQL REVOKE 설명), 0012·0013·0019·0027에서
+-- 열 단위로 준 쓰기 권한을 확실히 하기 위해 그 열들도 적어서 회수한다.
 revoke insert, update, delete on public.event_comments from authenticated;
 revoke insert, update, delete on public.poll_comments from authenticated;
+revoke insert (event_id, body, mentions, parent_id), update (body) on public.event_comments from authenticated;
+revoke insert (poll_id, body, mentions, parent_id), update (body) on public.poll_comments from authenticated;
