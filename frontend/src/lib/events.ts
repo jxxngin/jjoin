@@ -35,8 +35,6 @@ export type EventSummary = {
   otherCommentTimes: string[];
   // 내가 이 약속을 마지막으로 본 시각 (서버 기록, 모든 기기 공통). 본 적 없으면 null
   seenAt: string | null;
-  // 이 데이터를 불러온 시각. 약속을 열면 이 시각까지만 본 것으로 남긴다. (그 뒤에 온 댓글은 아직 안 봤다)
-  loadedAt: string;
 };
 
 export type Person = {
@@ -145,7 +143,6 @@ function toSummary(
       : null,
     otherCommentTimes: row.comments.filter((c) => c.user_id !== userId).map((c) => c.created_at),
     seenAt: row.event_seen[0]?.seen_at ?? null,
-    loadedAt: new Date(now).toISOString(),
   };
 }
 

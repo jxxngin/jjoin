@@ -6,18 +6,18 @@ import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// 화면이 데이터를 불러온 시각. 올바른 시각이 아니면 null (그러면 아무것도 하지 않는다)
-function loadedTime(at: string) {
+// 화면에 보여 준 댓글까지의 시각(lib/comments.ts의 seenUpTo). 올바른 시각이 아니면 null (그러면 아무것도 하지 않는다)
+function seenTime(at: string) {
   const time = Date.parse(at);
   return Number.isFinite(time) ? new Date(time).toISOString() : null;
 }
 
-// 약속 화면을 열면 부른다. loadedAt은 화면 데이터를 불러온 시각이다.
+// 약속 화면의 댓글을 보여 주면 부른다. seenUpTo는 화면에 실제로 보여 준 댓글까지의 시각이다.
 // - 이 약속을 그 시각까지 본 것으로 서버에 남긴다. (약속 카드의 안 읽은 댓글 숫자, 그룹 새 소식. 모든 기기 공통)
-//   불러온 뒤에 온 댓글은 화면에 없었으니 아직 안 본 것으로 둔다. (#27 리뷰)
+//   화면에 없던(그 뒤에 온) 댓글은 아직 안 본 것으로 둔다. (#27·#31 리뷰)
 // - 그 시각까지 온 이 약속의 알림(새 약속·댓글·언급·리마인더)도 읽음으로 바꾸고, 바뀐 게 있으면 종의 점을 다시 그린다.
-export async function markEventSeen(eventId: string, loadedAt: string) {
-  const at = loadedTime(loadedAt);
+export async function markEventSeen(eventId: string, seenUpTo: string) {
+  const at = seenTime(seenUpTo);
   if (!UUID.test(eventId) || !at) return;
   const userId = await getUserId();
   const supabase = await createClient();
@@ -35,10 +35,10 @@ export async function markEventSeen(eventId: string, loadedAt: string) {
   if (data && data.length > 0) refresh();
 }
 
-// 투표 화면을 열면 부른다. 화면 데이터를 불러온 시각(loadedAt)까지 본 것으로 남겨 투표 카드의 안 읽은 댓글 숫자를 끄고,
+// 투표 화면의 댓글을 보여 주면 부른다. 보여 준 댓글까지의 시각(seenUpTo)까지 본 것으로 남겨 투표 카드의 안 읽은 댓글 숫자를 끄고,
 // 그 시각까지 온 이 투표의 댓글·언급 알림을 읽음으로 바꾼다. (약속과 같다)
-export async function markPollSeen(pollId: string, loadedAt: string) {
-  const at = loadedTime(loadedAt);
+export async function markPollSeen(pollId: string, seenUpTo: string) {
+  const at = seenTime(seenUpTo);
   if (!UUID.test(pollId) || !at) return;
   const userId = await getUserId();
   const supabase = await createClient();

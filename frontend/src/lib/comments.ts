@@ -43,8 +43,11 @@ type CommentRow = {
 export type CommentTarget = { kind: "event" | "poll"; id: string };
 
 // 약속·투표 댓글. 오래된 순. 그룹 멤버가 아니면 RLS 때문에 빈 목록이다.
-export async function getComments(target: CommentTarget): Promise<Comment[]> {
+// seenUpTo: 화면을 열었을 때 '여기까지 봤다'고 남길 시각. 댓글을 조회하기 직전 시각과 실제로 받은 댓글의 마지막 시각 중 늦은 쪽.
+// (조회 뒤에 온 댓글은 화면에 없으니 아직 안 본 것이고, 조회에 섞여 들어온 댓글은 화면에 보였으니 본 것이다)
+export async function getComments(target: CommentTarget): Promise<{ comments: Comment[]; seenUpTo: string }> {
   const supabase = await createClient();
+  const requestedAt = new Date().toISOString();
   const column = target.kind === "event" ? "event_id" : "poll_id";
   const [kakaoNames, { data: parent }] = await Promise.all([
     getVisibleKakaoNames(),
@@ -61,7 +64,8 @@ export async function getComments(target: CommentTarget): Promise<Comment[]> {
 
   if (error) throw new Error(`댓글을 불러오지 못했어요. (${error.message})`);
 
-  return data.map((row) => ({
+  const lastShown = data.reduce((latest, row) => (Date.parse(row.created_at) > Date.parse(latest) ? row.created_at : latest), requestedAt);
+  const comments = data.map((row) => ({
     id: row.id,
     body: row.body,
     mentions: row.mentions,
@@ -79,4 +83,6 @@ export async function getComments(target: CommentTarget): Promise<Comment[]> {
         }
       : null,
   }));
+  // DB 시각은 마이크로초까지라 밀리초로 바꾸면 뒷자리가 잘린다. 1ms를 더해 마지막으로 보여 준 댓글이 반드시 포함되게 한다.
+  return { comments, seenUpTo: new Date(Date.parse(lastShown) + 1).toISOString() };
 }

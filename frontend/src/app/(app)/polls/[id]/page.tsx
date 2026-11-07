@@ -9,7 +9,6 @@ import { eventPeriodParts } from "@/lib/datetime";
 import { getPoll, topOptions, type PollOption } from "@/lib/polls";
 import { ConfirmButton, PollManage, VoteButton } from "./poll-controls";
 import { Comments } from "@/app/(app)/events/[id]/comments";
-import { MarkPollSeen } from "@/components/unread-comments";
 import { CopyLinkButton } from "@/app/(app)/events/[id]/copy-link-button";
 import { joinGroup } from "@/app/(app)/groups/actions";
 import { GroupAvatar } from "@/components/group-avatar";
@@ -163,7 +162,6 @@ async function PollContent({ id, invite }: { id: string; invite: string | null }
         </p>
       ) : (
         <>
-          <MarkPollSeen pollId={poll.id} commentTimes={poll.otherCommentTimes} loadedAt={poll.loadedAt} />
           <Suspense fallback={<div className="h-24 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
             <Comments target={{ kind: "poll", id: poll.id }} groupId={poll.group.id} />
           </Suspense>

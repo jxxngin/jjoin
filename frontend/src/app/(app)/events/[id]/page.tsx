@@ -8,7 +8,6 @@ import { PersonName } from "@/components/person-name";
 import { BackLink } from "@/components/back-link";
 import { Period } from "@/components/period";
 import { StatusBadge } from "@/components/status-badge";
-import { MarkEventSeen } from "@/components/unread-comments";
 import { END_REASON_LABELS, formatGoing } from "@/lib/event-status";
 import { googleCalendarUrl } from "@/lib/calendar-export";
 import { getEvent, type Participant } from "@/lib/events";
@@ -55,7 +54,6 @@ async function EventContent({ id, invite }: { id: string; invite: string | null 
 
   return (
     <Reveal className="flex flex-1 flex-col gap-6">
-      <MarkEventSeen eventId={event.id} commentTimes={event.otherCommentTimes} loadedAt={event.loadedAt} />
       <BackLink href={`/groups/${event.group.id}`} label={event.group.name} />
 
       <div className="flex flex-col gap-2">

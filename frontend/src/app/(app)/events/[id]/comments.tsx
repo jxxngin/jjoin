@@ -2,6 +2,7 @@ import { getUserId } from "@/lib/auth";
 import { getComments, type Comment, type CommentTarget } from "@/lib/comments";
 import { formatEventDate } from "@/lib/datetime";
 import { getGroup } from "@/lib/groups";
+import { MarkEventSeen, MarkPollSeen } from "@/components/unread-comments";
 import { deleteComment, editComment, postComment } from "../comment-actions";
 import { CommentForm, type Mentionable } from "./comment-form";
 import { CommentThread, type CommentView } from "./comment-row";
@@ -91,12 +92,20 @@ export function mentionablesFrom(members: Mentionable[], userId: string) {
 }
 
 // 약속·투표 댓글. 오래된 순으로 보여 주고, 아래에서 새 댓글을 쓴다. @언급·하트·답글·수정이 된다.
+// 화면을 열면 실제로 보여 준 댓글까지(seenUpTo) 본 것으로 남긴다. (약속 카드·투표 카드의 안 읽은 댓글 숫자, 알림 읽음)
 export async function Comments({ target, groupId }: { target: CommentTarget; groupId: string }) {
-  const [comments, userId, group] = await Promise.all([getComments(target), getUserId(), getGroup(groupId)]);
+  const [{ comments, seenUpTo }, userId, group] = await Promise.all([getComments(target), getUserId(), getGroup(groupId)]);
   const members = group?.members ?? [];
+  const otherTimes = comments.filter((c) => c.author?.id !== userId).map((c) => c.createdAt);
 
   return (
-    <CommentSection
+    <>
+      {target.kind === "event" ? (
+        <MarkEventSeen eventId={target.id} commentTimes={otherTimes} seenUpTo={seenUpTo} />
+      ) : (
+        <MarkPollSeen pollId={target.id} commentTimes={otherTimes} seenUpTo={seenUpTo} />
+      )}
+      <CommentSection
       comments={comments}
       userId={userId}
       nicknameById={new Map(members.map((m) => [m.id, m.nickname]))}
@@ -104,6 +113,7 @@ export async function Comments({ target, groupId }: { target: CommentTarget; gro
       edit={editComment}
       remove={deleteComment}
       mentionables={mentionablesFrom(members, userId)}
-    />
+      />
+    </>
   );
 }

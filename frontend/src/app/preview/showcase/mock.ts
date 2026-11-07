@@ -28,7 +28,6 @@ function event(
     creator: { nickname: "민수", kakaoName: "김민수", avatarUrl: null, avatarColor: "mint" },
     otherCommentTimes: [],
     seenAt: null,
-    loadedAt: "2026-10-15T00:00:00.000Z",
     ...extra,
   };
 }

@@ -37,8 +37,6 @@ export type PollDetail = {
   voterCount: number;
   // 다른 사람이 쓴 댓글 시각
   otherCommentTimes: string[];
-  // 이 데이터를 불러온 시각. 투표를 열면 이 시각까지만 본 것으로 남긴다. (그 뒤에 온 댓글은 아직 안 봤다)
-  loadedAt: string;
 };
 
 export type PollSummary = {
@@ -117,7 +115,6 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
   if (!UUID.test(id)) return null;
 
   const supabase = await createClient();
-  const loadedAt = new Date().toISOString();
   const [userId, { data: row }] = await Promise.all([
     getUserId(),
     supabase
@@ -167,7 +164,6 @@ export async function getPoll(id: string): Promise<PollDetail | null> {
     options,
     voterCount: new Set(options.flatMap((o) => o.voters.map((v) => v.id))).size,
     otherCommentTimes: row.comments.filter((c) => c.user_id !== userId).map((c) => c.created_at),
-    loadedAt,
   };
 }
 
