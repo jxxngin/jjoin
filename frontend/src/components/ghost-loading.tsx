@@ -6,9 +6,10 @@ import type { ReactNode } from "react";
 // - 화면 전체를 대신하는 큰 뼈대에만 쓴다. 댓글 같은 작은 부분 로딩은 지금처럼 뼈대만.
 // - '동작 줄이기'를 켠 기기에서는 움직이지 않는 그림을 보여 준다.
 // - JS 없이 CSS 애니메이션만 쓴다. (globals.css의 .ghost-loading)
+// - 부모가 가운데 정렬(items-center)이어도 뼈대가 0으로 줄지 않게 전체 너비를 차지한다. (초대 화면)
 export function GhostLoading({ children }: { children: ReactNode }) {
   return (
-    <div className="ghost-loading relative">
+    <div className="ghost-loading relative w-full">
       <div className="ghost-loading-skeleton">{children}</div>
       <div className="ghost-loading-ghost" role="status">
         <picture>
