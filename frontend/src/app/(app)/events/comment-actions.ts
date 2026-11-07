@@ -13,6 +13,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // 댓글을 남긴다. mentionIds는 화면에서 @로 고른 멤버들이다. parentId가 있으면 그 댓글의 답글이다.
 // 그룹 멤버가 아니면 RLS 때문에 실패한다. 답글의 원 댓글은 DB 정책이, 언급·새 댓글 알림은 DB 트리거가 맡는다.
+// 그사이 투표가 약속으로 확정됐으면 DB 트리거가 그 약속의 댓글로 저장한다. (다시 그리면 투표 화면이 약속 링크를 보여 준다)
 export async function postComment(
   target: CommentTarget,
   parentId: string | null,

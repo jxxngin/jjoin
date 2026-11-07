@@ -7,7 +7,8 @@
 -- - 알림 대기열·기록에 poll_id를 더해 투표 댓글의 언급·새 댓글 알림도 약속과 같은 길로 보낸다.
 --   새 댓글 알림은 투표를 만든 사람과 투표한 사람에게 간다. (약속: 만든 사람과 참여·대기·미정인 사람)
 -- - poll_seen: 투표를 본 시각 (투표 카드의 안 읽은 댓글 숫자)
--- - 투표가 약속으로 확정되면 댓글과 그 알림이 약속으로 옮겨 간다.
+-- - 투표가 약속으로 확정되면 댓글과 그 알림이 약속으로 옮겨 간다. 이미 확정된 투표의 댓글과
+--   확정 뒤에 늦게 도착한 투표 댓글도 약속으로 간다.
 -- - 예전 표(event_comments, poll_comments)는 이번 배포 동안 읽기만 되게 두고 다음 마이그레이션에서 지운다.
 
 ------------------------------------------------------------
@@ -37,6 +38,12 @@ select id, event_id, user_id, parent_id, body, mentions, created_at, edited_at f
 
 insert into public.comments (id, poll_id, user_id, parent_id, body, mentions, created_at, edited_at)
 select id, poll_id, user_id, parent_id, body, mentions, created_at, edited_at from public.poll_comments;
+
+-- 이미 약속으로 확정된 투표의 댓글은 바로 그 약속으로 잇는다. (확정된 투표 화면은 댓글 대신 약속 링크를 보여 준다)
+update public.comments c
+set event_id = d.event_id, poll_id = null
+from public.date_polls d
+where c.poll_id = d.id and d.event_id is not null;
 
 ------------------------------------------------------------
 -- 2. 권한 (RLS)
@@ -188,6 +195,7 @@ $$;
 -- 새 댓글 알림. 쓴 사람과 언급된 사람(언급 알림을 따로 받음)은 뺀다.
 -- - 약속: 만든 사람과 참여·대기·미정인 사람
 -- - 투표: 만든 사람과 투표한 사람 (날짜 후보에 한 번이라도 투표한 사람)
+-- 그룹을 나가거나 내보내진 사람은 참여·투표 기록이 남아 있어도 빼서, 볼 수 없는 대화가 알림으로 새지 않게 한다.
 create function public.queue_comment_replies()
 returns trigger
 language plpgsql
@@ -209,12 +217,46 @@ begin
     join public.date_poll_options o on o.id = v.option_id
     where o.poll_id = new.poll_id
   ) as target
-  where target.user_id is not null
-    and target.user_id <> new.user_id
-    and not (target.user_id = any (new.mentions));
+  join public.group_members m on m.user_id = target.user_id
+  where target.user_id <> new.user_id
+    and not (target.user_id = any (new.mentions))
+    and m.group_id = coalesce(
+      (select e.group_id from public.events e where e.id = new.event_id),
+      (select d.group_id from public.date_polls d where d.id = new.poll_id)
+    );
   return new;
 end;
 $$;
+
+-- 이미 약속으로 확정된 투표에 댓글을 쓰면(확정 직전에 연 화면에서 늦게 보낸 경우) 그 약속의 댓글로 저장한다.
+-- 투표 행을 잠그고 확인해서, 확정(confirm_date_poll은 투표 행을 FOR UPDATE로 잠근다)과 동시에 와도
+-- "확정 전에 저장 → 확정 때 옮겨짐" 또는 "확정 뒤에 저장 → 여기서 약속으로" 중 하나가 된다.
+-- RLS 쓰기 검사는 이 트리거 다음에 바뀐 행으로 한다.
+create function public.redirect_confirmed_poll_comment()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  confirmed uuid;
+begin
+  if new.poll_id is not null then
+    select d.event_id into confirmed from public.date_polls d where d.id = new.poll_id for share;
+    if confirmed is not null then
+      new.event_id := confirmed;
+      new.poll_id := null;
+    end if;
+  end if;
+  return new;
+end;
+$;
+
+create trigger comments_redirect_confirmed_poll
+  before insert on public.comments
+  for each row execute function public.redirect_confirmed_poll_comment();
+
+revoke execute on function public.redirect_confirmed_poll_comment() from public, anon, authenticated;
 
 create trigger comments_queue_mentions
   after insert on public.comments
