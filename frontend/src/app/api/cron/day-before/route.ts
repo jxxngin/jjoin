@@ -1,4 +1,3 @@
-import { flushNotifications } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // 하루 전 알림. Vercel Cron이 매일 한국 시간 오전 10시에 부른다. (vercel.json)
@@ -17,7 +16,6 @@ export async function GET(request: Request) {
     return Response.json({ ok: false }, { status: 500 });
   }
 
-  // 대기열에 남아 있던 다른 알림도 함께 보낸다.
-  await flushNotifications();
+  // 쌓인 알림은 Spring 워커가 보낸다.
   return Response.json({ ok: true, queued });
 }

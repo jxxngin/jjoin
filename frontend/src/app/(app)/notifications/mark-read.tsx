@@ -17,7 +17,7 @@ export function MarkRead({
   comments: { kind: "event" | "poll"; id: string; at: string }[];
 }) {
   useEffect(() => {
-    markAllNotificationsRead();
+    markAllNotificationsRead(latestId);
     closeSystemNotifications();
     markNotificationsReadUpTo(latestId);
     for (const { kind, id, at } of comments) markSeen(kind === "event" ? eventSeenKey(id) : pollSeenKey(id), [at], false);

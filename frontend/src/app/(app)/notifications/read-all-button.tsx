@@ -18,7 +18,7 @@ export function ReadAllButton({ latestId, unread }: { latestId: number; unread: 
         startTransition(async () => {
           markNotificationsReadUpTo(latestId);
           closeSystemNotifications();
-          await readAllNotifications();
+          await readAllNotifications(latestId);
         })
       }
       className="rounded-full bg-brand/10 px-3 py-1.5 text-sm font-medium text-brand-ink disabled:opacity-50"

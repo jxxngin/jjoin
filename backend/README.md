@@ -78,5 +78,5 @@ set -a; . ./.env; set +a
 ## Next에서 넘겨받기
 
 1. 워커를 서버에 띄워요. ([DEPLOY.md](DEPLOY.md))
-2. Vercel 환경 변수에 `PUSH_WORKER=spring`(알림 발송), `CRON_WORKER=spring`(예약 작업)을 넣고 다시 배포하면 Next는 쉬고 워커가 맡아요.
+2. Vercel 환경 변수에 `CRON_WORKER=spring`(예약 작업)을 넣고 다시 배포하면 Next의 Cron은 쉬고 워커가 맡아요. 알림 발송은 처음부터 워커만 해요. (Next의 대기열 발송은 #27에서 지웠어요)
 3. 문제가 생기면 두 값을 지우고 다시 배포하면 바로 Next가 다시 맡아요. (둘이 같이 돌아도 중복 발송은 없어요)

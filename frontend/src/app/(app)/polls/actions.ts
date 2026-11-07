@@ -2,9 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { after } from "next/server";
 import { endsAtFromLastDay, formatNights, fromKstInput } from "@/lib/datetime";
-import { flushNotifications } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 
 export type PollFormState = { error?: string };
@@ -149,14 +147,7 @@ export async function confirmPoll(pollId: string, optionId: string): Promise<{ e
   });
   if (error || !eventId) return { error: "약속을 확정하지 못했어요." };
 
-  // 새 약속 알림(DB 트리거가 쌓음)을 응답 뒤에 보낸다.
-  after(async () => {
-    try {
-      await flushNotifications();
-    } catch (e) {
-      console.error("새 약속 알림을 보내지 못했어요", e);
-    }
-  });
+  // 새 약속 알림은 DB 트리거가 대기열에 쌓고 Spring 워커가 보낸다.
   redirect(`/events/${eventId}`);
 }
 

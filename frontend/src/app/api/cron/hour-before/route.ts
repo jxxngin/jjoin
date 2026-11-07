@@ -1,4 +1,3 @@
-import { flushNotifications } from "@/lib/push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // 1시간 전 알림. Vercel 무료 플랜의 Cron은 하루 한 번뿐이라,
@@ -18,6 +17,6 @@ export async function GET(request: Request) {
     return Response.json({ ok: false }, { status: 500 });
   }
 
-  await flushNotifications();
+  // 쌓인 알림은 Spring 워커가 보낸다.
   return Response.json({ ok: true, queued });
 }

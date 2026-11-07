@@ -25,16 +25,25 @@ export async function POST(request: Request) {
   if (error) return new Response("Failed", { status: 500 });
   if (!targets?.length) return Response.json({ ok: true, resolved: 0 });
 
+  // 안내 글을 먼저 남기고, 성공했을 때만 처리 완료(deployed_at)로 바꾼다.
+  // 하나라도 실패하면 500으로 답해 deployed_at이 비어 있게 두고, 다음 배포 때 다시 처리되게 한다.
+  // (Spring 경로는 같은 일을 한 트랜잭션으로 한다, AutofixService.deployed)
   const now = new Date().toISOString();
   const targetIds = targets.map((t) => t.id);
+  const { data: notices, error: noticeError } = await admin
+    .from("inquiry_messages")
+    .insert(targetIds.map((id) => ({ inquiry_id: id, user_id: null, is_admin: true, body: NOTICE })))
+    .select("id");
+  if (noticeError) return new Response("Failed", { status: 500 });
   const { error: updateError } = await admin
     .from("inquiries")
     .update({ status: "done", deployed_at: now })
     .in("id", targetIds);
-  if (updateError) return new Response("Failed", { status: 500 });
-  await admin
-    .from("inquiry_messages")
-    .insert(targetIds.map((id) => ({ inquiry_id: id, user_id: null, is_admin: true, body: NOTICE })));
+  if (updateError) {
+    // 완료로 바꾸지 못했으면 방금 남긴 안내 글을 거둬서, 다시 처리할 때 글이 두 번 남지 않게 한다.
+    if (notices?.length) await admin.from("inquiry_messages").delete().in("id", notices.map((n) => n.id));
+    return new Response("Failed", { status: 500 });
+  }
 
   for (const target of targets) {
     if (!target.user_id) continue;

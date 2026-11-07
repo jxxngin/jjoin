@@ -1,35 +1,10 @@
 import "server-only";
+// 웹 푸시 직접 발송 (테스트 알림, 문의 답변·요약 알림).
+// 알림 대기열(notification_outbox)은 Spring 워커(backend/)만 보낸다. 예전 Next의 대기열 발송(flushNotifications)은
+// 나간 사람 확인·재시도가 없어 지웠다. (#27 리뷰)
 import webpush from "web-push";
-import { formatEventPeriod } from "@/lib/datetime";
 import { isAllowedPushEndpoint } from "@/lib/push-endpoint";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-type Kind = "new_event" | "promoted" | "day_before" | "mention" | "hour_before" | "comment";
-
-type OutboxRow = {
-  id: number;
-  user_id: string;
-  kind: Kind;
-  events: {
-    id: string;
-    title: string;
-    starts_at: string;
-    ends_at: string | null;
-    place_name: string | null;
-    groups: { name: string };
-  } | null;
-  // 투표 댓글의 언급·새 댓글 알림이면 (0036)
-  date_polls: { id: string; title: string } | null;
-  comments: { body: string; profiles: { nickname: string } | null } | null;
-  profiles: {
-    notify_new_event: boolean;
-    notify_promoted: boolean;
-    notify_day_before: boolean;
-    notify_mention: boolean;
-    notify_hour_before: boolean;
-    notify_comment: boolean;
-  } | null;
-};
 
 type Subscription = { endpoint: string; user_id: string; p256dh: string; auth: string };
 
@@ -47,58 +22,6 @@ function configure() {
   }
   webpush.setVapidDetails(subject, publicKey, privateKey);
   configured = true;
-}
-
-function wants(row: OutboxRow) {
-  const prefs = row.profiles;
-  if (!prefs) return false;
-  if (row.kind === "new_event") return prefs.notify_new_event;
-  if (row.kind === "promoted") return prefs.notify_promoted;
-  if (row.kind === "mention") return prefs.notify_mention;
-  if (row.kind === "hour_before") return prefs.notify_hour_before;
-  if (row.kind === "comment") return prefs.notify_comment;
-  return prefs.notify_day_before;
-}
-
-function payloadFor(row: OutboxRow): PushPayload | null {
-  const event = row.events;
-  if (!event) return pollCommentPayload(row);
-  const when = formatEventPeriod(event.starts_at, event.ends_at);
-  const where = event.place_name ? ` · ${event.place_name}` : "";
-  const url = `/events/${event.id}`;
-
-  if (row.kind === "new_event") {
-    return { title: `${event.groups.name}에 새 약속`, body: `${event.title} · ${when}`, url };
-  }
-  if (row.kind === "promoted") {
-    return { title: "대기에서 참여로 바뀌었어요", body: `${event.title} · ${when}`, url };
-  }
-  if (row.kind === "mention") {
-    const author = row.comments?.profiles?.nickname ?? "누군가";
-    const body = row.comments?.body ?? "";
-    return { title: `${author}님이 회원님을 언급했어요`, body: `${event.title} · ${body.slice(0, 80)}`, url };
-  }
-  if (row.kind === "comment") {
-    const author = row.comments?.profiles?.nickname ?? "누군가";
-    const body = row.comments?.body ?? "";
-    return { title: `${event.title}에 새 댓글`, body: `${author}: ${body.slice(0, 80)}`, url };
-  }
-  if (row.kind === "hour_before") {
-    return { title: "1시간 뒤 약속이 있어요", body: `${event.title} · ${when}${where}`, url };
-  }
-  return { title: "내일 약속이 있어요", body: `${event.title} · ${when}${where}`, url };
-}
-
-// 투표 댓글의 언급·새 댓글 알림. 누르면 투표 화면으로 간다. (Spring PushMessage와 같은 문구)
-function pollCommentPayload(row: OutboxRow): PushPayload | null {
-  const poll = row.date_polls;
-  if (!poll || (row.kind !== "mention" && row.kind !== "comment")) return null;
-  const author = row.comments?.profiles?.nickname ?? "누군가";
-  const body = (row.comments?.body ?? "").slice(0, 80);
-  const url = `/polls/${poll.id}`;
-  return row.kind === "mention"
-    ? { title: `${author}님이 회원님을 언급했어요`, body: `${poll.title} · ${body}`, url }
-    : { title: `${poll.title}에 새 댓글`, body: `${author}: ${body}`, url };
 }
 
 // 구독한 기기들에 보내고, 실제로 받은 기기 수를 돌려준다. 만료된 구독(404/410)은 지운다.
@@ -133,56 +56,6 @@ async function deliver(subscriptions: Subscription[], payload: PushPayload): Pro
     await createAdminClient().from("push_subscriptions").delete().in("endpoint", expired);
   }
   return delivered;
-}
-
-// 쌓인 알림을 보낸다. 서버 액션의 after()와 Cron에서 부른다.
-// Java Spring 워커(backend/)가 발송을 맡으면 PUSH_WORKER=spring으로 두고 여기서는 보내지 않는다. (PLAN.md §10 B1)
-// 둘을 같이 켜 둬도 '대기(pending)' 행만 지우며 가져가므로 워커가 잡은 행과 겹치지 않는다. (0032)
-export async function flushNotifications() {
-  if (process.env.PUSH_WORKER === "spring") return;
-  const admin = createAdminClient();
-
-  const { data: pending } = await admin
-    .from("notification_outbox")
-    .select("id")
-    .eq("status", "pending")
-    .order("id")
-    .limit(500);
-  if (!pending || pending.length === 0) return;
-
-  // 동시에 두 번 불려도 같은 알림을 두 번 보내지 않도록, 지우는 데 성공한 행만 보낸다.
-  const { data: claimed } = await admin
-    .from("notification_outbox")
-    .delete()
-    .eq("status", "pending")
-    .in(
-      "id",
-      pending.map((row) => row.id),
-    )
-    .select(
-      "id, user_id, kind, events(id, title, starts_at, ends_at, place_name, groups(name)), date_polls(id, title), comments(body, profiles(nickname)), profiles(notify_new_event, notify_promoted, notify_day_before, notify_mention, notify_hour_before, notify_comment)",
-    )
-    .overrideTypes<OutboxRow[], { merge: false }>();
-  if (!claimed || claimed.length === 0) return;
-
-  const rows = claimed.filter(wants);
-  const userIds = [...new Set(rows.map((row) => row.user_id))];
-  if (userIds.length === 0) return;
-
-  const { data: subscriptions } = await admin
-    .from("push_subscriptions")
-    .select("endpoint, user_id, p256dh, auth")
-    .in("user_id", userIds)
-    .overrideTypes<Subscription[], { merge: false }>();
-  if (!subscriptions || subscriptions.length === 0) return;
-
-  await Promise.all(
-    rows.map((row) => {
-      const payload = payloadFor(row);
-      const targets = subscriptions.filter((sub) => sub.user_id === row.user_id);
-      return payload && targets.length > 0 ? deliver(targets, payload) : undefined;
-    }),
-  );
 }
 
 // 한 사람의 모든 기기로 바로 보내고, 실제로 받은 기기 수를 돌려준다.
