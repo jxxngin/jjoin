@@ -90,6 +90,11 @@ public class PushWorker {
 					decision = new Decision.Skipped("그룹을 나간 사람");
 				} else if (devices.isEmpty()) {
 					decision = new Decision.Skipped("알림을 켠 기기 없음");
+				} else if (!outbox.stillSending(item.id())) {
+					// 묶어서 꺼낸 뒤 앞 알림을 보내는 동안 받는 사람이 그룹을 나갔다.
+					// (나가면 트리거가 그 사람의 sending 행을 지운다, 0037) 행이 없으니 기록도 남기지 않는다.
+					log.info("알림 {}은 보내기 직전에 취소됨 (받는 사람이 그룹을 나감)", item.id());
+					continue;
 				} else {
 					var results = devices.stream().map(device -> {
 						var result = client.send(device, message.get());

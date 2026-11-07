@@ -69,6 +69,17 @@ public class OutboxRepository {
 				.list();
 	}
 
+	/**
+	 * 보내기 직전 확인: 이 알림이 아직 이 워커가 보내는 중인지.
+	 * 꺼낸 뒤 받는 사람이 그룹을 나가면 트리거가 행을 지우므로 false가 된다. (0037)
+	 */
+	public boolean stillSending(long id) {
+		return jdbc.sql("select exists (select 1 from public.notification_outbox where id = :id and status = 'sending')")
+				.param("id", id)
+				.query(Boolean.class)
+				.single();
+	}
+
 	/** 보냄 (한 기기라도 받았다) */
 	public void markSent(long id) {
 		finish(id, "sent", null);

@@ -109,6 +109,24 @@ class MembershipChecksIT extends SupabaseIT {
 	}
 
 	@Test
+	void 꺼낸_뒤_보내기_직전에_그룹을_나갔으면_보내는_중이_아니다() {
+		var id = event(host, Instant.now().plus(10, ChronoUnit.DAYS));
+		var insert = """
+				insert into public.notification_outbox (user_id, event_id, kind, status, attempts, locked_at)
+				values (:u, :e, 'hour_before', 'sending', 1, now()) returning id
+				""";
+		var toFriend = owner.sql(insert).param("u", friend).param("e", id).query(Long.class).single();
+		var toHost = owner.sql(insert).param("u", host).param("e", id).query(Long.class).single();
+		var outbox = new app.jjoin.backend.push.OutboxRepository(owner);
+
+		// 워커가 묶음을 꺼내 앞 알림을 보내는 동안 친구가 나간다.
+		kick(friend);
+
+		assertThat(outbox.stillSending(toFriend)).isFalse();
+		assertThat(outbox.stillSending(toHost)).isTrue();
+	}
+
+	@Test
 	void 탈퇴_준비를_하면_방장_역할도_내려간다() {
 		asUser(host, "select public.prepare_account_deletion()");
 
