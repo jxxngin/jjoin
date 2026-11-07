@@ -16,6 +16,13 @@ create table public.groups (
   name text not null
 );
 
+-- 보내는 순간 받는 사람이 그룹 멤버인지 본다 (0037)
+create table public.group_members (
+  group_id uuid not null references public.groups (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  primary key (group_id, user_id)
+);
+
 create table public.events (
   id uuid primary key,
   group_id uuid not null references public.groups (id) on delete cascade,

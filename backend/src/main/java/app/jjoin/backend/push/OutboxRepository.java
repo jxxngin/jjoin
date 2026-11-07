@@ -49,7 +49,12 @@ public class OutboxRepository {
 				       g.name as group_name,
 				       cm.body as comment_body, author.nickname as comment_author,
 				       p.id as profile_id, p.notify_new_event, p.notify_promoted, p.notify_day_before,
-				       p.notify_mention, p.notify_hour_before, p.notify_comment
+				       p.notify_mention, p.notify_hour_before, p.notify_comment,
+				       -- 보내는 순간의 멤버 여부. 쌓인 뒤에 그룹을 나갔으면 false (0037)
+				       exists (
+				         select 1 from public.group_members gm
+				         where gm.user_id = c.user_id and gm.group_id = coalesce(e.group_id, d.group_id)
+				       ) as recipient_in_group
 				from claimed c
 				left join public.events e on e.id = c.event_id
 				left join public.date_polls d on d.id = c.poll_id
@@ -155,6 +160,7 @@ public class OutboxRepository {
 				rs.getString("group_name"),
 				rs.getString("comment_body"),
 				rs.getString("comment_author"),
+				rs.getBoolean("recipient_in_group"),
 				preferences);
 	}
 

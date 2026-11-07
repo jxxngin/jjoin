@@ -85,6 +85,9 @@ public class PushWorker {
 				var devices = devicesByUser.getOrDefault(item.userId(), List.of());
 				if (message.isEmpty()) {
 					decision = new Decision.Skipped("알림을 꺼 두었거나 약속이 없어짐");
+				} else if (!item.recipientInGroup()) {
+					// 알림이 쌓인 뒤에 그룹을 나갔거나 내보내졌다. (쌓기와 나가기가 동시에 일어난 경우, 0037 전에 쌓인 알림 포함)
+					decision = new Decision.Skipped("그룹을 나간 사람");
 				} else if (devices.isEmpty()) {
 					decision = new Decision.Skipped("알림을 켠 기기 없음");
 				} else {

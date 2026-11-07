@@ -3,7 +3,8 @@
 -- 1. [P1] 투표·장소 확정: 만든 사람이라도 지금 그 그룹 멤버가 아니면 거절한다.
 --    (나가거나 내보내지면 group_members 행만 지워지고 created_by는 남아서, 알고 있는 id로 직접 부를 수 있었다)
 -- 2. [P1] 하루 전·1시간 전 알림: 참여 기록이 남아 있어도 지금 멤버인 사람에게만 쌓는다.
---    멤버가 나가면 그 그룹의 약속·투표에 대해 아직 끝나지 않은(대기·보내는 중) 알림을 지운다.
+--    멤버가 나가면 그 그룹의 약속·투표에 대해 아직 끝나지 않은(대기·보내는 중) 알림을 지우고,
+--    알림 워커는 보내는 순간에도 멤버인지 다시 본다. 이미 나간 사람의 남은 알림은 한 번 정리한다.
 -- 3. [P2] 방장 넘기기: 그룹 행을 먼저 잠그고 확인해서, 동시에 두 사람에게 넘겨도 방장이 둘이 되지 않게 한다.
 -- 4. [P2] 탈퇴 준비: 방장을 넘길 때 내 역할도 member로 내리고, 대기자 승격은 약속 행을 잠근 뒤에 한다.
 
@@ -223,6 +224,23 @@ create trigger group_members_drop_pending_notifications
   for each row execute function public.drop_pending_notifications_of_leaver();
 
 revoke execute on function public.drop_pending_notifications_of_leaver() from public, anon, authenticated;
+
+-- 위 트리거는 쌓기와 나가기가 동시에 일어나면(아직 커밋 전인 알림은 보이지 않음) 놓칠 수 있어서,
+-- 알림 워커(Spring)가 보내는 순간에 받는 사람이 지금 멤버인지 다시 본다. 그에 필요한 열만 읽게 한다.
+grant select (group_id, user_id) on public.group_members to jjoin_worker;
+create policy "알림 워커: 멤버 확인" on public.group_members for select to jjoin_worker using (true);
+
+-- 이 마이그레이션 전에 이미 나가거나 내보내진 사람에게 남아 있는 끝나지 않은 알림을 한 번 정리한다.
+delete from public.notification_outbox o
+where o.status in ('pending', 'sending')
+  and not exists (
+    select 1 from public.group_members m
+    where m.user_id = o.user_id
+      and m.group_id = coalesce(
+        (select e.group_id from public.events e where e.id = o.event_id),
+        (select d.group_id from public.date_polls d where d.id = o.poll_id)
+      )
+  );
 
 ------------------------------------------------------------
 -- 3. 방장 넘기기: 그룹 행을 먼저 잠그고 확인 (0014의 본문 + 잠금)

@@ -23,6 +23,8 @@ public record OutboxItem(
 		String groupName,
 		String commentBody,
 		String commentAuthor,
+		// 받는 사람이 지금 그 약속·투표의 그룹 멤버인지. 나갔거나 내보내졌으면 보내지 않는다. (0037)
+		boolean recipientInGroup,
 		Preferences preferences) {
 
 	/** 받는 사람의 종류별 알림 받기 설정. 프로필이 없으면 null. */
