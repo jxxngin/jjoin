@@ -35,7 +35,7 @@ export type PollDetail = {
   options: PollOption[];
   // 한 번이라도 투표한 사람 수
   voterCount: number;
-  // 다른 사람이 쓴 댓글 시각 (투표를 열면 이 시각까지 본 것으로 남긴다)
+  // 다른 사람이 쓴 댓글 시각
   otherCommentTimes: string[];
 };
 
