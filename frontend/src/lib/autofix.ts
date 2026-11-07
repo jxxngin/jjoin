@@ -16,20 +16,18 @@ export async function dispatchAutofix(inquiryId: string, { force = false } = {})
   const repo = process.env.GITHUB_REPOSITORY ?? "jxxngin/jjoin";
 
   const admin = createAdminClient();
-  if (!force) {
-    const { count } = await admin
-      .from("inquiries")
-      .select("id", { count: "exact", head: true })
-      .gt("auto_fix_at", new Date(Date.now() - 864e5).toISOString());
-    if ((count ?? 0) >= DAILY_AUTOFIX_LIMIT) {
-      await admin.from("inquiries").update({ auto_fix_status: "capped" }).eq("id", inquiryId);
-      return;
-    }
+  // 한도 확인과 실행 기록을 DB 함수 하나로 한다. 동시에 들어온 신고도 잠금으로 하나씩 세서 한도를 넘지 않는다. (0041)
+  // false면 한도를 넘어 'capped'로 기록됐거나 문의가 없어서 깨우지 않는다.
+  const { data: reserved, error } = await admin.rpc("reserve_autofix", {
+    p_inquiry: inquiryId,
+    p_limit: DAILY_AUTOFIX_LIMIT,
+    p_force: force,
+  });
+  if (error) {
+    console.error("자동 수정 예약을 하지 못했어요", error);
+    return;
   }
-  await admin
-    .from("inquiries")
-    .update({ auto_fix_status: "pending", auto_fix_url: null, auto_fix_at: new Date().toISOString() })
-    .eq("id", inquiryId);
+  if (reserved !== true) return;
   const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
     method: "POST",
     headers: {

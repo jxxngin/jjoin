@@ -82,6 +82,45 @@ class AutofixIT extends SupabaseIT {
 	}
 
 	@Test
+	void 자동_수정_예약은_동시에_들어와도_하루_한도를_넘지_않는다() throws Exception {
+		// 최근 24시간에 이미 2건 실행됐고, 한도는 3건
+		for (int i = 0; i < 2; i++) {
+			var used = inquiry(other, "bug", "이전 신고 " + i, null);
+			owner.sql("update public.inquiries set auto_fix_at = now() - interval '1 hour' where id = :id").param("id", used).update();
+		}
+		var fresh = new java.util.ArrayList<UUID>();
+		for (int i = 0; i < 4; i++) {
+			fresh.add(inquiry(asker, "bug", "동시 신고 " + i, null));
+		}
+
+		// 네 건이 동시에 예약을 시도한다 (연결마다 따로)
+		var pool = java.util.concurrent.Executors.newFixedThreadPool(4);
+		var start = new java.util.concurrent.CountDownLatch(1);
+		var results = new java.util.ArrayList<java.util.concurrent.Future<Boolean>>();
+		for (var id : fresh) {
+			results.add(pool.submit(() -> {
+				start.await();
+				return owner.sql("select public.reserve_autofix(:id, 3, false)").param("id", id).query(Boolean.class).single();
+			}));
+		}
+		start.countDown();
+		var passed = 0;
+		for (var result : results) {
+			if (result.get()) {
+				passed++;
+			}
+		}
+		pool.shutdown();
+
+		assertThat(passed).isEqualTo(1);
+		var capped = owner.sql("select count(*) from public.inquiries where auto_fix_status = 'capped'").query(Integer.class).single();
+		assertThat(capped).isEqualTo(3);
+		// 관리자가 직접 다시 실행하면 한도를 보지 않는다.
+		var forced = owner.sql("select public.reserve_autofix(:id, 3, true)").param("id", fresh.getFirst()).query(Boolean.class).single();
+		assertThat(forced).isTrue();
+	}
+
+	@Test
 	void 오류_신고_내용만_넘기고_작성자는_빼다() {
 		var report = service.bugReport(bug).orElseThrow();
 		assertThat(report).containsOnlyKeys("id", "category", "title", "body", "page_path", "user_agent", "created_at");
