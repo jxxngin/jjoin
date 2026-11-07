@@ -69,20 +69,17 @@ class CommentsIT extends SupabaseIT {
 	}
 
 	@Test
-	void 예전_댓글_표에는_열_단위까지_쓰기_권한이_남아_있지_않다() {
-		var left = owner.sql("""
-				select count(*) from information_schema.column_privileges
-				where grantee = 'authenticated' and table_schema = 'public'
-				  and table_name in ('event_comments', 'poll_comments') and privilege_type in ('INSERT', 'UPDATE')
-				""").query(Integer.class).single();
-		var tableLevel = owner.sql("""
-				select count(*) from information_schema.role_table_grants
-				where grantee = 'authenticated' and table_schema = 'public'
-				  and table_name in ('event_comments', 'poll_comments') and privilege_type in ('INSERT', 'UPDATE', 'DELETE')
+	void 예전_댓글_표와_전용_함수는_남아_있지_않다() {
+		var tables = owner.sql("select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('event_comments', 'poll_comments')")
+				.query(Integer.class).single();
+		var functions = owner.sql("""
+				select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+				where n.nspname = 'public' and p.proname in
+				  ('event_comment_parent_ok', 'poll_comment_parent_ok', 'queue_mention_notifications', 'queue_comment_notifications')
 				""").query(Integer.class).single();
 
-		assertThat(left).isZero();
-		assertThat(tableLevel).isZero();
+		assertThat(tables).isZero();
+		assertThat(functions).isZero();
 	}
 
 	@Test
