@@ -16,6 +16,7 @@
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase_(Postgres)-3FCF8E?logo=supabase&logoColor=white" />
   <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?logo=tailwindcss&logoColor=white" />
+  <img alt="Java Spring" src="https://img.shields.io/badge/Java_21_·_Spring_Boot_4-6DB33F?logo=springboot&logoColor=white" />
   <img alt="Vercel" src="https://img.shields.io/badge/Vercel_(Seoul)-000000?logo=vercel&logoColor=white" />
   <img alt="PWA" src="https://img.shields.io/badge/PWA_·_Web_Push-5A0FC8?logo=pwa&logoColor=white" />
 </p>
@@ -24,8 +25,8 @@
 **jjoin**은 그룹마다 약속을 올리고, 참여·대기 인원을 바로 보여 주고, 날짜와 장소는 투표로 정하고, 약속이 다가오면 휴대폰으로 알려 줘요.
 
 - **기간**: 2026.10.14 ~ 진행 중 (1인 기획·디자인·개발·운영)
-- **사용**: 지인 대상 클로즈드 베타 (가입 22명, 베타 테스터 7명)
-- **역할**: 기획, UI, 프론트엔드, DB 설계(RLS·SQL 함수), 서버 기능, 배포·운영, 사용자 테스트
+- **사용**: 지인 대상 클로즈드 베타 (가입 23명, 베타 테스터 7명)
+- **역할**: 기획, UI, 프론트엔드, DB 설계(RLS·SQL 함수), Java Spring 백엔드, 배포·운영, 사용자 테스트
 
 ## 화면
 
@@ -48,9 +49,9 @@
 | 영역 | 기능 |
 | --- | --- |
 | 그룹 | 카카오 로그인, 초대 링크로 참여, 그룹 꾸미기(이모지·색·소개), 새 소식이 있으면 테두리가 도는 스토리형 그룹 목록, 방장 넘기기·내보내기·초대 링크 재발급, 모르는 사람을 알아보도록 **카톡 이름은 그 그룹 방장에게만**(DB 열 권한으로 막음) |
-| 약속 | 카카오맵 장소 검색과 지도·길찾기, **최대 인원과 자동 대기열**, 모집중·마감·종료 상태와 종료 사유, **2박 3일 같은 여러 날 약속**, 남은 날 색 띠 |
-| 정하기 | **날짜 투표**(당일: 날짜·시간 후보 / 기간: 가는 날~오는 날 후보), **장소 투표**(카카오맵 후보·투표·확정), 투표 댓글, 확정하면 투표한 사람이 자동 참여 |
-| 이야기 | 약속 댓글, `@`언급, 댓글 하트, 안 읽은 댓글 수, **모든 기기에서 같이 맞춰지는 읽음 표시** |
+| 약속 | 카카오맵 장소 검색과 지도·길찾기, **최대 인원과 자동 대기열**, 모집중·마감·종료 상태와 종료 사유, **2박 3일 같은 여러 날 약속**, 남은 날 색 띠, 공휴일을 빨간날로 보여 주는 주·월 캘린더(관보 기준, 대체·임시공휴일 포함) |
+| 정하기 | **날짜 투표**(당일: 날짜·시간 후보 / 기간: 가는 날~오는 날 후보), **장소 투표**(카카오맵 후보·투표·확정), 후보를 누르면 고른 사람 이름이 펼쳐짐, 확정하면 투표한 사람이 자동 참여하고 투표 때 나눈 댓글도 약속으로 이어짐 |
+| 이야기 | 약속·투표 댓글(**같은 표 하나, 같은 기능**): 답글, `@`언급, 하트, 수정, 새 댓글·언급 알림, 안 읽은 댓글 수, **모든 기기에서 같이 맞춰지는 읽음 표시** |
 | 공유 | 약속·투표 **공유 링크**(그룹 밖 친구는 그룹에 참여한 뒤 그 화면으로 바로 돌아옴), 카카오톡 링크 미리보기, 구글 캘린더·.ics 내보내기 |
 | 알림 | 웹 푸시(새 약속, 대기 승격, 하루 전·1시간 전, 댓글, 언급), 종류별 켜고 끄기, 알림 기록, 약속을 열면 그 약속 알림 자동 읽음 |
 | 앱처럼 | PWA 설치, 카카오톡 인앱 브라우저 안내, 당겨서 새로고침, 다크 모드, 화면 전환 애니메이션(View Transitions) |
@@ -62,30 +63,46 @@
 flowchart LR
   B["브라우저 / PWA<br/>(React 19)"] -- "Server Components ·<br/>Server Actions" --> N["Next.js 16 서버<br/>Vercel 서울(icn1)"]
   N -- "사용자 권한으로 조회·RPC" --> DB[("Supabase Postgres 서울<br/>RLS · SQL 함수 · 트리거")]
+  N -- "문의 API (사용자 토큰)" --> S["Java Spring 백엔드<br/>Oracle Cloud · Caddy HTTPS"]
+  S -- "같은 사용자 권한(RLS)으로" --> DB
   DB -- "트리거가 쌓음" --> O["notification_outbox"]
-  O -- "응답 후 발송 · 예약 작업" --> N
-  N -- "Web Push (VAPID)" --> B
-  C["pg_cron · Vercel Cron"] -- "하루 전·1시간 전·문의 요약" --> N
+  O -- "SKIP LOCKED로 꺼냄" --> S
+  S -- "Web Push (VAPID) ·<br/>하루 전·1시간 전·문의 요약" --> B
   N -- "오류 신고" --> G["GitHub Actions<br/>Claude 자동 수정"]
+  G -- "문의 조회·결과 보고" --> S
   G -- "수정안 PR (승인 후 Merge)" --> N
 ```
 
 - **권한은 DB가 지켜요.** 모든 표에 Row Level Security를 걸어, 화면 코드가 실수해도 다른 그룹의 데이터는 읽히지 않아요. 여러 단계가 필요한 쓰기(참여·대기열, 투표 확정, 장소 확정, 탈퇴 정리)는 권한을 안에서 확인하는 SQL 함수 하나로 처리해요.
-- **알림은 outbox 패턴**이에요. 이벤트가 생기면 DB 트리거가 대기열에 쌓고, 서버가 응답을 보낸 뒤(`after()`) 꺼내 보내요. 예약 알림은 pg_cron이 10분마다 깨워요.
+- **알림은 outbox 패턴**이에요. 이벤트가 생기면 DB 트리거가 대기열에 쌓고, Spring 워커가 꺼내 보내요. 예약 알림(하루 전·1시간 전)과 문의 요약도 Spring이 맡아요.
+- **화면에 영향 없는 일부터 Spring으로** 옮겼어요. 사용자 요청은 Supabase 로그인 토큰을 그대로 검증하고, DB에는 그 사용자 권한으로 접속해 RLS를 그대로 써요. 권한 규칙을 두 군데에 나눠 짜지 않아요.
 - **상태는 저장하지 않고 계산해요.** 모집중·마감·종료, 남은 날은 참여 인원과 시각으로 그때그때 구해요.
 
 ## Java Spring 백엔드
 
-화면 응답과 상관없는 "뒤에서 도는 일"을 Next.js에서 떼어 Spring 백엔드로 옮겼어요. 자세한 설계와 테스트는 [backend/README.md](backend/README.md)에 있어요.
+화면 응답과 상관없는 "뒤에서 도는 일"과 문의 API를 Next.js에서 떼어 Spring 백엔드로 옮겼어요. Oracle Cloud 무료 상시 서버(오사카)에서 운영 중이에요. 자세한 설계와 테스트는 [backend/README.md](backend/README.md)에 있어요.
 
 | 무엇 | 어떻게 | 확인 |
 | --- | --- | --- |
 | 알림 중복 발송 방지 | DB 트리거가 쌓은 대기열(outbox)을 `FOR UPDATE SKIP LOCKED`로 꺼냄 | 워커 4개가 동시에 200건을 꺼내도 중복 0건 (통합 테스트) |
 | 일시 실패 재시도 | 429·5xx·네트워크 실패는 30초부터 두 배씩 늘려 최대 5번, 한 기기라도 받으면 재발송 안 함 | 운영 대기열 기록상 실패 0건 |
 | 예약 작업 한 번만 | `@Scheduled` + Postgres advisory lock, 여러 서버에서도 한 곳만 실행 | 다른 워커가 잡고 있으면 건너뜀 (통합 테스트) |
+| 문의 API (B3) | Supabase JWT(ES256, 공개 JWKS)를 검증하고, 트랜잭션마다 `set local role authenticated` + JWT claims로 기존 RLS를 그대로 적용 | 운영 DB 쿼리 통계에서 Spring SQL이 `authenticated` 역할로 실행된 것 확인 |
+| HTTPS 입구 | Caddy가 인증서를 자동 발급(sslip.io), 서버 상태 정보(`/actuator`)는 바깥에 막음. 배포 워크플로가 설정 파일·`.env`·방화벽까지 맞춤 | 배포마다 인증 없는 요청이 401인지 확인 |
 | 설정 누락 방지 | 설정이 빠지면 조용히 0건씩 돌지 않고 시작할 때 멈춤 | 실제 `application.yaml`을 묶어 보는 테스트 |
 | 자동 배포 | 테스트 58개 통과 → x86·ARM 이미지(GHCR) → SSH로 서버 반영 | GitHub Actions "백엔드 배포" |
-| 되돌리기 | Vercel 환경 변수(`PUSH_WORKER`, `CRON_WORKER`)만 지우면 Next가 다시 맡음 | 둘이 같이 돌아도 중복 발송 없음 |
+| 되돌리기 | Vercel 환경 변수(`PUSH_WORKER`, `CRON_WORKER`, `INQUIRY_API`)나 Secret(`AUTOFIX_API_URL`)만 지우면 Next가 다시 맡음 | 둘이 같이 돌아도 중복 발송 없음 |
+
+## 개발 방식
+
+| 무엇 | 어떻게 |
+| --- | --- |
+| 할 일 관리 | [GitHub 프로젝트](https://github.com/users/jxxngin/projects/1) 보드: 백로그 → 할 일 → 진행 중 → 머지 대기 → 완료, 우선순위·단계 필드. 확정된 일은 이슈, 아이디어는 초안 카드 |
+| 변경은 모두 PR로 | 이슈 → 브랜치 → PR(`Closes #번호`) → 직접 리뷰·머지. main은 Ruleset으로 보호(직접 푸시·강제 푸시 금지, 프론트 빌드 통과 필수, Squash만, 머지하면 브랜치 자동 삭제) |
+| 라벨 | 종류(`feat`·`fix`·`refactor`…), 영역(`area: frontend/backend/db`), 출처(`from: 문의/화면 오류/베타`) |
+| AI와 함께 | Claude Code로 구현하고, 운영 DB·저장소 설정처럼 PR로 남지 않는 변경은 설정안을 먼저 보고 승인한 뒤 적용 |
+| 의존성 | 공휴일 데이터만 Dependabot이 매주 확인해 새 버전이 있으면 PR |
+| 피드백 | 매 작업 시작 때 문의·화면 오류 기록·베타 테스트 결과를 먼저 확인하고 고칠 게 있으면 PR |
 
 ## 기술적 도전과 해결
 
@@ -97,6 +114,7 @@ flowchart LR
 | 휴대폰에서 읽은 댓글이 PC에선 안 읽음 | "본 시각"을 브라우저(localStorage)에만 저장 | 사람별 본 시각 표와 서버 시계 기준 기록 함수로 이전 | 두 사용자·두 기기 시나리오 7단계 통과 |
 | 공유 링크로 남의 약속을 엿볼 위험 | 링크에 초대 코드를 붙이는 구조 | 초대 코드가 그 약속·투표의 그룹 것인지 서버에서 확인 | 잘못된 코드로는 "볼 수 없어요" |
 | 방장이 탈퇴하면 친구들 데이터가 함께 삭제 | 외래 키 연쇄 삭제 | 탈퇴 전 함수가 방장·만든 약속을 넘기고 대기자를 올림 | 세 사용자 탈퇴 시나리오 14항목 통과 |
+| 약속 댓글과 투표 댓글의 기능이 달라짐 | 두 표·두 벌의 코드로 따로 만들어, 한쪽만 고쳐지고 알림 기록 표는 약속만 담을 수 있었음 | 표 하나(`comments`)로 합치고 기존 댓글을 id 그대로 옮김. 투표가 확정되면 트리거로 댓글을 약속으로 옮김 | 투표 댓글에도 하트·알림 기록·새 댓글 알림·안 읽은 수, 이후 댓글 기능은 한 곳만 수정 |
 | 오류 신고 자동 수정의 보안 | 누구나 쓰는 글을 AI가 읽고 코드를 고침 (프롬프트 인젝션) | 문의 글은 "자료"로만, 도구 제한, 금지 경로·변경 크기 상한, PR로만 제출하고 사람이 승인 | 운영 배포는 항상 사람의 Merge를 거침 |
 
 ## 품질 관리
@@ -115,23 +133,28 @@ flowchart LR
 | 데이터·인증 | Supabase (Postgres, Row Level Security, SQL 함수·트리거, Auth with Kakao, Storage, pg_cron) |
 | 지도 | Kakao Maps JavaScript SDK |
 | 알림 | Web Push (VAPID), PWA 서비스 워커 |
-| 백엔드 | Java 21, Spring Boot 4.1, JdbcClient, JUnit 5 · Testcontainers, Docker (알림 발송 워커 · 예약 작업 · 문의 API) |
-| 배포·자동화 | Vercel (서울 지역), Oracle Cloud + GHCR (백엔드), GitHub Actions + Claude Code (오류 신고 자동 수정) |
+| 백엔드 | Java 21, Spring Boot 4.1, Spring Security(OAuth2 Resource Server), JdbcClient, JUnit 5 · Testcontainers, Docker (알림 발송 워커 · 예약 작업 · 문의 API) |
+| 배포·자동화 | Vercel (서울 지역), Oracle Cloud(오사카) + GHCR + Caddy (백엔드), GitHub Actions + Claude Code (오류 신고 자동 수정), Dependabot |
+| 협업 도구 | GitHub Projects, Issues·PR·라벨, Ruleset |
 
 ## 규모
 
 | 항목 | 값 |
 | --- | --- |
-| 커밋 | 130개 (기능 57 · 수정 33), 기능 단위로 나눠 커밋 |
+| 커밋 | 138개 (기능 59 · 수정 33), 기능 단위로 나눠 커밋 |
 | 백엔드 테스트 | 58개 (단위 + PostgreSQL 통합), 통과해야 배포 |
-| 운영 배포 | Vercel 58회 중 57회 성공 (2026-10-14 ~ 10-27) |
-| 화면 | 20개 |
-| TypeScript | 약 10,000줄 |
-| DB | 마이그레이션 35개 (SQL 약 2,800줄), SQL 함수 40여 개, RLS 정책 40여 개 |
+| 운영 배포 | Vercel 59회 중 58회 성공 (2026-10-14 ~ 11-07) |
+| 화면 | 21개 |
+| TypeScript | 약 11,900줄 |
+| Java | 약 1,800줄 |
+| DB | 마이그레이션 35개 (SQL 약 2,800줄), SQL 함수 55개, RLS 정책 73개 |
 
 ## 앞으로
 
-- **Java Spring 백엔드 분리** ([backend/](backend/README.md)): 알림 발송 워커(B1)와 예약 작업(B2)은 Oracle Cloud 상시 서버에서 운영 중이고, 문의·관리자 API(B3)를 옮기고 있어요. Supabase 인증과 RLS는 그대로 유지해요. ([PLAN.md 10장](PLAN.md#10-백엔드-분리-계획-java-spring))
+[GitHub 프로젝트 보드](https://github.com/users/jxxngin/projects/1)에서 관리해요.
+
+- **Java Spring 백엔드**: 알림 발송 워커(B1), 예약 작업(B2), 문의·관리자 API와 자동 수정 연동(B3)까지 운영 중이에요. 약속·투표 읽기·쓰기(B4)는 서버가 안정된 뒤 필요할 때만 옮겨요. ([PLAN.md 10장](PLAN.md#10-백엔드-분리-계획-java-spring))
+- **기능**: 약속 사진 앨범, 카카오톡 공유하기 SDK, 반복 약속, N빵 정산 (백로그)
 
 ## 폴더
 
@@ -143,7 +166,8 @@ frontend/              Next.js 웹앱 (Vercel)
   public/              로고, 아이콘, 기본 프로필, 서비스 워커(sw.js), 테스트 체크리스트(test.html)
 backend/               Java Spring 백엔드 (알림 발송 워커 · 예약 작업 · 문의 API) → backend/README.md
 supabase/migrations/   DB 스키마·RLS·SQL 함수 (번호 순서대로 실행, 프론트·백엔드 공용)
-.github/workflows/     오류 신고 자동 수정, 고친 문의 배포 처리, 백엔드 테스트 (GitHub Actions)
+.github/workflows/     오류 신고 자동 수정, 고친 문의 배포 처리, 백엔드 테스트·배포 (GitHub Actions)
+.github/dependabot.yml 공휴일 데이터 업데이트 PR
 design/                로고·기본 프로필 원본
 docs/screenshots/      README 스크린샷
 ```
@@ -168,6 +192,10 @@ npm run dev
 > Windows 보안 정책(Application Control)이 Next의 기본 빌드 도구(SWC)를 막는 PC에서는 `JJOIN_WEBPACK=1 npx next dev --webpack`으로 띄워요.
 
 http://localhost:3000 에서 확인할 수 있어요. 기획과 진행 단계는 [PLAN.md](PLAN.md)에 있어요.
+
+### Java Spring 백엔드
+
+서버 만들기, 자동 배포, Next에서 넘겨받기(`PUSH_WORKER`·`CRON_WORKER`·`INQUIRY_API`), HTTPS 입구, 되돌리기는 [backend/DEPLOY.md](backend/DEPLOY.md)에 있어요. Spring이 예약 작업을 맡으면(`CRON_WORKER=spring`) 아래 두 pg_cron 설정은 필요 없어요. (Next의 Cron 주소가 "쉼"으로 답해요)
 
 ### 1시간 전 알림 예약 (Supabase pg_cron)
 
@@ -207,7 +235,7 @@ select cron.schedule(
 
 문의하기에 🐞 오류 신고가 들어오면 `.github/workflows/inquiry-autofix.yml`이 Claude로 원인을 찾아 수정안(PR)을 만들어요. PR을 확인하고 Merge해야 운영에 배포돼요.
 
-- GitHub Secrets: `CLAUDE_CODE_OAUTH_TOKEN`(`claude setup-token`으로 만든 구독 토큰), `AUTOFIX_SECRET`
+- GitHub Secrets: `CLAUDE_CODE_OAUTH_TOKEN`(`claude setup-token`으로 만든 구독 토큰), `AUTOFIX_SECRET`, (Spring으로 보낼 때) `AUTOFIX_API_URL`
 - Vercel 환경 변수: `GITHUB_DISPATCH_TOKEN`(jjoin 저장소 Contents 쓰기 권한 fine-grained 토큰), `AUTOFIX_SECRET`
 - 저장소 Settings → Actions → General → Workflow permissions: Read and write + "Allow GitHub Actions to create and approve pull requests"
 - 자동 수정은 24시간에 3건까지 돌고, 넘으면 관리자가 문의 화면에서 직접 다시 실행해요.
