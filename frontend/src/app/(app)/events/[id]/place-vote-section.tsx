@@ -1,4 +1,4 @@
-import { Avatar } from "@/components/avatar";
+import { VoterCard } from "@/components/voter-card";
 import { getUserId } from "@/lib/auth";
 import { getPlaceOptions, type PlaceTarget } from "@/lib/places";
 import { AddPlaceOption, PlaceOptionActions, PlaceVoteButton } from "./place-vote";
@@ -34,43 +34,32 @@ export async function PlaceVote({
       </h2>
       <ul className="flex flex-col gap-2">
         {options.map((option) => (
-          <li key={option.id} className="relative overflow-hidden rounded-2xl border border-stone-200 px-4 py-3 dark:border-stone-800">
-            {/* 표 수만큼 배경 막대가 찬다. (날짜 투표와 같은 모양) */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 bg-brand/10 transition-[width] duration-500"
-              style={{ width: `${(option.voters.length / maxVotes) * 100}%` }}
-            />
-            <div className="relative flex items-center gap-3">
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <a href={option.url} target="_blank" rel="noopener noreferrer" className="truncate font-medium underline-offset-4 hover:underline">
-                  {option.name}
-                </a>
-                {option.address && <span className="truncate text-xs text-stone-500">{option.address}</span>}
-                <span className="flex items-center gap-1.5">
-                  <span className="flex -space-x-1.5">
-                    {option.voters.slice(0, 5).map((voter) => (
-                      <span key={voter.id} className="rounded-full ring-2 ring-background" title={voter.nickname}>
-                        <Avatar src={voter.avatarUrl} color={voter.avatarColor} size="xs" />
-                      </span>
-                    ))}
-                  </span>
-                  <span className="text-xs text-stone-500">{option.voters.length}명</span>
-                </span>
-                <PlaceOptionActions
-                  optionId={option.id}
-                  name={option.name}
-                  canConfirm={canManage}
-                  canDelete={canManage || option.addedBy === userId}
-                />
-              </div>
+          // 표 수만큼 배경 막대가 차고, 카드를 누르면 고른 사람 이름이 펼쳐진다. (날짜 투표와 같은 모양)
+          <VoterCard
+            key={option.id}
+            voters={option.voters}
+            barWidth={(option.voters.length / maxVotes) * 100}
+            extra={
+              <PlaceOptionActions
+                optionId={option.id}
+                name={option.name}
+                canConfirm={canManage}
+                canDelete={canManage || option.addedBy === userId}
+              />
+            }
+            action={
               <PlaceVoteButton
                 key={`${option.voters.length}-${option.voters.some((v) => v.id === userId)}`}
                 optionId={option.id}
                 voted={option.voters.some((v) => v.id === userId)}
               />
-            </div>
-          </li>
+            }
+          >
+            <a href={option.url} target="_blank" rel="noopener noreferrer" className="truncate font-medium underline-offset-4 hover:underline">
+              {option.name}
+            </a>
+            {option.address && <span className="truncate text-xs text-stone-500">{option.address}</span>}
+          </VoterCard>
         ))}
       </ul>
       <AddPlaceOption target={target} label="+ 후보 장소 더 올리기" />
