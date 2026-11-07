@@ -6,6 +6,7 @@ import { Page, Reveal } from "@/components/slide-view";
 import { INQUIRY_STATUS, getInquiries, isAppAdmin, type InquiryStatus } from "@/lib/inquiries";
 import { InquiryList } from "../inquiry-list";
 import { PushTestButton } from "./push-test-button";
+import { GhostLoading } from "@/components/ghost-loading";
 
 const FILTERS: { value: InquiryStatus | "all"; label: string }[] = [
   { value: "all", label: "전체" },
@@ -22,7 +23,7 @@ export default function AdminInquiriesPage({ searchParams }: PageProps<"/support
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/support" label="문의하기" />
       <h1 className="text-2xl font-bold tracking-tight">전체 문의</h1>
-      <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+      <Suspense fallback={<GhostLoading><div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
         {searchParams.then((query) => (
           <AdminContent status={typeof query.status === "string" ? query.status : "all"} />
         ))}

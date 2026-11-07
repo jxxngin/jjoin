@@ -15,6 +15,7 @@ import {
 import { AdminPanel } from "./admin-panel";
 import { MarkInquiryRead } from "./mark-inquiry-read";
 import { MessageForm } from "./message-form";
+import { GhostLoading } from "@/components/ghost-loading";
 
 const AUTO_FIX_LABELS = {
   pending: "자동 수정 시도 중",
@@ -28,7 +29,7 @@ const AUTO_FIX_LABELS = {
 export default function InquiryPage({ params, searchParams }: PageProps<"/support/[id]">) {
   return (
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
-      <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+      <Suspense fallback={<GhostLoading><div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
         {Promise.all([params, searchParams]).then(([{ id }, query]) => (
           <InquiryContent id={id} justSent={query.sent === "1"} />
         ))}

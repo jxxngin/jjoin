@@ -20,6 +20,7 @@ import { leaveGroup } from "../actions";
 import { Calendar } from "@/components/calendar";
 import { InviteButton } from "./invite-button";
 import { MemberList } from "./member-list";
+import { GhostLoading } from "@/components/ghost-loading";
 
 type View = { mode: "list" } | ({ mode: "calendar" } & CalendarQuery);
 
@@ -27,7 +28,7 @@ export default function GroupPage({ params, searchParams }: PageProps<"/groups/[
   return (
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/" label="내 그룹" />
-      <Suspense fallback={<GroupSkeleton />}>
+      <Suspense fallback={<GhostLoading><GroupSkeleton /></GhostLoading>}>
         {Promise.all([params, searchParams]).then(([{ id }, query]) => (
           <GroupContent
             id={id}
