@@ -10,6 +10,7 @@ import { calendarRangeKeys, kstDayRange, kstToday, normalizeDateKey } from "@/li
 import { parseCalendarQuery, type CalendarQuery } from "@/lib/calendar-query";
 import { getMyEventsBetween, getMyUpcomingEvents } from "@/lib/events";
 import { getMyGroups } from "@/lib/groups";
+import { GhostLoading } from "@/components/ghost-loading";
 
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
@@ -25,7 +26,9 @@ export default function Home({ searchParams }: PageProps<"/">) {
         fallback={
           <section className="flex flex-col gap-3">
             <h2 className="font-semibold">내 약속</h2>
-            <GroupListSkeleton />
+            <GhostLoading>
+              <GroupListSkeleton />
+            </GhostLoading>
           </section>
         }
       >
@@ -50,7 +53,7 @@ function MyEventsSection({ mode, calendar }: { mode: ViewMode; calendar: Calenda
         <ViewToggle basePath="/" mode={mode} defaultMode="calendar" />
       </div>
       <SlideView key={mode}>
-        <Suspense fallback={<GroupListSkeleton />}>
+        <Suspense fallback={<GhostLoading><GroupListSkeleton /></GhostLoading>}>
           {mode === "calendar" ? <MyCalendar {...calendar} /> : <MyEvents />}
         </Suspense>
       </SlideView>

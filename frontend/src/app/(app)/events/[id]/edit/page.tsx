@@ -6,11 +6,12 @@ import { BackLink } from "@/components/back-link";
 import { lastDayKey, toKstInput } from "@/lib/datetime";
 import { getEvent } from "@/lib/events";
 import { Page, Reveal } from "@/components/slide-view";
+import { GhostLoading } from "@/components/ghost-loading";
 
 export default function EditEventPage({ params }: PageProps<"/events/[id]/edit">) {
   return (
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+      <Suspense fallback={<GhostLoading><div className="h-96 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
         {params.then(({ id }) => (
           <EditEventContent id={id} />
         ))}

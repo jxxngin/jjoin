@@ -5,6 +5,7 @@ import { Page, Reveal } from "@/components/slide-view";
 import { INQUIRY_CATEGORIES, getInquiries, isAppAdmin } from "@/lib/inquiries";
 import { InquiryForm } from "./inquiry-form";
 import { InquiryList } from "./inquiry-list";
+import { GhostLoading } from "@/components/ghost-loading";
 
 // 문의하기: 위에서 문의를 쓰고, 아래에서 내 문의의 처리 상태와 답변을 본다.
 export default function SupportPage({ searchParams }: PageProps<"/support">) {
@@ -12,7 +13,7 @@ export default function SupportPage({ searchParams }: PageProps<"/support">) {
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/" label="홈" />
       <h1 className="text-2xl font-bold tracking-tight">문의하기</h1>
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+      <Suspense fallback={<GhostLoading><div className="h-96 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
         {searchParams.then((query) => (
           <SupportContent fromPath={typeof query.from === "string" ? query.from : null} />
         ))}

@@ -4,6 +4,7 @@ import { BackLink } from "@/components/back-link";
 import { Page, Reveal } from "@/components/slide-view";
 import { getClientErrorGroups } from "@/lib/client-errors";
 import { isAppAdmin } from "@/lib/inquiries";
+import { GhostLoading } from "@/components/ghost-loading";
 
 // 관리자: 사용자 브라우저에서 난 화면 오류 (최근 7일, 같은 메시지끼리). 기록은 30일 뒤 지워진다.
 export default function ClientErrorsPage() {
@@ -11,7 +12,7 @@ export default function ClientErrorsPage() {
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/support/admin" label="전체 문의" />
       <h1 className="text-2xl font-bold tracking-tight">화면 오류 기록</h1>
-      <Suspense fallback={<div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
+      <Suspense fallback={<GhostLoading><div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
         <ErrorList />
       </Suspense>
     </Page>
