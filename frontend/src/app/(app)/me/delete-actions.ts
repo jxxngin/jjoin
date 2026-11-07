@@ -24,9 +24,17 @@ export async function deleteAccount(_prev: DeleteAccountState, formData: FormDat
   const admin = createAdminClient();
   // 사진이 없으면 지울 것이 없을 뿐이라 결과는 보지 않는다.
   await admin.storage.from("avatars").remove([`${userId}/avatar.jpg`]);
-  const { data: screenshots } = await admin.storage.from("inquiry-images").list(userId, { limit: 100 });
-  if (screenshots?.length) {
-    await admin.storage.from("inquiry-images").remove(screenshots.map((file) => `${userId}/${file.name}`));
+  // 문의 스크린샷은 {user id}/{임의 이름}.jpg로 한 폴더에 있다. 한 번에 100개씩 지우고 빌 때까지 반복한다.
+  // (지운 만큼 목록이 줄어서 항상 처음부터 다시 본다) 지우지 못하면 개인정보가 남으므로 계정을 지우지 않고 멈춘다.
+  for (let round = 0; ; round++) {
+    const { data: screenshots, error: listError } = await admin.storage.from("inquiry-images").list(userId, { limit: 100 });
+    if (listError) return { error: "문의 사진을 지우지 못했어요. 잠시 뒤 다시 시도해 주세요." };
+    if (!screenshots || screenshots.length === 0) break;
+    const { error: removeError } = await admin.storage
+      .from("inquiry-images")
+      .remove(screenshots.map((file) => `${userId}/${file.name}`));
+    // 지워지지 않는 파일이 있으면 같은 목록을 계속 보게 되므로, 넉넉한 횟수(5,000장)를 넘기면 멈춘다.
+    if (removeError || round >= 50) return { error: "문의 사진을 지우지 못했어요. 잠시 뒤 다시 시도해 주세요." };
   }
 
   const { error } = await admin.auth.admin.deleteUser(userId);

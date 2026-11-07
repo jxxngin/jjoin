@@ -1,10 +1,8 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { after } from "next/server";
 import { splitMentions } from "@/lib/comment-text";
 import type { CommentTarget } from "@/lib/comments";
-import { flushNotifications } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -39,15 +37,7 @@ export async function postComment(
   });
   if (error) return { error: "댓글을 남기지 못했어요." };
 
-  // 댓글·언급 알림(DB 트리거가 쌓음)은 응답을 보낸 뒤에 보낸다. (알림 워커가 맡으면 아무것도 하지 않는다)
-  after(async () => {
-    try {
-      await flushNotifications();
-    } catch (e) {
-      console.error("댓글 알림을 보내지 못했어요", e);
-    }
-  });
-
+  // 댓글·언급 알림은 DB 트리거가 대기열에 쌓고 Spring 워커가 보낸다.
   refresh();
   return {};
 }

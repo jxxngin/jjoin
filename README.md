@@ -91,7 +91,7 @@ flowchart LR
 | HTTPS 입구 | Caddy가 인증서를 자동 발급(sslip.io), 서버 상태 정보(`/actuator`)는 바깥에 막음. 배포 워크플로가 설정 파일·`.env`·방화벽까지 맞춤 | 배포마다 인증 없는 요청이 401인지 확인 |
 | 설정 누락 방지 | 설정이 빠지면 조용히 0건씩 돌지 않고 시작할 때 멈춤 | 실제 `application.yaml`을 묶어 보는 테스트 |
 | 자동 배포 | 테스트 58개 통과 → x86·ARM 이미지(GHCR) → SSH로 서버 반영 | GitHub Actions "백엔드 배포" |
-| 되돌리기 | Vercel 환경 변수(`PUSH_WORKER`, `CRON_WORKER`, `INQUIRY_API`)나 Secret(`AUTOFIX_API_URL`)만 지우면 Next가 다시 맡음 | 둘이 같이 돌아도 중복 발송 없음 |
+| 되돌리기 | Vercel 환경 변수(`CRON_WORKER`, `INQUIRY_API`)나 Secret(`AUTOFIX_API_URL`)만 지우면 Next가 다시 맡음. 알림 발송은 워커 전용 (Next 예비 경로는 나간 사람 확인·재시도가 없어 지움) | 둘이 같이 돌아도 중복 발송 없음 |
 
 ## 개발 방식
 
@@ -195,7 +195,7 @@ http://localhost:3000 에서 확인할 수 있어요. 기획과 진행 단계는
 
 ### Java Spring 백엔드
 
-서버 만들기, 자동 배포, Next에서 넘겨받기(`PUSH_WORKER`·`CRON_WORKER`·`INQUIRY_API`), HTTPS 입구, 되돌리기는 [backend/DEPLOY.md](backend/DEPLOY.md)에 있어요. Spring이 예약 작업을 맡으면(`CRON_WORKER=spring`) 아래 두 pg_cron 설정은 필요 없어요. (Next의 Cron 주소가 "쉼"으로 답해요)
+서버 만들기, 자동 배포, Next에서 넘겨받기(`CRON_WORKER`·`INQUIRY_API`), HTTPS 입구, 되돌리기는 [backend/DEPLOY.md](backend/DEPLOY.md)에 있어요. Spring이 예약 작업을 맡으면(`CRON_WORKER=spring`) 아래 두 pg_cron 설정은 필요 없어요. (Next의 Cron 주소가 "쉼"으로 답해요)
 
 ### 1시간 전 알림 예약 (Supabase pg_cron)
 

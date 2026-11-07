@@ -16,25 +16,11 @@ export async function POST(request: Request) {
     : [];
   if (ids.length === 0) return Response.json({ ok: true, resolved: 0 });
 
-  const admin = createAdminClient();
-  const { data: targets, error } = await admin
-    .from("inquiries")
-    .select("id, title, user_id")
-    .or(`id.in.(${ids.join(",")}),duplicate_of.in.(${ids.join(",")})`)
-    .is("deployed_at", null);
+  // 완료 기록·안내 글(→ 앱 알림)을 DB 함수 하나로 처리한다. 중간에 실패하면 모두 취소돼 다음 배포 때 다시 처리된다. (0040)
+  const { data, error } = await createAdminClient().rpc("mark_inquiries_deployed", { p_ids: ids, p_notice: NOTICE });
   if (error) return new Response("Failed", { status: 500 });
-  if (!targets?.length) return Response.json({ ok: true, resolved: 0 });
-
-  const now = new Date().toISOString();
-  const targetIds = targets.map((t) => t.id);
-  const { error: updateError } = await admin
-    .from("inquiries")
-    .update({ status: "done", deployed_at: now })
-    .in("id", targetIds);
-  if (updateError) return new Response("Failed", { status: 500 });
-  await admin
-    .from("inquiry_messages")
-    .insert(targetIds.map((id) => ({ inquiry_id: id, user_id: null, is_admin: true, body: NOTICE })));
+  const targets = (data ?? []) as { id: string; title: string; user_id: string | null }[];
+  if (targets.length === 0) return Response.json({ ok: true, resolved: 0 });
 
   for (const target of targets) {
     if (!target.user_id) continue;

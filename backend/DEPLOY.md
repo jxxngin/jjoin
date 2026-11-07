@@ -76,7 +76,7 @@ GitHub 저장소 → **Settings → Secrets and variables → Actions → New re
 
 | 이름 | 값 | 뜻 |
 |---|---|---|
-| `PUSH_WORKER` | `spring` | 알림 발송을 워커가 맡고 Next는 보내지 않음 (B1) |
+| `PUSH_WORKER` | `spring` | (예전 값, 이제 쓰지 않음) 알림 대기열은 워커만 보내요. Next의 대기열 발송은 지웠어요 (#27) |
 | `CRON_WORKER` | `spring` | 하루 전·1시간 전 알림, 문의 요약을 워커가 맡고 Next의 Cron 주소는 쉼 (B2) |
 
 - 서버 `.env`의 `PUSH_ENABLED`, `JOBS_ENABLED`는 `true`(기본값)여야 해요.
@@ -84,7 +84,7 @@ GitHub 저장소 → **Settings → Secrets and variables → Actions → New re
 
 ### 되돌리기
 
-Vercel에서 `PUSH_WORKER`·`CRON_WORKER`를 지우고 Redeploy하면 바로 예전처럼 Next가 맡아요. 둘이 같이 돌아도 알림이 두 번 가지 않아요. (대기열 잠금, 예약 함수의 보낸 표시)
+Vercel에서 `CRON_WORKER`를 지우고 Redeploy하면 예약 작업(하루 전·1시간 전 알림 쌓기, 문의 요약)은 예전처럼 Next의 Cron이 맡아요. **알림 발송은 되돌릴 곳이 없어요.** Next의 대기열 발송을 지웠으므로(#27), 워커가 멈추면 알림이 대기열에 쌓였다가 워커가 다시 뜰 때 나가요. 워커를 이전 이미지로 되돌리려면 서버에서 `ghcr.io/jxxngin/jjoin-backend:<이전 커밋>`으로 띄워요. 둘이 같이 돌아도 알림이 두 번 가지 않아요. (대기열 잠금, 예약 함수의 보낸 표시)
 
 ## 6. 문의 API 켜기 (B3, HTTPS)
 
