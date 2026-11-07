@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { isRecoverableError, reportClientError } from "@/lib/report-client-error";
+import { describeErrorEvent, isRecoverableError, reportClientError } from "@/lib/report-client-error";
 import { TroubleSheet } from "./trouble-sheet";
 
 // 화면 문제 감시. (로그인한 화면 공통 틀에 하나 둔다)
@@ -26,7 +26,10 @@ export function TroubleWatcher() {
       reportClientError(message, stack);
       if (isRecoverableError(message)) show(navigator.onLine ? "broken" : "offline");
     }
-    const onError = (event: ErrorEvent) => onProblem(event.message || String(event.error), event.error?.stack);
+    const onError = (event: ErrorEvent) => {
+      const { message, stack } = describeErrorEvent(event);
+      onProblem(message, stack);
+    };
     const onRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
       onProblem(reason instanceof Error ? reason.message : String(reason), reason instanceof Error ? reason.stack : undefined);

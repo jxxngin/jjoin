@@ -24,11 +24,33 @@ export function reportClientError(message: string, stack?: string) {
     );
 }
 
-// 새로 배포된 뒤 예전 화면 파일을 찾지 못하는 오류, 네트워크가 끊긴 오류처럼 새로고침으로 풀리는 문제인지
+// 새로 배포된 뒤 예전 화면 파일·서버 함수(Server Action)를 찾지 못하는 오류, 네트워크가 끊긴 오류처럼 새로고침으로 풀리는 문제인지
 export function isRecoverableError(message: string) {
-  return /ChunkLoadError|Loading (CSS )?chunk|dynamically imported module|Failed to fetch|NetworkError|Load failed|Connection closed|unexpected response was received from the server/i.test(
+  return /ChunkLoadError|Loading (CSS )?chunk|dynamically imported module|Failed to fetch|NetworkError|Load failed|Connection closed|unexpected response was received from the server|Server Action .* was not found on the server|UnrecognizedActionError/i.test(
     message,
   );
+}
+
+// 잡히지 않은 오류(window error 이벤트)를 기록할 메시지·스택으로 바꾼다.
+// 안드로이드 웹뷰(카카오톡 인앱 등)는 Error가 아닌 값을 던지면 메시지가 "Uncaught"뿐이고 스택도 없어서,
+// 던진 값과 일어난 위치(파일:줄:칸)를 덧붙여 원인을 찾을 수 있게 한다.
+export function describeErrorEvent(event: Pick<ErrorEvent, "message" | "error" | "filename" | "lineno" | "colno">) {
+  const { error } = event;
+  let message = event.message || (error instanceof Error ? error.message : "") || "Uncaught";
+  if (error != null && !(error instanceof Error)) {
+    let thrown: string;
+    try {
+      thrown = typeof error === "object" ? JSON.stringify(error) : String(error);
+    } catch {
+      thrown = Object.prototype.toString.call(error);
+    }
+    message += ` [던진 값 ${typeof error}: ${thrown?.slice(0, 200)}]`;
+  } else if (error == null && message.trim() === "Uncaught") {
+    message += " [오류 값 없음]";
+  }
+  const where = event.filename ? `at ${event.filename}:${event.lineno}:${event.colno}` : undefined;
+  const stack = error instanceof Error && error.stack ? error.stack : where;
+  return { message, stack };
 }
 
 // 화면 파일을 새로 받아 다시 연다. (서비스 워커는 알림용이라 지우지 않고, 혹시 남은 캐시만 비운다)
