@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/avatar";
+import { mentionToken } from "@/lib/comment-text";
 import type { AvatarColor } from "@/lib/avatar-style";
 
 export type Mentionable = {
@@ -80,7 +81,9 @@ export function CommentForm({
     if (!value || sending.current) return;
     sending.current = true;
     const ids = mentioned.map((m) => m.id);
-    const prefix = mentioned.map((m) => `@${m.nickname} `).join("");
+    // 언급 이름의 공백·@는 _로 바꿔 저장한다. 언급이 어디까지인지 나눌 때 공백을 경계로 보기 때문이다. (lib/comment-text.ts)
+    // 화면에는 저장된 글자가 아니라 언급한 사람의 지금 닉네임이 보이므로 "김 민수"도 그대로 보인다.
+    const prefix = mentioned.map((m) => `@${mentionToken(m.nickname)} `).join("");
     setError(undefined);
     startTransition(async () => {
       const result = await post(prefix + value, ids);

@@ -58,6 +58,7 @@ async function NotificationList() {
       )}
       <MarkRead
         latestId={latestId}
+        shownIds={items.map((item) => item.id)}
         comments={items.flatMap((item) => (item.comment ? [item.comment] : []))}
       />
       <ul className="reveal flex flex-col gap-1">
