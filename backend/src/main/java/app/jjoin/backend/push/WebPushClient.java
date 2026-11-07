@@ -48,6 +48,10 @@ public class WebPushClient {
 		if (pushService == null) {
 			return new Result(Outcome.REJECTED, "발송이 꺼져 있음 (jjoin.push.enabled=false)");
 		}
+		if (!PushEndpoints.isAllowed(subscription.endpoint())) {
+			// 브라우저 푸시 서버가 아닌 주소로는 요청을 보내지 않는다. 만료로 돌려 워커가 이 구독을 지우게 한다.
+			return new Result(Outcome.EXPIRED, "허용되지 않은 푸시 서버 주소");
+		}
 		Notification notification;
 		try {
 			notification = new Notification(
