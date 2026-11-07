@@ -102,6 +102,20 @@ class CommentsIT extends SupabaseIT {
 	}
 
 	@Test
+	void 투표로_만든_약속을_지우면_투표도_함께_지워진다() {
+		var event = UUID.randomUUID();
+		owner.sql("insert into public.events (id, group_id, title, starts_at, created_by) values (:id, :g, '다음 모임 날짜', :at, :by)")
+				.param("id", event).param("g", group).param("at", Timestamp.from(Instant.parse("2026-12-05T10:00:00Z"))).param("by", host)
+				.update();
+		owner.sql("update public.date_polls set event_id = :e, closed_at = now() where id = :p").param("e", event).param("p", poll).update();
+
+		owner.sql("delete from public.events where id = :e").param("e", event).update();
+
+		var left = owner.sql("select count(*) from public.date_polls where id = :p").param("p", poll).query(Integer.class).single();
+		assertThat(left).isZero();
+	}
+
+	@Test
 	void 확정된_투표에_늦게_쓴_댓글은_약속_댓글로_저장된다() {
 		var event = UUID.randomUUID();
 		owner.sql("insert into public.events (id, group_id, title, starts_at, created_by) values (:id, :g, '다음 모임 날짜', :at, :by)")
