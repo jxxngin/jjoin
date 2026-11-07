@@ -90,6 +90,12 @@ Vercel에서 `PUSH_WORKER`·`CRON_WORKER`를 지우고 Redeploy하면 바로 예
 
 Next(Vercel 서울)가 서버의 문의 API를 HTTPS로 부르도록 Caddy를 켜요. 주소는 가입이 필요 없는 sslip.io를 써요. (`<IP의 점을 -로>.sslip.io`, 예: `152-70-1-2.sslip.io`)
 
+0. **DB 권한 (B1·B2만 설치했던 경우 필수)**: Supabase SQL Editor에서 `supabase/migrations/0034_worker_api_role.sql`, `0035_worker_autofix.sql`을 차례로 실행해요. 0034가 없으면 문의 API가 사용자 권한(`set local role authenticated`)으로 바꾸지 못하고, 0035가 없으면 자동 수정 조회·갱신이 실패해요. 아래 HTTPS 확인(인증 없이 401)은 DB를 건드리지 않아서 이 문제를 잡지 못하니, 전환 전에 SQL로 꼭 확인해요. 세 값이 모두 `true`여야 해요.
+   ```sql
+   select pg_has_role('jjoin_worker', 'authenticated', 'SET') as "0034",
+          has_column_privilege('jjoin_worker', 'public.inquiries', 'auto_fix_status', 'UPDATE') as "0035 권한",
+          exists (select 1 from pg_policies where tablename = 'inquiry_messages' and policyname = '알림 워커: 배포 안내 글') as "0035 정책";
+   ```
 1. **Oracle 콘솔 → Networking → Virtual cloud networks → (VCN) → Security Lists → Default → Add Ingress Rules**
    - Source CIDR `0.0.0.0/0`, IP Protocol TCP, Destination Port Range `80,443`
    - 서버 안 방화벽(iptables)은 배포 워크플로가 열어요.

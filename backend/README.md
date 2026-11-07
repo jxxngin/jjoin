@@ -56,7 +56,7 @@ set -a; . ./.env; set +a
 
 ### 처음 한 번
 
-1. Supabase SQL Editor에서 `supabase/migrations/0032_push_worker_queue.sql`, `0033_worker_scheduled_jobs.sql` 실행
+1. Supabase SQL Editor에서 `supabase/migrations/0032_push_worker_queue.sql`, `0033_worker_scheduled_jobs.sql`, `0034_worker_api_role.sql`, `0035_worker_autofix.sql`을 차례로 실행 (0034·0035는 문의 API(B3)용)
 2. 같은 곳에서 워커 계정 비밀번호를 정해요. (이 값은 어디에도 커밋하지 않아요)
    ```sql
    alter role jjoin_worker password '긴 임의 문자열';
