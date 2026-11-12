@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { getUserId } from "@/lib/auth";
 import { endsAtFromLastDay, formatNights, fromKstInput } from "@/lib/datetime";
 import { createClient } from "@/lib/supabase/server";
 
@@ -105,29 +106,39 @@ export async function createPoll(
 // 마감된 투표는 DB(RLS)가 표 변경을 막는다. 그때는 이유를 돌려주고, 화면은 원래 선택으로 돌아간다.
 export async function toggleVote(optionId: string, vote: boolean): Promise<{ error?: string }> {
   const supabase = await createClient();
-  let applied: boolean;
   if (vote) {
     const { error } = await supabase.from("date_poll_votes").insert({ option_id: optionId });
     // 23505: 다른 창에서 이미 넣은 표라 결과는 같다.
-    applied = !error || error.code === "23505";
+    if (!error || error.code === "23505") return voteDone();
   } else {
     // 내 표만 지워진다. (RLS) 마감됐으면 오류 없이 0개가 지워진다.
     const { data, error } = await supabase.from("date_poll_votes").delete().eq("option_id", optionId).select("option_id");
-    applied = !error && data.length > 0;
+    if (!error && data.length > 0) return voteDone();
+    if (!error) {
+      // 0개: 내 표가 이미 없으면(다른 창에서 뺌) 결과는 같다. 남아 있으면 지우지 못한 것이다.
+      const userId = await getUserId();
+      const { count, error: mineError } = await supabase
+        .from("date_poll_votes")
+        .select("option_id", { count: "exact", head: true })
+        .eq("option_id", optionId)
+        .eq("user_id", userId);
+      if (!mineError && count === 0) return voteDone();
+    }
   }
 
-  if (!applied) {
-    const { data: option } = await supabase
-      .from("date_poll_options")
-      .select("date_polls(closed_at)")
-      .eq("id", optionId)
-      .maybeSingle();
-    const poll = option?.date_polls as { closed_at: string | null } | { closed_at: string | null }[] | null | undefined;
-    const closedAt = Array.isArray(poll) ? poll[0]?.closed_at : poll?.closed_at;
-    if (closedAt) return { error: "투표가 마감돼서 반영하지 못했어요." };
-    // 빼려던 표가 이미 없으면(다른 창에서 뺌) 결과는 같다.
-    if (vote) return { error: "표를 반영하지 못했어요. 잠시 뒤 다시 시도해 주세요." };
-  }
+  // 반영되지 않았다. 마감 때문이면 그렇게 알려 준다.
+  const { data: option } = await supabase
+    .from("date_poll_options")
+    .select("date_polls(closed_at)")
+    .eq("id", optionId)
+    .maybeSingle();
+  const poll = option?.date_polls as { closed_at: string | null } | { closed_at: string | null }[] | null | undefined;
+  const closedAt = Array.isArray(poll) ? poll[0]?.closed_at : poll?.closed_at;
+  if (closedAt) return { error: "투표가 마감돼서 반영하지 못했어요." };
+  return { error: "표를 반영하지 못했어요. 잠시 뒤 다시 시도해 주세요." };
+}
+
+function voteDone() {
   refresh();
   return {};
 }
