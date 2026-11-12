@@ -51,7 +51,8 @@ function MyEventsSection({ mode, calendar }: { mode: ViewMode; calendar: Calenda
         <ViewToggle basePath="/" mode={mode} defaultMode="calendar" />
       </div>
       <SlideView key={mode}>
-        <Suspense fallback={<GhostLoading className="h-80" />}>
+        {/* 목록은 비어 있으면 안내 한 줄(약 86px)뿐이라, 캘린더만큼 자리를 잡으면 다 불러온 뒤 스크롤이 위로 튄다. */}
+        <Suspense fallback={<GhostLoading className={mode === "calendar" ? "h-80" : "h-32"} />}>
           {mode === "calendar" ? <MyCalendar {...calendar} /> : <MyEvents />}
         </Suspense>
       </SlideView>
