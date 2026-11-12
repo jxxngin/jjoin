@@ -144,8 +144,11 @@ class MembershipChecksIT extends SupabaseIT {
 	@Test
 	void 계정_삭제가_실패하면_그룹과_참여_기록도_그대로다() {
 		var id = event(host, Instant.now().plus(10, ChronoUnit.DAYS));
-		owner.sql("insert into public.event_participants (event_id, user_id, status) values (:e, :u, 'going')")
-				.param("e", id).param("u", host).update();
+		// 약속을 만들면 만든 사람이 자동으로 참여하지만, 확실히 하려고 참여 상태를 맞춘다.
+		owner.sql("""
+				insert into public.event_participants (event_id, user_id, status) values (:e, :u, 'going')
+				on conflict (event_id, user_id) do update set status = 'going'
+				""").param("e", id).param("u", host).update();
 		// 계정 삭제를 막는 참조를 잠깐 만들어 delete_account의 마지막 단계를 실패시킨다.
 		owner.sql("create table public.block_delete (user_id uuid references auth.users (id) on delete restrict)").update();
 		try {
