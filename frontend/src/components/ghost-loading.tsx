@@ -12,6 +12,8 @@ export function GhostLoading({ children }: { children: ReactNode }) {
     <div className="ghost-loading relative w-full">
       <div className="ghost-loading-skeleton">{children}</div>
       <div className="ghost-loading-ghost" role="status">
+        {/* 7KB SVG라 next/image 최적화가 필요 없고, SVG 안의 애니메이션을 그대로 살리려고 <img>를 쓴다. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/loading/mascot.svg" width={72} height={81} alt="" />
         <span className="text-sm text-stone-500">불러오는 중…</span>
       </div>
