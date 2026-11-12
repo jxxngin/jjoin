@@ -127,20 +127,52 @@ class MembershipChecksIT extends SupabaseIT {
 	}
 
 	@Test
-	void 탈퇴_준비를_하면_방장_역할도_내려간다() {
-		asUser(host, "select public.prepare_account_deletion()");
+	void 탈퇴하면_방장이_넘어가고_계정이_지워진다() {
+		owner.sql("select public.delete_account(:u)").param("u", host).query().singleRow();
 
 		var roles = owner.sql("select user_id, role from public.group_members where group_id = :g").param("g", group).query().listOfRows();
-		assertThat(roles).anySatisfy(row -> {
-			assertThat(row.get("user_id")).isEqualTo(host);
-			assertThat(row.get("role")).isEqualTo("member");
-		});
-		assertThat(roles).anySatisfy(row -> {
+		assertThat(roles).singleElement().satisfies(row -> {
 			assertThat(row.get("user_id")).isEqualTo(friend);
 			assertThat(row.get("role")).isEqualTo("owner");
 		});
 		var newOwner = owner.sql("select owner_id from public.groups where id = :g").param("g", group).query().singleRow().get("owner_id");
 		assertThat(newOwner).isEqualTo(friend);
+		var left = owner.sql("select count(*) from auth.users where id = :u").param("u", host).query(Long.class).single();
+		assertThat(left).isZero();
+	}
+
+	@Test
+	void 계정_삭제가_실패하면_그룹과_참여_기록도_그대로다() {
+		var id = event(host, Instant.now().plus(10, ChronoUnit.DAYS));
+		owner.sql("insert into public.event_participants (event_id, user_id, status) values (:e, :u, 'going')")
+				.param("e", id).param("u", host).update();
+		// 계정 삭제를 막는 참조를 잠깐 만들어 delete_account의 마지막 단계를 실패시킨다.
+		owner.sql("create table public.block_delete (user_id uuid references auth.users (id) on delete restrict)").update();
+		try {
+			owner.sql("insert into public.block_delete values (:u)").param("u", host).update();
+
+			assertThatThrownBy(() -> owner.sql("select public.delete_account(:u)").param("u", host).query().singleRow());
+		} finally {
+			owner.sql("drop table public.block_delete").update();
+		}
+
+		var groupOwner = owner.sql("select owner_id from public.groups where id = :g").param("g", group).query().singleRow().get("owner_id");
+		assertThat(groupOwner).isEqualTo(host);
+		var hostRole = owner.sql("select role from public.group_members where group_id = :g and user_id = :u")
+				.param("g", group).param("u", host).query(String.class).single();
+		assertThat(hostRole).isEqualTo("owner");
+		var going = owner.sql("select count(*) from public.event_participants where event_id = :e and user_id = :u")
+				.param("e", id).param("u", host).query(Long.class).single();
+		assertThat(going).isEqualTo(1);
+	}
+
+	@Test
+	void 앱에서는_탈퇴_준비만_따로_부를_수_없다() {
+		assertThatThrownBy(() -> asUser(host, "select public.prepare_account_deletion()"));
+		assertThatThrownBy(() -> asUser(host, "select public.delete_account(?)", host));
+
+		var groupOwner = owner.sql("select owner_id from public.groups where id = :g").param("g", group).query().singleRow().get("owner_id");
+		assertThat(groupOwner).isEqualTo(host);
 	}
 
 }

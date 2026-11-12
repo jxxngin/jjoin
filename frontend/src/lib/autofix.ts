@@ -28,18 +28,28 @@ export async function dispatchAutofix(inquiryId: string, { force = false } = {})
     return;
   }
   if (reserved !== true) return;
-  const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-    body: JSON.stringify({ event_type: "inquiry-bug", client_payload: { inquiry_id: inquiryId } }),
-  });
-  if (!response.ok) {
-    console.error("자동 수정 작업을 깨우지 못했어요", response.status);
-    await admin.from("inquiries").update({ auto_fix_status: "failed" }).eq("id", inquiryId);
+  // HTTP 오류든 네트워크 오류든 작업이 시작되지 않았으면 'failed'로 남긴다.
+  // (pending으로 남으면 한도만 차지하고 실패 요약에도 안 나온다)
+  let failure: unknown = null;
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({ event_type: "inquiry-bug", client_payload: { inquiry_id: inquiryId } }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) failure = response.status;
+  } catch (e) {
+    failure = e;
+  }
+  if (failure !== null) {
+    console.error("자동 수정 작업을 깨우지 못했어요", failure);
+    const { error: markError } = await admin.from("inquiries").update({ auto_fix_status: "failed" }).eq("id", inquiryId);
+    if (markError) console.error("자동 수정 실패를 기록하지 못했어요", markError);
   }
 }
 

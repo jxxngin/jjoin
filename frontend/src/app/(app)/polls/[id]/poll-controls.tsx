@@ -4,27 +4,38 @@ import { useOptimistic, useState, useTransition } from "react";
 import { closePoll, confirmPoll, deletePoll, reopenPoll, toggleVote } from "../actions";
 
 // 후보 날짜 옆 투표 버튼. 누르는 즉시 체크가 바뀌고, 서버 반영은 뒤에서 한다.
+// 반영되지 않으면(투표 마감 등) 원래 선택으로 돌아가고 이유를 버튼 아래에 보여 준다.
 export function VoteButton({ optionId, voted }: { optionId: string; voted: boolean }) {
   const [optimistic, setOptimistic] = useOptimistic(voted);
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string>();
 
   return (
-    <button
-      type="button"
-      disabled={pending}
-      aria-pressed={optimistic}
-      onClick={() =>
-        startTransition(async () => {
-          setOptimistic(!optimistic);
-          await toggleVote(optionId, !optimistic);
-        })
-      }
-      className={`flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-medium transition active:scale-95 ${
-        optimistic ? "bg-brand text-white" : "bg-stone-100 text-stone-600 dark:bg-stone-900 dark:text-stone-300"
-      }`}
-    >
-      {optimistic ? "✓ 가능" : "가능해요"}
-    </button>
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={pending}
+        aria-pressed={optimistic}
+        onClick={() =>
+          startTransition(async () => {
+            setError(undefined);
+            setOptimistic(!optimistic);
+            const result = await toggleVote(optionId, !optimistic);
+            if (result.error) setError(result.error);
+          })
+        }
+        className={`flex h-9 shrink-0 items-center gap-1 rounded-full px-3 text-sm font-medium transition active:scale-95 ${
+          optimistic ? "bg-brand text-white" : "bg-stone-100 text-stone-600 dark:bg-stone-900 dark:text-stone-300"
+        }`}
+      >
+        {optimistic ? "✓ 가능" : "가능해요"}
+      </button>
+      {error && (
+        <p role="alert" className="text-right text-xs text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

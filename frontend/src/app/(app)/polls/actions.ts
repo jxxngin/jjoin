@@ -102,15 +102,34 @@ export async function createPoll(
 }
 
 // 내 표를 넣거나 뺀다. 여러 날짜에 투표할 수 있다.
-export async function toggleVote(optionId: string, vote: boolean) {
+// 마감된 투표는 DB(RLS)가 표 변경을 막는다. 그때는 이유를 돌려주고, 화면은 원래 선택으로 돌아간다.
+export async function toggleVote(optionId: string, vote: boolean): Promise<{ error?: string }> {
   const supabase = await createClient();
+  let applied: boolean;
   if (vote) {
-    await supabase.from("date_poll_votes").insert({ option_id: optionId });
+    const { error } = await supabase.from("date_poll_votes").insert({ option_id: optionId });
+    // 23505: 다른 창에서 이미 넣은 표라 결과는 같다.
+    applied = !error || error.code === "23505";
   } else {
-    // 내 표만 지워진다. (RLS)
-    await supabase.from("date_poll_votes").delete().eq("option_id", optionId);
+    // 내 표만 지워진다. (RLS) 마감됐으면 오류 없이 0개가 지워진다.
+    const { data, error } = await supabase.from("date_poll_votes").delete().eq("option_id", optionId).select("option_id");
+    applied = !error && data.length > 0;
+  }
+
+  if (!applied) {
+    const { data: option } = await supabase
+      .from("date_poll_options")
+      .select("date_polls(closed_at)")
+      .eq("id", optionId)
+      .maybeSingle();
+    const poll = option?.date_polls as { closed_at: string | null } | { closed_at: string | null }[] | null | undefined;
+    const closedAt = Array.isArray(poll) ? poll[0]?.closed_at : poll?.closed_at;
+    if (closedAt) return { error: "투표가 마감돼서 반영하지 못했어요." };
+    // 빼려던 표가 이미 없으면(다른 창에서 뺌) 결과는 같다.
+    if (vote) return { error: "표를 반영하지 못했어요. 잠시 뒤 다시 시도해 주세요." };
   }
   refresh();
+  return {};
 }
 
 export async function closePoll(pollId: string): Promise<{ error?: string }> {
