@@ -12,7 +12,7 @@ export default function DeleteAccountPage() {
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/me" label="마이페이지" />
       <h1 className="text-2xl font-bold tracking-tight">회원 탈퇴</h1>
-      <Suspense fallback={<GhostLoading><div className="h-64 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
+      <Suspense fallback={<GhostLoading className="h-64" />}>
         <DeleteAccountContent />
       </Suspense>
     </Page>

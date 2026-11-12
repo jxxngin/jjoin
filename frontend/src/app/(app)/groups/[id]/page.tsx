@@ -28,7 +28,7 @@ export default function GroupPage({ params, searchParams }: PageProps<"/groups/[
   return (
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/" label="내 그룹" />
-      <Suspense fallback={<GhostLoading><GroupSkeleton /></GhostLoading>}>
+      <Suspense fallback={<GhostLoading className="h-80" />}>
         {Promise.all([params, searchParams]).then(([{ id }, query]) => (
           <GroupContent
             id={id}
@@ -154,16 +154,6 @@ async function GroupCalendar({ groupId, range, date }: { groupId: string } & Cal
         items={events.map((event) => ({ event }))}
       />
     </SlideView>
-  );
-}
-
-function GroupSkeleton() {
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="h-8 w-40 animate-pulse rounded-lg bg-stone-100 dark:bg-stone-900" />
-      <div className="h-12 animate-pulse rounded-xl bg-stone-100 dark:bg-stone-900" />
-      <div className="h-32 animate-pulse rounded-xl bg-stone-100 dark:bg-stone-900" />
-    </div>
   );
 }
 

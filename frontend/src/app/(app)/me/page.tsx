@@ -14,7 +14,7 @@ export default function MyPage() {
       <BackLink href="/" label="홈" />
       <h1 className="text-2xl font-bold tracking-tight">마이페이지</h1>
 
-      <Suspense fallback={<GhostLoading><div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
+      <Suspense fallback={<GhostLoading className="h-80" />}>
         <ProfileSection />
       </Suspense>
 

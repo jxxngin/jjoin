@@ -184,8 +184,8 @@ body {
   }
 }
 
-/* 화면 로딩: 0.3초가 지나면 뼈대를 흐리게 하고 가운데 유령을 띄운다. (components/ghost-loading.tsx)
-   유령은 뼈대 가운데에 둔다. (화면 전환 애니메이션 중에는 fixed가 전환 레이어 기준이 되어 위치가 틀어진다) */
+/* 화면 로딩: 0.3초가 지나도 안 끝나면 잡아 둔 빈 자리 가운데에 마스코트를 띄운다. (components/ghost-loading.tsx)
+   마스코트는 그 자리 가운데에 둔다. (화면 전환 애니메이션 중에는 fixed가 전환 레이어 기준이 되어 위치가 틀어진다) */
 .ghost-loading-ghost {
   position: absolute;
   inset: 0;
@@ -198,9 +198,6 @@ body {
   opacity: 0;
   animation: ghost-loading-in 0.25s ease-out 0.3s forwards;
 }
-.ghost-loading-skeleton {
-  animation: ghost-loading-dim 0.25s ease-out 0.3s forwards;
-}
 @keyframes ghost-loading-in {
   from {
     opacity: 0;
@@ -211,18 +208,9 @@ body {
     scale: 1;
   }
 }
-@keyframes ghost-loading-dim {
-  to {
-    opacity: 0.45;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .ghost-loading-ghost {
     animation: none;
     opacity: 1;
-  }
-  .ghost-loading-skeleton {
-    animation: none;
-    opacity: 0.45;
   }
 }

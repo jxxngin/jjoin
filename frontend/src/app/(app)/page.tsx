@@ -26,9 +26,8 @@ export default function Home({ searchParams }: PageProps<"/">) {
         fallback={
           <section className="flex flex-col gap-3">
             <h2 className="font-semibold">내 약속</h2>
-            <GhostLoading>
-              <GroupListSkeleton />
-            </GhostLoading>
+            {/* 아직 목록인지 캘린더인지 모르므로 낮게 잡는다. 캘린더로 확인되면 안쪽 로딩이 h-80을 잡는다. */}
+            <GhostLoading className="h-32" />
           </section>
         }
       >
@@ -53,7 +52,8 @@ function MyEventsSection({ mode, calendar }: { mode: ViewMode; calendar: Calenda
         <ViewToggle basePath="/" mode={mode} defaultMode="calendar" />
       </div>
       <SlideView key={mode}>
-        <Suspense fallback={<GhostLoading><GroupListSkeleton /></GhostLoading>}>
+        {/* 목록은 비어 있으면 안내 한 줄(약 86px)뿐이라, 캘린더만큼 자리를 잡으면 다 불러온 뒤 스크롤이 위로 튄다. */}
+        <Suspense fallback={<GhostLoading className={mode === "calendar" ? "h-80" : "h-32"} />}>
           {mode === "calendar" ? <MyCalendar {...calendar} /> : <MyEvents />}
         </Suspense>
       </SlideView>
@@ -131,15 +131,6 @@ function GroupRowSkeleton() {
       {Array.from({ length: 4 }, (_, i) => (
         <div key={i} className="size-[62px] animate-pulse rounded-full bg-stone-100 dark:bg-stone-900" />
       ))}
-    </div>
-  );
-}
-
-function GroupListSkeleton() {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="h-14 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />
-      <div className="h-14 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />
     </div>
   );
 }
