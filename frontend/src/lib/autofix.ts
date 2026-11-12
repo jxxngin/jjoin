@@ -1,0 +1,66 @@
+import "server-only";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+// 오류 신고 자동 수정. 새 오류 신고가 들어오면 GitHub Actions(.github/workflows/inquiry-autofix.yml)를 깨운다.
+// GitHub에는 문의 번호만 보내고, 내용은 작업이 AUTOFIX_SECRET으로 /api/autofix/inquiry/<id>에서 받아 간다.
+// 작업은 수정안(PR)만 만들고, 운영 배포는 관리자가 PR을 확인하고 Merge할 때 된다.
+
+// 자동 수정은 관리자의 Claude 구독 사용량을 같이 쓰므로 24시간에 이만큼만 깨운다.
+// 넘으면 'capped'로 두고, 관리자가 문의 화면에서 직접 다시 실행할 수 있다. (force)
+export const DAILY_AUTOFIX_LIMIT = 3;
+
+export async function dispatchAutofix(inquiryId: string, { force = false } = {}) {
+  const token = process.env.GITHUB_DISPATCH_TOKEN;
+  // 토큰이 없으면(로컬 개발 등) 자동 수정을 건너뛴다.
+  if (!token) return;
+  const repo = process.env.GITHUB_REPOSITORY ?? "jxxngin/jjoin";
+
+  const admin = createAdminClient();
+  // 한도 확인과 실행 기록을 DB 함수 하나로 한다. 동시에 들어온 신고도 잠금으로 하나씩 세서 한도를 넘지 않는다. (0041, 0043)
+  // 돌려받는 값은 이번 시도의 예약 시각(auto_fix_at)이다. null이면 한도를 넘어 'capped'로 기록됐거나 문의가 없어서 깨우지 않는다.
+  const { data: reservedAt, error } = await admin.rpc("reserve_autofix_at", {
+    p_inquiry: inquiryId,
+    p_limit: DAILY_AUTOFIX_LIMIT,
+    p_force: force,
+  });
+  if (error) {
+    console.error("자동 수정 예약을 하지 못했어요", error);
+    return;
+  }
+  if (typeof reservedAt !== "string") return;
+  // HTTP 오류든 네트워크 오류든 작업이 시작되지 않았으면 'failed'로 남긴다.
+  // (pending으로 남으면 한도만 차지하고 실패 요약에도 안 나온다)
+  let failure: unknown = null;
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({ event_type: "inquiry-bug", client_payload: { inquiry_id: inquiryId } }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) failure = response.status;
+  } catch (e) {
+    failure = e;
+  }
+  if (failure !== null) {
+    console.error("자동 수정 작업을 깨우지 못했어요", failure);
+    // 이번 시도가 아직 대기 중일 때만 실패로 바꾼다. 그 사이 같은 문의를 다시 예약했으면 auto_fix_at이 달라져서 건드리지 않는다.
+    const { error: markError } = await admin
+      .from("inquiries")
+      .update({ auto_fix_status: "failed" })
+      .eq("id", inquiryId)
+      .eq("auto_fix_status", "pending")
+      .eq("auto_fix_at", reservedAt);
+    if (markError) console.error("자동 수정 실패를 기록하지 못했어요", markError);
+  }
+}
+
+// /api/autofix/* 요청이 GitHub 작업에서 온 것인지 확인한다.
+export function isAutofixRequest(request: Request) {
+  const secret = process.env.AUTOFIX_SECRET;
+  return Boolean(secret) && request.headers.get("authorization") === `Bearer ${secret}`;
+}
