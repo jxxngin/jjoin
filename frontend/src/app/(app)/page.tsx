@@ -26,7 +26,8 @@ export default function Home({ searchParams }: PageProps<"/">) {
         fallback={
           <section className="flex flex-col gap-3">
             <h2 className="font-semibold">내 약속</h2>
-            <GhostLoading className="h-80" />
+            {/* 아직 목록인지 캘린더인지 모르므로 낮게 잡는다. 캘린더로 확인되면 안쪽 로딩이 h-80을 잡는다. */}
+            <GhostLoading className="h-32" />
           </section>
         }
       >
