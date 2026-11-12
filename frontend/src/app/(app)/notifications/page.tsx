@@ -27,7 +27,7 @@ export default function NotificationsPage() {
       <Suspense fallback={<div className="h-12 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />}>
         <SettingsSection />
       </Suspense>
-      <Suspense fallback={<GhostLoading><NotificationsSkeleton /></GhostLoading>}>
+      <Suspense fallback={<GhostLoading className="h-72" />}>
         <NotificationList />
       </Suspense>
     </Page>
@@ -100,15 +100,5 @@ async function SettingsSection() {
         <NotificationSettings prefs={prefs} />
       </div>
     </details>
-  );
-}
-
-function NotificationsSkeleton() {
-  return (
-    <div className="flex flex-col gap-2">
-      {Array.from({ length: 4 }, (_, i) => (
-        <div key={i} className="h-16 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />
-      ))}
-    </div>
   );
 }

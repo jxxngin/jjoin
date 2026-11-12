@@ -36,7 +36,7 @@ const timeFormat = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", ho
 export default function PollPage({ params, searchParams }: PageProps<"/polls/[id]">) {
   return (
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
-      <Suspense fallback={<GhostLoading><div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
+      <Suspense fallback={<GhostLoading className="h-80" />}>
         {Promise.all([params, searchParams]).then(([{ id }, query]) => (
           <PollContent id={id} invite={typeof query.invite === "string" ? query.invite : null} />
         ))}

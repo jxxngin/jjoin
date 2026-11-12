@@ -10,7 +10,7 @@ export default function InvitePage({ params }: PageProps<"/invite/[code]">) {
   return (
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-6 px-4 py-16 text-center">
       <Suspense
-        fallback={<GhostLoading><div className="h-40 w-full animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}
+        fallback={<GhostLoading className="h-40" />}
       >
         {params.then(({ code }) => (
           <InviteContent code={code} />
