@@ -12,7 +12,7 @@ export default function ClientErrorsPage() {
     <Page className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6">
       <BackLink href="/support/admin" label="전체 문의" />
       <h1 className="text-2xl font-bold tracking-tight">화면 오류 기록</h1>
-      <Suspense fallback={<GhostLoading><div className="h-80 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" /></GhostLoading>}>
+      <Suspense fallback={<GhostLoading className="h-80" />}>
         <ErrorList />
       </Suspense>
     </Page>

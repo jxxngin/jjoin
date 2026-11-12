@@ -26,9 +26,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
         fallback={
           <section className="flex flex-col gap-3">
             <h2 className="font-semibold">내 약속</h2>
-            <GhostLoading>
-              <GroupListSkeleton />
-            </GhostLoading>
+            <GhostLoading className="h-80" />
           </section>
         }
       >
@@ -53,7 +51,7 @@ function MyEventsSection({ mode, calendar }: { mode: ViewMode; calendar: Calenda
         <ViewToggle basePath="/" mode={mode} defaultMode="calendar" />
       </div>
       <SlideView key={mode}>
-        <Suspense fallback={<GhostLoading><GroupListSkeleton /></GhostLoading>}>
+        <Suspense fallback={<GhostLoading className="h-80" />}>
           {mode === "calendar" ? <MyCalendar {...calendar} /> : <MyEvents />}
         </Suspense>
       </SlideView>
@@ -131,15 +129,6 @@ function GroupRowSkeleton() {
       {Array.from({ length: 4 }, (_, i) => (
         <div key={i} className="size-[62px] animate-pulse rounded-full bg-stone-100 dark:bg-stone-900" />
       ))}
-    </div>
-  );
-}
-
-function GroupListSkeleton() {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="h-14 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />
-      <div className="h-14 animate-pulse rounded-2xl bg-stone-100 dark:bg-stone-900" />
     </div>
   );
 }
