@@ -13,12 +13,17 @@ export async function POST(request: Request) {
   const raw = await request.text();
   if (raw.length > MAX_BODY) return Response.json({ ok: false }, { status: 413 });
 
-  let body: Record<string, unknown>;
+  let parsed: unknown;
   try {
-    body = JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     return Response.json({ ok: false }, { status: 400 });
   }
+  // null·배열·숫자처럼 객체가 아닌 JSON도 잘못된 요청이다.
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return Response.json({ ok: false }, { status: 400 });
+  }
+  const body = parsed as Record<string, unknown>;
   if (typeof body.id !== "string" || !UUID.test(body.id)) {
     return Response.json({ ok: false }, { status: 400 });
   }

@@ -121,6 +121,27 @@ class AutofixIT extends SupabaseIT {
 	}
 
 	@Test
+	void 이전_시도의_실패_기록은_다시_예약한_새_시도를_덮지_않는다() {
+		var first = owner.sql("select public.reserve_autofix_at(:id, 3, true)").param("id", bug).query(java.time.OffsetDateTime.class).single();
+		var stored = owner.sql("select auto_fix_at from public.inquiries where id = :id").param("id", bug).query(java.time.OffsetDateTime.class).single();
+		assertThat(first).isNotNull().isEqualTo(stored);
+
+		// 관리자가 같은 문의를 다시 실행했다. (예약은 각자 다른 트랜잭션이라 시각이 다르다)
+		var second = owner.sql("select public.reserve_autofix_at(:id, 3, true)").param("id", bug).query(java.time.OffsetDateTime.class).single();
+		assertThat(second).isAfter(first);
+
+		// 앞 시도가 늦게 실패한다: Next와 같은 조건(내 예약 시각 + 아직 pending)으로만 바꾼다.
+		var markFailed = "update public.inquiries set auto_fix_status = 'failed' where id = :id and auto_fix_status = 'pending' and auto_fix_at = :at";
+		var stale = owner.sql(markFailed).param("id", bug).param("at", first).update();
+		assertThat(stale).isZero();
+		var status = owner.sql("select auto_fix_status from public.inquiries where id = :id").param("id", bug).query(String.class).single();
+		assertThat(status).isEqualTo("pending");
+
+		// 지금 시도가 실패하면 실패로 바뀐다.
+		assertThat(owner.sql(markFailed).param("id", bug).param("at", second).update()).isEqualTo(1);
+	}
+
+	@Test
 	void 오류_신고_내용만_넘기고_작성자는_빼다() {
 		var report = service.bugReport(bug).orElseThrow();
 		assertThat(report).containsOnlyKeys("id", "category", "title", "body", "page_path", "user_agent", "created_at");

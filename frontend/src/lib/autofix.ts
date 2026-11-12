@@ -16,9 +16,9 @@ export async function dispatchAutofix(inquiryId: string, { force = false } = {})
   const repo = process.env.GITHUB_REPOSITORY ?? "jxxngin/jjoin";
 
   const admin = createAdminClient();
-  // 한도 확인과 실행 기록을 DB 함수 하나로 한다. 동시에 들어온 신고도 잠금으로 하나씩 세서 한도를 넘지 않는다. (0041)
-  // false면 한도를 넘어 'capped'로 기록됐거나 문의가 없어서 깨우지 않는다.
-  const { data: reserved, error } = await admin.rpc("reserve_autofix", {
+  // 한도 확인과 실행 기록을 DB 함수 하나로 한다. 동시에 들어온 신고도 잠금으로 하나씩 세서 한도를 넘지 않는다. (0041, 0043)
+  // 돌려받는 값은 이번 시도의 예약 시각(auto_fix_at)이다. null이면 한도를 넘어 'capped'로 기록됐거나 문의가 없어서 깨우지 않는다.
+  const { data: reservedAt, error } = await admin.rpc("reserve_autofix_at", {
     p_inquiry: inquiryId,
     p_limit: DAILY_AUTOFIX_LIMIT,
     p_force: force,
@@ -27,19 +27,35 @@ export async function dispatchAutofix(inquiryId: string, { force = false } = {})
     console.error("자동 수정 예약을 하지 못했어요", error);
     return;
   }
-  if (reserved !== true) return;
-  const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-    body: JSON.stringify({ event_type: "inquiry-bug", client_payload: { inquiry_id: inquiryId } }),
-  });
-  if (!response.ok) {
-    console.error("자동 수정 작업을 깨우지 못했어요", response.status);
-    await admin.from("inquiries").update({ auto_fix_status: "failed" }).eq("id", inquiryId);
+  if (typeof reservedAt !== "string") return;
+  // HTTP 오류든 네트워크 오류든 작업이 시작되지 않았으면 'failed'로 남긴다.
+  // (pending으로 남으면 한도만 차지하고 실패 요약에도 안 나온다)
+  let failure: unknown = null;
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repo}/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({ event_type: "inquiry-bug", client_payload: { inquiry_id: inquiryId } }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) failure = response.status;
+  } catch (e) {
+    failure = e;
+  }
+  if (failure !== null) {
+    console.error("자동 수정 작업을 깨우지 못했어요", failure);
+    // 이번 시도가 아직 대기 중일 때만 실패로 바꾼다. 그 사이 같은 문의를 다시 예약했으면 auto_fix_at이 달라져서 건드리지 않는다.
+    const { error: markError } = await admin
+      .from("inquiries")
+      .update({ auto_fix_status: "failed" })
+      .eq("id", inquiryId)
+      .eq("auto_fix_status", "pending")
+      .eq("auto_fix_at", reservedAt);
+    if (markError) console.error("자동 수정 실패를 기록하지 못했어요", markError);
   }
 }
 
